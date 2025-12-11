@@ -1,39 +1,173 @@
 {
   "expo": {
-    "name": "darshan_delights_mobile",
-    "slug": "darshan_delights_mobile",
+    "name": "Darshan Delights",
+    "slug": "darshan-delights-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "darshandelightsmobile",
+    "icon": "./assets/images/logo.png",
+    "scheme": "darshandelights",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ff9300"
     },
     "ios": {
-      "supportsTablet": true
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID to provide secure and convenient authentication for accessing your account.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "supportsTablet": true,
+      "bundleIdentifier": "com.darshandelights.identifier",
+      "associatedDomains": [
+        "applinks:darshandelights.com.au",
+        "applinks:www.darshandelights.com.au"
+      ],
+      "splash": {
+        "image": "./assets/images/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ff9300"
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/logo_square.png",
+        "backgroundColor": "#ff9300"
+      },
+      "package": "com.darshandelights.app",
+      "permissions": [
+        "USE_FINGERPRINT",
+        "USE_BIOMETRIC",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "com.android.launcher.permission.INSTALL_SHORTCUT"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/shop/products"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/shop/*"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/basket"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/orders"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/contact-us"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/faq"
+            },
+            {
+              "scheme": "https",
+              "host": "darshandelights.com.au",
+              "pathPrefix": "/product-recalls"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/shop/products"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/shop/*"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/basket"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/orders"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/contact-us"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/faq"
+            },
+            {
+              "scheme": "https",
+              "host": "www.darshandelights.com.au",
+              "pathPrefix": "/product-recalls"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "splash": {
+        "image": "./assets/images/splash.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#ff9300"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "useNextNotificationsApi": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/logo_square.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-local-authentication",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/logo.png",
+          "color": "#F97316",
+          "defaultChannel": "default"
+        }
+      ]
     ],
+    "notifications": {
+      "icon": "./assets/images/logo.png",
+      "color": "#F97316",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Darshan Delights"
+    },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d9dcf810-5b8e-4698-992a-f11a300d8f38"
+      }
+    },
+    "owner": "darshan-delights"
   }
 }
