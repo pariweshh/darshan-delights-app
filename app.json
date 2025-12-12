@@ -24,6 +24,9 @@
         "applinks:darshandelights.com.au",
         "applinks:www.darshandelights.com.au"
       ],
+      "entitlements": {
+        "aps-environment": "development"
+      },
       "splash": {
         "image": "./assets/images/splash.png",
         "resizeMode": "contain",
@@ -43,7 +46,8 @@
         "android.permission.USE_FINGERPRINT",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "com.android.launcher.permission.INSTALL_SHORTCUT"
+        "com.android.launcher.permission.INSTALL_SHORTCUT",
+        "POST_NOTIFICATIONS"
       ],
       "intentFilters": [
         {
@@ -82,11 +86,6 @@
             },
             {
               "scheme": "https",
-              "host": "darshandelights.com.au",
-              "pathPrefix": "/product-recalls"
-            },
-            {
-              "scheme": "https",
               "host": "www.darshandelights.com.au",
               "pathPrefix": "/shop/products"
             },
@@ -114,11 +113,6 @@
               "scheme": "https",
               "host": "www.darshandelights.com.au",
               "pathPrefix": "/faq"
-            },
-            {
-              "scheme": "https",
-              "host": "www.darshandelights.com.au",
-              "pathPrefix": "/product-recalls"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
@@ -140,7 +134,12 @@
     },
     "plugins": [
       "expo-router",
-      "expo-local-authentication",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Darshan Delights to use Face ID for secure authentication"
+        }
+      ],
       "expo-secure-store",
       "expo-font",
       "expo-web-browser",
@@ -149,7 +148,28 @@
         {
           "icon": "./assets/images/logo.png",
           "color": "#F97316",
-          "defaultChannel": "default"
+          "defaultChannel": "default",
+          "enableBackgroundRemoteNotifications": true
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deplymentTarget": "15.1"
+          },
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.darshandelights",
+          "enableGooglePay": true
         }
       ]
     ],

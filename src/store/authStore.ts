@@ -200,14 +200,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: "Authenticate to access your account",
+        promptMessage: "Authenticate to login",
         cancelLabel: "Cancel",
-        fallbackLabel: "Use Passcode",
+        fallbackLabel: "Use Password",
         disableDeviceFallback: false,
       })
 
       if (result.success) {
         const { identifier, password } = JSON.parse(storedCredentials)
+
         const loginRes = await signIn({ identifier, password })
 
         await setUserAuth(loginRes.jwt || "")

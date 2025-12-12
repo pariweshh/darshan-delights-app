@@ -48,7 +48,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
   const [stats, setStats] = useState<ReviewStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>("newest")
   const [showSortPicker, setShowSortPicker] = useState(false)
@@ -62,9 +62,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
    * Fetch reviews
    */
   const fetchReviews = useCallback(
-    async (pageNum: number = 1, sort: SortOption = sortBy) => {
+    async (pageNum: number = 0, sort: SortOption = sortBy) => {
       try {
-        if (pageNum === 1) {
+        if (pageNum === 0) {
           setIsLoading(true)
         } else {
           setIsLoadingMore(true)
@@ -124,7 +124,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
    * Initial fetch
    */
   useEffect(() => {
-    fetchReviews(1)
+    fetchReviews(0)
     checkUserReviewStatus()
   }, [fetchReviews, checkUserReviewStatus])
 
@@ -134,7 +134,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort)
     setShowSortPicker(false)
-    fetchReviews(1, sort)
+    fetchReviews(0, sort)
   }
 
   /**
@@ -153,7 +153,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
     setUserReview(review)
     setCanReview(false)
     // Refresh reviews list
-    fetchReviews(1)
+    fetchReviews(0)
   }
 
   /**
@@ -180,7 +180,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
       setCanReview(canUserReview)
       setReviewOrderId(orderId)
       // Refresh reviews
-      fetchReviews(1)
+      fetchReviews(0)
       Toast.show({
         type: "success",
         text1: "Deleted",

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 2,
     marginBottom: 24,
-    marginTop: -12,
+    // marginTop: -12,
     borderRadius: 14,
     overflow: "hidden",
     shadowColor: AppColors.primary[500],

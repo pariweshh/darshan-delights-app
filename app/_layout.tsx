@@ -1,3 +1,4 @@
+import ErrorBoundary from "@/src/components/common/ErrorBoundary"
 import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
@@ -36,6 +37,28 @@ import "../global.css"
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync()
+
+const logErrorToService = (error: Error, errorInfo: any) => {
+  // In development, log to console
+  if (__DEV__) {
+    console.error("=== APP ERROR ===")
+    console.error("Error:", error.message)
+    console.error("Stack:", error.stack)
+    console.error("Component Stack:", errorInfo.componentStack)
+    console.error("=================")
+  }
+
+  // In production, send to error reporting service
+  // Example Sentry integration:
+  // Sentry.captureException(error, {
+  //   extra: {
+  //     componentStack: errorInfo.componentStack,
+  //   },
+  // })
+
+  // Example Firebase Crashlytics:
+  // crashlytics().recordError(error)
+}
 
 export default function RootLayout() {
   const router = useRouter()
@@ -217,110 +240,122 @@ export default function RootLayout() {
   }
 
   return (
-    <StripeProvider publishableKey={publishableKey}>
-      <SafeAreaProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: "white" },
-              animation: "slide_from_right",
-            }}
-          >
-            {/* Entry point - handles routing logic */}
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-
-            {/* Auth group */}
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-
-            {/* Main app tabs */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-
-            <Stack.Screen
-              name="notifications"
-              options={{
-                headerShown: true,
-                presentation: "card",
-                title: "Notifications",
-                headerStyle: {
-                  backgroundColor: AppColors.background.primary,
-                },
-                headerTitleStyle: {
-                  fontFamily: "Poppins_600SemiBold",
-                  fontSize: 20,
-                  color: AppColors.text.primary,
-                },
-                headerTintColor: AppColors.primary[500],
-                headerShadowVisible: false,
-                headerLeft: () => (
-                  <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                    activeOpacity={0.7}
-                    className="flex-row items-center gap-1"
-                  >
-                    <Ionicons
-                      name="arrow-back"
-                      size={24}
-                      color={AppColors.primary[500]}
-                    />
-                    <Text className="text-lg font-medium">Back</Text>
-                  </TouchableOpacity>
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="favorites"
-              options={{
-                headerShown: true,
-                presentation: "card",
-                title: "Favorites",
-                headerStyle: {
-                  backgroundColor: AppColors.background.primary,
-                },
-                headerTitleStyle: {
-                  fontFamily: "Poppins_600SemiBold",
-                  fontSize: 20,
-                  color: AppColors.text.primary,
-                },
-                headerTintColor: AppColors.primary[500],
-                headerShadowVisible: false,
-                headerLeft: () => (
-                  <TouchableOpacity
-                    onPress={() => router.back()}
-                    style={styles.backButton}
-                    activeOpacity={0.7}
-                    className="flex-row items-center gap-1"
-                  >
-                    <Ionicons
-                      name="arrow-back"
-                      size={24}
-                      color={AppColors.primary[500]}
-                    />
-                    <Text className="text-lg font-medium">Back</Text>
-                  </TouchableOpacity>
-                ),
-              }}
-            />
-
-            {/* Product detail */}
-            <Stack.Screen
-              name="product/[id]"
-              options={{
+    <ErrorBoundary onError={logErrorToService}>
+      <StripeProvider publishableKey={publishableKey}>
+        <SafeAreaProvider>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <Stack
+              screenOptions={{
                 headerShown: false,
-                presentation: "card",
+                contentStyle: { backgroundColor: "white" },
+                animation: "slide_from_right",
               }}
-            />
+            >
+              {/* Entry point - handles routing logic */}
+              <Stack.Screen name="index" options={{ headerShown: false }} />
 
-            {/* 404 */}
-            <Stack.Screen name="+not-found" />
-          </Stack>
+              {/* Auth group */}
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
 
-          <StatusBar style="dark" />
-          <Toast />
-        </GestureHandlerRootView>
-      </SafeAreaProvider>
-    </StripeProvider>
+              {/* Main app tabs */}
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+              <Stack.Screen
+                name="notifications"
+                options={{
+                  headerShown: true,
+                  presentation: "card",
+                  title: "Notifications",
+                  headerStyle: {
+                    backgroundColor: AppColors.background.primary,
+                  },
+                  headerTitleStyle: {
+                    fontFamily: "Poppins_600SemiBold",
+                    fontSize: 20,
+                    color: AppColors.text.primary,
+                  },
+                  headerTintColor: AppColors.primary[500],
+                  headerShadowVisible: false,
+                  headerLeft: () => (
+                    <TouchableOpacity
+                      onPress={() => router.back()}
+                      style={styles.backButton}
+                      activeOpacity={0.7}
+                      className="flex-row items-center gap-1"
+                    >
+                      <Ionicons
+                        name="arrow-back"
+                        size={24}
+                        color={AppColors.primary[500]}
+                      />
+                      <Text className="text-lg font-medium">Back</Text>
+                    </TouchableOpacity>
+                  ),
+                }}
+              />
+              <Stack.Screen
+                name="favorites"
+                options={{
+                  headerShown: true,
+                  presentation: "card",
+                  title: "Favorites",
+                  headerStyle: {
+                    backgroundColor: AppColors.background.primary,
+                  },
+                  headerTitleStyle: {
+                    fontFamily: "Poppins_600SemiBold",
+                    fontSize: 20,
+                    color: AppColors.text.primary,
+                  },
+                  headerTintColor: AppColors.primary[500],
+                  headerShadowVisible: false,
+                  headerLeft: () => (
+                    <TouchableOpacity
+                      onPress={() => router.back()}
+                      style={styles.backButton}
+                      activeOpacity={0.7}
+                      className="flex-row items-center gap-1"
+                    >
+                      <Ionicons
+                        name="arrow-back"
+                        size={24}
+                        color={AppColors.primary[500]}
+                      />
+                      <Text className="text-lg font-medium">Back</Text>
+                    </TouchableOpacity>
+                  ),
+                }}
+              />
+
+              {/* Product detail */}
+              <Stack.Screen
+                name="product/[id]"
+                options={{
+                  headerShown: false,
+                  presentation: "card",
+                }}
+              />
+
+              {/* Payment success */}
+              <Stack.Screen
+                name="payment-success"
+                options={{
+                  headerShown: false,
+                  animation: "fade",
+                  gestureEnabled: false,
+                }}
+              />
+
+              {/* 404 */}
+              <Stack.Screen name="+not-found" />
+            </Stack>
+
+            <StatusBar style="dark" />
+            <Toast />
+          </GestureHandlerRootView>
+        </SafeAreaProvider>
+      </StripeProvider>
+    </ErrorBoundary>
   )
 }
 

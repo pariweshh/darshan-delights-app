@@ -50,7 +50,7 @@ export default function ProductReviewsScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [sortBy, setSortBy] = useState<SortOption>("newest")
   const [showSortPicker, setShowSortPicker] = useState(false)
@@ -63,7 +63,7 @@ export default function ProductReviewsScreen() {
 
   // Fetch reviews
   const fetchReviews = useCallback(
-    async (pageNum: number = 1, sort: SortOption = sortBy, refresh = false) => {
+    async (pageNum: number = 0, sort: SortOption = sortBy, refresh = false) => {
       if (!id) return
 
       try {
@@ -130,13 +130,13 @@ export default function ProductReviewsScreen() {
 
   // Initial fetch
   useEffect(() => {
-    fetchReviews(1)
+    fetchReviews(0)
     checkUserReviewStatus()
   }, [])
 
   // Handlers
   const handleRefresh = () => {
-    fetchReviews(1, sortBy, true)
+    fetchReviews(0, sortBy, true)
   }
 
   const handleLoadMore = () => {
@@ -148,13 +148,13 @@ export default function ProductReviewsScreen() {
   const handleSortChange = (sort: SortOption) => {
     setSortBy(sort)
     setShowSortPicker(false)
-    fetchReviews(1, sort)
+    fetchReviews(0, sort)
   }
 
   const handleReviewSuccess = (review: Review) => {
     setUserReview(review)
     setCanReview(false)
-    fetchReviews(1)
+    fetchReviews(0)
   }
 
   const handleEditReview = () => {
@@ -172,7 +172,7 @@ export default function ProductReviewsScreen() {
       setCanReview(result.canReview)
       setReviewOrderId(result.orderId)
 
-      fetchReviews(1)
+      fetchReviews(0)
 
       Toast.show({
         type: "success",

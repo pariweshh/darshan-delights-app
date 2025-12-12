@@ -30,6 +30,8 @@ export default function PaymentScreen() {
   const { orderData } = useLocalSearchParams()
   const parsedOrderData = JSON.parse(orderData as string)
 
+  console.log({ parsedOrderData })
+
   const { user, token } = useAuthStore()
   const { clearCart } = useCartStore()
   const { initPaymentSheet, presentPaymentSheet } = useStripe()
@@ -41,6 +43,7 @@ export default function PaymentScreen() {
   const discountAmount = parsedOrderData?.discountAmount || 0
 
   const calculateGST = useCallback((totalAmount: number): number => {
+    console.log(totalAmount)
     return (totalAmount * GST_RATE) / (100 + GST_RATE)
   }, [])
 

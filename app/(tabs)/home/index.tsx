@@ -252,7 +252,7 @@ export default function HomeScreen() {
         {token && user && (
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeText}>
-              Welcome back, {user.fName || user.username}! 👋
+              Welcome, {user.fName || user.username}! 👋
             </Text>
           </View>
         )}
@@ -271,6 +271,8 @@ export default function HomeScreen() {
           />
         </View>
 
+        <AppExclusiveBanner />
+
         {/* New Arrivals Section */}
         <View style={styles.section}>
           <SectionHeader
@@ -283,7 +285,15 @@ export default function HomeScreen() {
           />
         </View>
 
-        <AppExclusiveBanner />
+        <BrandPromoBanner
+          brandName="Katoomba"
+          tagline="Authentic Indian spices for every kitchen"
+          discount="20% off"
+          backgroundColor={
+            [AppColors.primary[400], AppColors.primary[300]] as const
+          }
+          accentColor="#fff"
+        />
 
         {/* Popular Products Section */}
         <View style={styles.section}>
@@ -296,16 +306,6 @@ export default function HomeScreen() {
             loading={popularLoading}
           />
         </View>
-
-        <BrandPromoBanner
-          brandName="Katoomba"
-          tagline="Authentic Indian spices for every kitchen"
-          discount="20% off"
-          backgroundColor={
-            [AppColors.primary[400], AppColors.primary[300]] as const
-          }
-          accentColor="#fff"
-        />
 
         {/* Dynamic Category Spotlight Banner */}
         {spotlightCategory && spotlightCategory.productCount > 0 && (

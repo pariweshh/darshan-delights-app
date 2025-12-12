@@ -143,7 +143,7 @@ export default function SelectShippingScreen() {
   const shippingCost =
     deliveryOption === "pickup" ? 0 : selectedShipping?.cost || 0
   const subtotalAfterDiscount = parsedOrderData?.subtotal - discountAmount
-  const total = subtotalAfterDiscount + shippingCost
+  const total = +(subtotalAfterDiscount + shippingCost).toFixed(2)
 
   // Update useEffect to auto-set shipping options when free shipping is unlocked:
   useEffect(() => {

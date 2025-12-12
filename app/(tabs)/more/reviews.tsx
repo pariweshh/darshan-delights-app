@@ -32,20 +32,20 @@ export default function MyReviewsScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
 
   /**
    * Fetch user reviews
    */
   const fetchReviews = useCallback(
-    async (pageNum: number = 1, refresh: boolean = false) => {
+    async (pageNum: number = 0, refresh: boolean = false) => {
       if (!token) return
 
       try {
         if (refresh) {
           setIsRefreshing(true)
-        } else if (pageNum === 1) {
+        } else if (pageNum === 0) {
           setIsLoading(true)
         } else {
           setIsLoadingMore(true)
@@ -53,7 +53,7 @@ export default function MyReviewsScreen() {
 
         const response = await getUserReviews(token, pageNum, PAGE_SIZE)
 
-        if (refresh || pageNum === 1) {
+        if (refresh || pageNum === 0) {
           setReviews(response.data)
         } else {
           setReviews((prev) => [...prev, ...response.data])
@@ -82,14 +82,14 @@ export default function MyReviewsScreen() {
    * Initial fetch
    */
   useEffect(() => {
-    fetchReviews(1)
+    fetchReviews(0)
   }, [])
 
   /**
    * Handle refresh
    */
   const handleRefresh = () => {
-    fetchReviews(1, true)
+    fetchReviews(0, true)
   }
 
   /**

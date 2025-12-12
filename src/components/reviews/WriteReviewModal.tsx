@@ -209,7 +209,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="Summarize your experience"
+              placeholder="Summarise your experience"
               placeholderTextColor={AppColors.gray[400]}
               maxLength={100}
             />

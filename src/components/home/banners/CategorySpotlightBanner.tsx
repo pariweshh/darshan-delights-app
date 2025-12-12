@@ -86,7 +86,7 @@ export default function CategorySpotlightBanner({
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 2,
-    marginTop: 0,
+    marginTop: -8,
     marginBottom: 24,
     borderRadius: 16,
     overflow: "hidden",

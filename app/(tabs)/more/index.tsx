@@ -17,6 +17,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
+import { useNotificationStore } from "@/src/store/notificationStore"
 import { shareApp } from "@/src/utils/share"
 
 interface MenuItemProps {
@@ -84,6 +85,7 @@ const MenuSection: React.FC<{ title?: string; children: React.ReactNode }> = ({
 export default function MoreScreen() {
   const router = useRouter()
   const { user, token, logout, isLoading } = useAuthStore()
+  const { unreadCount } = useNotificationStore()
 
   const appVersion = Constants.expoConfig?.version || "1.0.0"
 
@@ -311,6 +313,7 @@ export default function MoreScreen() {
             icon="notifications-outline"
             label="Notifications"
             onPress={handleGoToNotifications}
+            badge={unreadCount}
           />
           <View style={styles.menuDivider} />
           <MenuItem

@@ -11,7 +11,7 @@ import api from "./client"
  */
 export async function getProductReviews(
   productId: number,
-  page: number = 1,
+  page: number = 0,
   pageSize: number = 10,
   sortBy: "newest" | "oldest" | "highest" | "lowest" = "newest"
 ): Promise<ProductReviewsResponse> {
@@ -164,7 +164,7 @@ export async function markReviewHelpful(
  */
 export async function getUserReviews(
   token: string,
-  page: number = 1,
+  page: number = 0,
   pageSize: number = 10
 ): Promise<{ data: Review[]; meta: any }> {
   const response = await api.get("/reviews/user", {

@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router"
+import { usePathname, useRouter } from "expo-router"
 import React, { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
@@ -30,6 +30,8 @@ const PAGE_SIZE = 20
 
 export default function NotificationsScreenTab() {
   const router = useRouter()
+  const pathname = usePathname()
+
   const { token } = useAuthStore()
   const {
     notifications,
@@ -132,6 +134,7 @@ export default function NotificationsScreenTab() {
    * Handle notification press
    */
   const handleNotificationPress = async (notification: Notification) => {
+    console.log({ notification })
     // Mark as read if unread
     if (!notification.isRead && token) {
       try {
@@ -144,7 +147,7 @@ export default function NotificationsScreenTab() {
     }
 
     // Navigate based on notification type
-    if (notification.actionUrl) {
+    if (notification.actionUrl && pathname !== "/more/notifications") {
       router.push(notification.actionUrl as any)
     } else if (notification.order) {
       router.push(`/(tabs)/more/orders?orderId=${notification.order.id}`)

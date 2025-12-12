@@ -122,7 +122,7 @@ export default function ProductDetailScreen() {
 
     setReviewsLoading(true)
     try {
-      const response = await getProductReviews(product.id, 1, 10, "newest")
+      const response = await getProductReviews(product.id, 0, 10, "newest")
       setReviews(response.data)
       setReviewStats(response.stats)
     } catch (err) {
@@ -741,6 +741,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -20,
+    marginBottom: 12,
   },
   category: {
     fontFamily: "Poppins_500Medium",
