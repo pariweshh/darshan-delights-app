@@ -87,8 +87,6 @@ export const useCartStore = create<CartState>()(
               token
             )
 
-            console.log({ result })
-
             const itemIndex = state.cart.findIndex(
               (item) => item.basket_item_id === result.basket_item_id
             )

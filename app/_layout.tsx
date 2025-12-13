@@ -4,6 +4,7 @@ import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
 import { usePushNotifications } from "@/src/hooks/usePushNotifications"
 import { useAuthStore } from "@/src/store/authStore"
+import { useNotificationStore } from "@/src/store/notificationStore"
 import {
   Poppins_300Light,
   Poppins_400Regular,
@@ -15,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons"
 import { StripeProvider } from "@stripe/stripe-react-native"
 import { LinearGradient } from "expo-linear-gradient"
+import * as Notifications from "expo-notifications"
 import { Stack, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import * as SplashScreen from "expo-splash-screen"
@@ -23,6 +25,8 @@ import { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  AppStateStatus,
   Image,
   StyleSheet,
   Text,
@@ -205,6 +209,22 @@ export default function RootLayout() {
       console.log("Push notification error:", pushError)
     }
   }, [expoPushToken, pushError])
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextAppState: AppStateStatus) => {
+        if (nextAppState === "active") {
+          // When app comes to foreground, sync badge with actual unread count
+          // You could fetch the actual count or just clear it
+          const { unreadCount } = useNotificationStore.getState()
+          await Notifications.setBadgeCountAsync(unreadCount)
+        }
+      }
+    )
+
+    return () => subscription.remove()
+  }, [])
 
   // Don't render anything until fonts are loaded
   if (!fontsLoaded || !appIsReady) {

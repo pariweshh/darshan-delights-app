@@ -3,6 +3,7 @@ import { Category } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -89,11 +90,18 @@ const CategoryList: React.FC<CategoryListProps> = ({
           activeOpacity={0.7}
         >
           <View style={styles.iconContainer}>
-            <Ionicons
-              name={getCategoryIcon(category.name)}
-              size={20}
-              color={AppColors.primary[600]}
-            />
+            {category?.cover?.url ? (
+              <Image
+                source={{ uri: category?.cover?.url }}
+                style={styles.image}
+              />
+            ) : (
+              <Ionicons
+                name={getCategoryIcon(category.name)}
+                size={20}
+                color={AppColors.primary[600]}
+              />
+            )}
           </View>
           <Text style={styles.categoryText} numberOfLines={1}>
             {category.name}
@@ -121,6 +129,10 @@ const styles = StyleSheet.create({
     width: 75,
   },
   allButton: {},
+  image: {
+    width: 40,
+    height: 40,
+  },
   iconContainer: {
     width: 56,
     height: 56,

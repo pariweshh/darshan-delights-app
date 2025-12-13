@@ -552,9 +552,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: AppColors.background.primary,
     borderRadius: 12,
-    paddingHorizontal: 8,
-    // borderWidth: 1,
-    // borderColor: AppColors.gray[100],
+    paddingHorizontal: 4,
   },
   categoryImageContainer: {
     overflow: "hidden",

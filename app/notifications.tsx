@@ -1,3 +1,4 @@
+import * as Notifications from "expo-notifications"
 import { Stack, useRouter } from "expo-router"
 import React, { useCallback, useEffect, useState } from "react"
 import {
@@ -104,6 +105,10 @@ export default function NotificationsScreen() {
     fetchNotifications(1)
   }, [])
 
+  useEffect(() => {
+    Notifications.setBadgeCountAsync(0)
+  }, [])
+
   /**
    * Handle refresh
    */
@@ -130,6 +135,7 @@ export default function NotificationsScreen() {
     if (!notification.isRead && token) {
       try {
         await markNotificationAsRead(notification.id, token)
+        await Notifications.setBadgeCountAsync(unreadCount - 1)
         markAsRead(notification.id)
         decrementUnreadCount()
       } catch (error) {
@@ -166,6 +172,7 @@ export default function NotificationsScreen() {
 
               if (!notification.isRead) {
                 decrementUnreadCount()
+                await Notifications.setBadgeCountAsync(unreadCount - 1)
               }
 
               Toast.show({
@@ -197,6 +204,7 @@ export default function NotificationsScreen() {
 
     try {
       await markAllNotificationsAsRead(token)
+      await Notifications.setBadgeCountAsync(0)
       markAllAsRead()
 
       Toast.show({
