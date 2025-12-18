@@ -22,7 +22,12 @@ import {
 } from "@/src/api/notifications"
 import EmptyState from "@/src/components/common/EmptyState"
 import NotificationCard from "@/src/components/notifications/NotificationCard"
+import {
+  NotificationCardSkeleton,
+  SkeletonBase,
+} from "@/src/components/skeletons"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 import { Notification } from "@/src/types/notifications"
@@ -32,6 +37,7 @@ const PAGE_SIZE = 20
 export default function NotificationsScreenTab() {
   const router = useRouter()
   const pathname = usePathname()
+  const { config, isTablet, isLandscape, width } = useResponsive()
 
   const { token } = useAuthStore()
   const {
@@ -56,6 +62,18 @@ export default function NotificationsScreenTab() {
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  // Layout configuration
+  const useColumnsLayout = isTablet && isLandscape
+  const numColumns = useColumnsLayout ? 2 : 1
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
+
+  // Calculate item width for grid
+  const gap = config.gap
+  const containerPadding = config.horizontalPadding
+  const itemWidth = useColumnsLayout
+    ? (width - containerPadding * 2 - gap) / 2
+    : undefined
 
   /**
    * Fetch notifications
@@ -106,11 +124,6 @@ export default function NotificationsScreenTab() {
    */
   useEffect(() => {
     fetchNotifications(1)
-
-    return () => {
-      // Reset on unmount
-      // reset();
-    }
   }, [])
 
   useEffect(() => {
@@ -235,12 +248,46 @@ export default function NotificationsScreenTab() {
   /**
    * Render notification item
    */
-  const renderItem = ({ item }: { item: Notification }) => (
-    <NotificationCard
-      notification={item}
-      onPress={() => handleNotificationPress(item)}
-      onDelete={() => handleDeleteNotification(item)}
-    />
+  const renderItem = useCallback(
+    ({ item, index }: { item: Notification; index: number }) => {
+      const notificationCard = (
+        <NotificationCard
+          notification={item}
+          onPress={() => handleNotificationPress(item)}
+          onDelete={() => handleDeleteNotification(item)}
+        />
+      )
+
+      if (useColumnsLayout) {
+        const isLastInRow = (index + 1) % numColumns === 0
+        const marginRight = isLastInRow ? 0 : gap
+
+        return (
+          <View
+            style={{
+              width: itemWidth,
+              marginRight,
+              marginBottom: gap,
+              borderRadius: config.cardBorderRadius,
+              overflow: "hidden",
+            }}
+          >
+            {notificationCard}
+          </View>
+        )
+      }
+
+      return notificationCard
+    },
+    [
+      useColumnsLayout,
+      numColumns,
+      itemWidth,
+      gap,
+      config.cardBorderRadius,
+      handleNotificationPress,
+      handleDeleteNotification,
+    ]
   )
 
   /**
@@ -250,13 +297,30 @@ export default function NotificationsScreenTab() {
     if (notifications.length === 0) return null
 
     return (
-      <View style={styles.listHeader}>
-        <Text style={styles.listHeaderText}>
+      <View
+        style={[
+          styles.listHeader,
+          {
+            paddingHorizontal: useColumnsLayout ? 0 : config.horizontalPadding,
+            paddingVertical: isTablet ? 14 : 12,
+          },
+        ]}
+      >
+        <Text
+          style={[styles.listHeaderText, { fontSize: config.bodyFontSize - 1 }]}
+        >
           {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
         </Text>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
-            <Text style={styles.markAllText}>Mark all as read</Text>
+            <Text
+              style={[
+                styles.markAllText,
+                { fontSize: config.bodyFontSize - 1 },
+              ]}
+            >
+              Mark all as read
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -267,11 +331,16 @@ export default function NotificationsScreenTab() {
    * Render footer
    */
   const renderFooter = () => {
-    if (!isLoadingMore) return null
+    if (!isLoadingMore) return <View style={{ height: isTablet ? 60 : 40 }} />
 
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
+        <Text
+          style={[styles.loadingFooterText, { fontSize: config.bodyFontSize }]}
+        >
+          Loading more...
+        </Text>
       </View>
     )
   }
@@ -291,24 +360,128 @@ export default function NotificationsScreenTab() {
     )
   }
 
+  /**
+   * Render skeleton loading
+   */
+  const renderSkeleton = () => {
+    const skeletonCount = isTablet ? 6 : 5
+
+    if (useColumnsLayout) {
+      const rows: number[][] = []
+      for (let i = 0; i < skeletonCount; i += numColumns) {
+        const row: number[] = []
+        for (let j = 0; j < numColumns && i + j < skeletonCount; j++) {
+          row.push(i + j)
+        }
+        rows.push(row)
+      }
+
+      return (
+        <View
+          style={[
+            styles.skeletonContainer,
+            { padding: config.horizontalPadding },
+          ]}
+        >
+          {/* Header skeleton */}
+          <View
+            style={[
+              styles.listHeader,
+              { paddingVertical: isTablet ? 14 : 12, paddingHorizontal: 0 },
+            ]}
+          >
+            <SkeletonBase width={80} height={config.bodyFontSize} />
+            <SkeletonBase width={100} height={config.bodyFontSize} />
+          </View>
+
+          {rows.map((row, rowIndex) => (
+            <View key={`skeleton-row-${rowIndex}`} style={styles.skeletonRow}>
+              {row.map((_, colIndex) => {
+                const isLastInRow = colIndex === numColumns - 1
+                return (
+                  <View
+                    key={`skeleton-${rowIndex}-${colIndex}`}
+                    style={{
+                      width: itemWidth,
+                      marginRight: isLastInRow ? 0 : gap,
+                      marginBottom: gap,
+                      borderRadius: config.cardBorderRadius,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <NotificationCardSkeleton />
+                  </View>
+                )
+              })}
+            </View>
+          ))}
+        </View>
+      )
+    }
+
+    return (
+      <View
+        style={[
+          styles.skeletonContainer,
+          {
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
+        {/* Header skeleton */}
+        <View
+          style={[
+            styles.listHeader,
+            {
+              paddingHorizontal: config.horizontalPadding,
+              paddingVertical: isTablet ? 14 : 12,
+            },
+          ]}
+        >
+          <SkeletonBase width={80} height={config.bodyFontSize} />
+          <SkeletonBase width={100} height={config.bodyFontSize} />
+        </View>
+
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <NotificationCardSkeleton key={`skeleton-${index}`} />
+        ))}
+      </View>
+    )
+  }
+
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `notifications-${numColumns}`
+
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       {isLoading && notifications.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppColors.primary[500]} />
-          <Text style={styles.loadingText}>Loading notifications...</Text>
-        </View>
+        renderSkeleton()
       ) : (
         <FlatList
+          key={flatListKey}
           data={notifications}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
+          numColumns={numColumns}
           ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={renderEmpty}
-          contentContainerStyle={
-            notifications.length === 0 ? styles.emptyContainer : undefined
-          }
+          contentContainerStyle={[
+            notifications.length === 0
+              ? styles.emptyContainer
+              : styles.listContent,
+            useColumnsLayout && {
+              padding: config.horizontalPadding,
+            },
+            !useColumnsLayout &&
+              notifications.length > 0 && {
+                maxWidth: contentMaxWidth,
+                alignSelf: contentMaxWidth ? "center" : undefined,
+                width: contentMaxWidth ? "100%" : undefined,
+              },
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -331,42 +504,41 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.background.secondary,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 14,
-    color: AppColors.text.secondary,
-    marginTop: 12,
-  },
   emptyContainer: {
     flexGrow: 1,
+  },
+  listContent: {},
+  skeletonContainer: {
+    flex: 1,
+  },
+  skeletonRow: {
+    flexDirection: "row",
   },
   // Header
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     backgroundColor: AppColors.background.secondary,
   },
   listHeaderText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.secondary,
   },
   markAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[600],
   },
   // Footer
   loadingFooter: {
+    flexDirection: "row",
     paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  loadingFooterText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.primary[500],
   },
 })

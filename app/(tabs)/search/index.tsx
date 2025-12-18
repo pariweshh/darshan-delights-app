@@ -1,25 +1,32 @@
 import { useCallback, useEffect, useState } from "react"
-import { FlatList, Keyboard, StyleSheet, Text, View } from "react-native"
+import {
+  FlatList,
+  Keyboard,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
-import AppColors from "@/src/constants/Colors"
-import { useDebounce } from "@/src/hooks/useDebounce"
-import { useRecentSearches } from "@/src/hooks/useRecentSearches"
-import { useProductsStore } from "@/src/store/productStore"
-import { IsIPAD } from "@/src/themes/app.constants"
-import { Product } from "@/src/types"
-
 import EmptyState from "@/src/components/common/EmptyState"
-import Loader from "@/src/components/common/Loader"
 import ProductCard from "@/src/components/product/ProductCard"
 import RecentSearches from "@/src/components/search/RecentSearches"
 import SearchHeader from "@/src/components/search/SearchHeader"
 import SearchSuggestions from "@/src/components/search/SearchSuggestions"
+import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
+import AppColors from "@/src/constants/Colors"
+import { useDebounce } from "@/src/hooks/useDebounce"
+import { useRecentSearches } from "@/src/hooks/useRecentSearches"
+import { useResponsive } from "@/src/hooks/useResponsive"
+import { useProductsStore } from "@/src/store/productStore"
+import { Product } from "@/src/types"
 
 const MIN_SEARCH_LENGTH = 2
 
 export default function SearchScreen() {
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const [searchQuery, setSearchQuery] = useState("")
   const [hasSearched, setHasSearched] = useState(false)
 
@@ -37,6 +44,16 @@ export default function SearchScreen() {
   // Product store
   const { filteredProducts, loading, error, searchProductsRealTime } =
     useProductsStore()
+
+  // Calculate grid columns based on device and orientation
+  const numColumns = isTablet ? (isLandscape ? 4 : 3) : 2
+
+  // Calculate item width for consistent grid
+  const gap = config.gap
+  const horizontalPadding = config.horizontalPadding
+  const totalGaps = gap * (numColumns - 1)
+  const containerWidth = width - horizontalPadding * 2
+  const itemWidth = (containerWidth - totalGaps) / numColumns
 
   // Auto-search when debounced query changes
   useEffect(() => {
@@ -115,17 +132,32 @@ export default function SearchScreen() {
 
   // Render product item
   const renderProduct = useCallback(
-    ({ item }: { item: Product }) => (
-      <View style={styles.productContainer}>
-        <ProductCard product={item} customStyle={{ width: "100%" }} />
-      </View>
-    ),
-    []
+    ({ item, index }: { item: Product; index: number }) => {
+      const isLastInRow = (index + 1) % numColumns === 0
+      const marginRight = isLastInRow ? 0 : gap
+
+      return (
+        <View
+          style={{
+            width: itemWidth,
+            marginRight,
+            marginBottom: gap,
+          }}
+        >
+          <ProductCard product={item} customStyle={{ width: "100%" }} />
+        </View>
+      )
+    },
+    [numColumns, itemWidth, gap]
   )
 
   // Render initial state (no search yet)
   const renderInitialState = () => (
-    <View style={styles.initialStateContainer}>
+    <ScrollView
+      style={styles.initialStateContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* Recent Searches */}
       <RecentSearches
         searches={recentSearches}
@@ -147,6 +179,25 @@ export default function SearchScreen() {
           />
         </View>
       )}
+    </ScrollView>
+  )
+
+  // Render loading skeleton
+  const renderSkeleton = () => (
+    <View
+      style={[
+        styles.skeletonContainer,
+        { paddingHorizontal: config.horizontalPadding },
+      ]}
+    >
+      {/* Results skeleton */}
+      <View
+        style={[styles.resultsHeader, { paddingVertical: isTablet ? 14 : 12 }]}
+      >
+        <SkeletonBase width={150} height={config.bodyFontSize + 2} />
+      </View>
+
+      <ProductGridSkeleton count={isTablet ? (isLandscape ? 8 : 6) : 6} />
     </View>
   )
 
@@ -155,6 +206,9 @@ export default function SearchScreen() {
   const showNoResults =
     showResults && filteredProducts?.length === 0 && !loading
   const showInitialState = !showResults
+
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `search-results-${numColumns}`
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -168,10 +222,14 @@ export default function SearchScreen() {
 
       {/* Content */}
       {loading ? (
-        <Loader text="Searching..." />
+        renderSkeleton()
       ) : error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text
+            style={[styles.errorText, { fontSize: config.subtitleFontSize }]}
+          >
+            {error}
+          </Text>
         </View>
       ) : showNoResults ? (
         <EmptyState
@@ -185,23 +243,35 @@ export default function SearchScreen() {
         renderInitialState()
       ) : (
         <FlatList
+          key={flatListKey}
           data={filteredProducts}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={IsIPAD ? 3 : 2}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnWrapper}
+          numColumns={numColumns}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingHorizontal: config.horizontalPadding },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           ListHeaderComponent={
-            <View style={styles.resultsHeader}>
-              <Text style={styles.resultsText}>
+            <View
+              style={[
+                styles.resultsHeader,
+                { paddingVertical: isTablet ? 14 : 12 },
+              ]}
+            >
+              <Text
+                style={[styles.resultsText, { fontSize: config.bodyFontSize }]}
+              >
                 {filteredProducts?.length || 0} results for "{searchQuery}"
               </Text>
             </View>
           }
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListFooterComponent={
+            <View style={{ height: isTablet ? 120 : 100 }} />
+          }
         />
       )}
     </SafeAreaView>
@@ -219,23 +289,14 @@ const styles = StyleSheet.create({
   emptyImageContainer: {
     flex: 1,
     justifyContent: "center",
+    minHeight: 300,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingTop: 4,
   },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  productContainer: {
-    width: IsIPAD ? "32%" : "48%",
-    marginBottom: 16,
-  },
-  resultsHeader: {
-    paddingVertical: 12,
-  },
+  resultsHeader: {},
   resultsText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   errorContainer: {
@@ -246,8 +307,10 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.error,
     textAlign: "center",
+  },
+  skeletonContainer: {
+    flex: 1,
   },
 })

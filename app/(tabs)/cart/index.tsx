@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
-import { useRouter } from "expo-router"
-import { useCallback, useState } from "react"
+import { useFocusEffect, useRouter } from "expo-router"
+import { useCallback, useEffect, useState } from "react"
 import {
   Alert,
   FlatList,
@@ -59,6 +59,37 @@ export default function CartScreen() {
   // Grid columns for tablet portrait
   const numColumns = isTablet && !isLandscape ? 2 : 1
 
+  // fetch cart data every time the screen comes into focus
+  // this ensures cross-device sync for the same user
+  useFocusEffect(
+    useCallback(() => {
+      if (token && !isLoading) {
+        fetchCart(token)
+      }
+    }, [token, fetchCart])
+  )
+
+  // Automatically recalculate discount when subtotal changes (e.g., after fetch)
+  useEffect(() => {
+    if (appliedCoupon) {
+      let newDiscountAmount = 0
+      if (appliedCoupon.discountType === "percentage") {
+        newDiscountAmount = (subtotal * appliedCoupon.discountValue) / 100
+      } else {
+        newDiscountAmount = Math.min(appliedCoupon.discountValue, subtotal)
+      }
+
+      const roundedDiscount = Math.round(newDiscountAmount * 100) / 100
+
+      // Only update if discount changed to avoid unnecessary re-renders
+      if (roundedDiscount !== appliedCoupon.discountAmount) {
+        setAppliedCoupon((prev) =>
+          prev ? { ...prev, discountAmount: roundedDiscount } : null
+        )
+      }
+    }
+  }, [subtotal, appliedCoupon])
+
   // Recalculate discount when subtotal changes
   const handleCouponApply = (coupon: ValidatedCoupon) => {
     let newDiscountAmount = 0
@@ -85,30 +116,12 @@ export default function CartScreen() {
     setRefreshing(true)
     try {
       await fetchCart(token)
-
-      if (appliedCoupon) {
-        const newSubtotal = getTotalPrice()
-        let newDiscountAmount = 0
-        if (appliedCoupon.discountType === "percentage") {
-          newDiscountAmount = (newSubtotal * appliedCoupon.discountValue) / 100
-        } else {
-          newDiscountAmount = Math.min(appliedCoupon.discountValue, newSubtotal)
-        }
-        setAppliedCoupon((prev) =>
-          prev
-            ? {
-                ...prev,
-                discountAmount: Math.round(newDiscountAmount * 100) / 100,
-              }
-            : null
-        )
-      }
     } catch (error) {
       console.error("Error refreshing cart:", error)
     } finally {
       setRefreshing(false)
     }
-  }, [token, fetchCart, appliedCoupon, getTotalPrice])
+  }, [token, fetchCart])
 
   // Clear cart with confirmation
   const handleClearCart = () => {

@@ -94,9 +94,6 @@ export default function CouponInput({
           styles.appliedContainer,
           {
             padding: isTablet ? 14 : 12,
-            borderRadius: config.cardBorderRadius,
-            marginHorizontal: config.horizontalPadding,
-            marginTop: isTablet ? 20 : 16,
           },
         ]}
       >

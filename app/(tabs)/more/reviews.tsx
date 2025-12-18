@@ -18,7 +18,9 @@ import Toast from "react-native-toast-message"
 import { deleteReview, getUserReviews } from "@/src/api/reviews"
 import EmptyState from "@/src/components/common/EmptyState"
 import Rating from "@/src/components/reviews/Rating"
+import { ReviewCardSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
 
@@ -26,6 +28,7 @@ const PAGE_SIZE = 10
 
 export default function MyReviewsScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { token } = useAuthStore()
 
   const [reviews, setReviews] = useState<Review[]>([])
@@ -34,6 +37,18 @@ export default function MyReviewsScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+
+  // Layout configuration
+  const useColumnsLayout = isTablet && isLandscape
+  const numColumns = useColumnsLayout ? 2 : 1
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
+
+  // Calculate item width for grid
+  const gap = config.gap
+  const containerPadding = config.horizontalPadding
+  const itemWidth = useColumnsLayout
+    ? (width - containerPadding * 2 - gap) / 2
+    : undefined
 
   /**
    * Fetch user reviews
@@ -168,96 +183,218 @@ export default function MyReviewsScreen() {
   /**
    * Render review item
    */
-  const renderItem = ({ item }: { item: Review }) => {
-    const productImage =
-      (item.product as any)?.images?.[0]?.formats?.thumbnail?.url ||
-      (item.product as any)?.images?.[0]?.url ||
-      null
+  const renderItem = useCallback(
+    ({ item, index }: { item: Review; index: number }) => {
+      const productImage =
+        (item.product as any)?.images?.[0]?.formats?.thumbnail?.url ||
+        (item.product as any)?.images?.[0]?.url ||
+        null
 
-    return (
-      <View style={styles.reviewCard}>
-        {/* Product Info */}
-        <TouchableOpacity
-          style={styles.productInfo}
-          onPress={() => handleProductPress(item)}
-          activeOpacity={0.7}
+      const productImageSize = isTablet ? 56 : 50
+      const cardPadding = isTablet ? 18 : 16
+
+      const reviewCard = (
+        <View
+          style={[
+            styles.reviewCard,
+            {
+              padding: cardPadding,
+              borderRadius: config.cardBorderRadius,
+              marginBottom: useColumnsLayout ? 0 : isTablet ? 14 : 12,
+            },
+          ]}
         >
-          {productImage ? (
-            <Image source={{ uri: productImage }} style={styles.productImage} />
-          ) : (
-            <View style={styles.productImagePlaceholder}>
-              <Ionicons
-                name="cube-outline"
-                size={24}
-                color={AppColors.gray[400]}
-              />
-            </View>
-          )}
-          <View style={styles.productDetails}>
-            <Text style={styles.productName} numberOfLines={2}>
-              {item.product?.name || "Product"}
-            </Text>
-            <Text style={styles.reviewDate}>{formatDate(item.createdAt)}</Text>
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={AppColors.gray[400]}
-          />
-        </TouchableOpacity>
-
-        {/* Rating */}
-        <View style={styles.ratingRow}>
-          <Rating rating={item.rating} size="small" />
-          {item.isVerifiedPurchase && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons
-                name="checkmark-circle"
-                size={12}
-                color={AppColors.success}
-              />
-              <Text style={styles.verifiedText}>Verified Purchase</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Title */}
-        {item.title && <Text style={styles.reviewTitle}>{item.title}</Text>}
-
-        {/* Message */}
-        <Text style={styles.reviewMessage} numberOfLines={3}>
-          {item.message}
-        </Text>
-
-        {/* Actions */}
-        <View style={styles.actionsRow}>
+          {/* Product Info */}
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.productInfo, { paddingBottom: isTablet ? 14 : 12 }]}
             onPress={() => handleProductPress(item)}
             activeOpacity={0.7}
           >
+            {productImage ? (
+              <Image
+                source={{ uri: productImage }}
+                style={[
+                  styles.productImage,
+                  {
+                    width: productImageSize,
+                    height: productImageSize,
+                    borderRadius: isTablet ? 10 : 8,
+                  },
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.productImagePlaceholder,
+                  {
+                    width: productImageSize,
+                    height: productImageSize,
+                    borderRadius: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="cube-outline"
+                  size={isTablet ? 28 : 24}
+                  color={AppColors.gray[400]}
+                />
+              </View>
+            )}
+            <View
+              style={[
+                styles.productDetails,
+                { marginLeft: isTablet ? 14 : 12 },
+              ]}
+            >
+              <Text
+                style={[styles.productName, { fontSize: config.bodyFontSize }]}
+                numberOfLines={2}
+              >
+                {item.product?.name || "Product"}
+              </Text>
+              <Text
+                style={[styles.reviewDate, { fontSize: config.smallFontSize }]}
+              >
+                {formatDate(item.createdAt)}
+              </Text>
+            </View>
             <Ionicons
-              name="pencil-outline"
-              size={16}
-              color={AppColors.primary[600]}
+              name="chevron-forward"
+              size={isTablet ? 22 : 20}
+              color={AppColors.gray[400]}
             />
-            <Text style={styles.actionText}>Edit</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleDeleteReview(item)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={16} color={AppColors.error} />
-            <Text style={[styles.actionText, { color: AppColors.error }]}>
-              Delete
+          {/* Rating */}
+          <View style={[styles.ratingRow, { marginBottom: isTablet ? 10 : 8 }]}>
+            <Rating rating={item.rating} size="small" />
+            {item.isVerifiedPurchase && (
+              <View style={[styles.verifiedBadge, { gap: isTablet ? 5 : 4 }]}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={isTablet ? 14 : 12}
+                  color={AppColors.success}
+                />
+                <Text
+                  style={[
+                    styles.verifiedText,
+                    { fontSize: config.smallFontSize - 1 },
+                  ]}
+                >
+                  Verified Purchase
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Title */}
+          {item.title && (
+            <Text
+              style={[
+                styles.reviewTitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  marginBottom: isTablet ? 6 : 4,
+                },
+              ]}
+            >
+              {item.title}
             </Text>
-          </TouchableOpacity>
+          )}
+
+          {/* Message */}
+          <Text
+            style={[
+              styles.reviewMessage,
+              {
+                fontSize: config.bodyFontSize - 1,
+                lineHeight: (config.bodyFontSize - 1) * 1.5,
+              },
+            ]}
+            numberOfLines={3}
+          >
+            {item.message}
+          </Text>
+
+          {/* Actions */}
+          <View
+            style={[
+              styles.actionsRow,
+              {
+                gap: isTablet ? 20 : 16,
+                marginTop: isTablet ? 14 : 12,
+                paddingTop: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              style={[styles.actionButton, { gap: isTablet ? 6 : 4 }]}
+              onPress={() => handleProductPress(item)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="pencil-outline"
+                size={isTablet ? 18 : 16}
+                color={AppColors.primary[600]}
+              />
+              <Text
+                style={[
+                  styles.actionText,
+                  { fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
+                Edit
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { gap: isTablet ? 6 : 4 }]}
+              onPress={() => handleDeleteReview(item)}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={isTablet ? 18 : 16}
+                color={AppColors.error}
+              />
+              <Text
+                style={[
+                  styles.actionText,
+                  { color: AppColors.error, fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
+                Delete
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    )
-  }
+      )
+
+      if (useColumnsLayout) {
+        const isLastInRow = (index + 1) % numColumns === 0
+        const marginRight = isLastInRow ? 0 : gap
+
+        return (
+          <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+            {reviewCard}
+          </View>
+        )
+      }
+
+      return reviewCard
+    },
+    [
+      config,
+      isTablet,
+      useColumnsLayout,
+      numColumns,
+      itemWidth,
+      gap,
+      handleProductPress,
+      handleDeleteReview,
+      formatDate,
+    ]
+  )
 
   /**
    * Render empty state
@@ -280,11 +417,16 @@ export default function MyReviewsScreen() {
    * Render footer
    */
   const renderFooter = () => {
-    if (!isLoadingMore) return null
+    if (!isLoadingMore) return <View style={{ height: isTablet ? 60 : 40 }} />
 
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
+        <Text
+          style={[styles.loadingFooterText, { fontSize: config.bodyFontSize }]}
+        >
+          Loading more reviews...
+        </Text>
       </View>
     )
   }
@@ -296,32 +438,119 @@ export default function MyReviewsScreen() {
     if (reviews.length === 0) return null
 
     return (
-      <View style={styles.listHeader}>
-        <Text style={styles.listHeaderText}>
+      <View style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}>
+        <Text
+          style={[styles.listHeaderText, { fontSize: config.subtitleFontSize }]}
+        >
           {reviews.length} {reviews.length === 1 ? "Review" : "Reviews"}
         </Text>
       </View>
     )
   }
 
+  /**
+   * Render skeleton loading
+   */
+  const renderSkeleton = () => {
+    const skeletonCount = isTablet ? 4 : 3
+
+    if (useColumnsLayout) {
+      const rows: number[][] = []
+      for (let i = 0; i < skeletonCount; i += numColumns) {
+        const row: number[] = []
+        for (let j = 0; j < numColumns && i + j < skeletonCount; j++) {
+          row.push(i + j)
+        }
+        rows.push(row)
+      }
+
+      return (
+        <View
+          style={[
+            styles.skeletonContainer,
+            { padding: config.horizontalPadding },
+          ]}
+        >
+          {/* Header skeleton */}
+          <View
+            style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}
+          >
+            <SkeletonBase width={100} height={config.subtitleFontSize + 2} />
+          </View>
+
+          {rows.map((row, rowIndex) => (
+            <View key={`skeleton-row-${rowIndex}`} style={styles.skeletonRow}>
+              {row.map((_, colIndex) => {
+                const isLastInRow = colIndex === numColumns - 1
+                return (
+                  <View
+                    key={`skeleton-${rowIndex}-${colIndex}`}
+                    style={{
+                      width: itemWidth,
+                      marginRight: isLastInRow ? 0 : gap,
+                    }}
+                  >
+                    <ReviewCardSkeleton />
+                  </View>
+                )
+              })}
+            </View>
+          ))}
+        </View>
+      )
+    }
+
+    return (
+      <View
+        style={[
+          styles.skeletonContainer,
+          {
+            padding: config.horizontalPadding,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
+        {/* Header skeleton */}
+        <View style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}>
+          <SkeletonBase width={100} height={config.subtitleFontSize + 2} />
+        </View>
+
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <ReviewCardSkeleton key={`skeleton-${index}`} />
+        ))}
+      </View>
+    )
+  }
+
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `reviews-${numColumns}`
+
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={AppColors.primary[500]} />
-          <Text style={styles.loadingText}>Loading your reviews...</Text>
-        </View>
+        renderSkeleton()
       ) : (
         <FlatList
+          key={flatListKey}
           data={reviews}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
+          numColumns={numColumns}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
-          contentContainerStyle={
-            reviews.length === 0 ? styles.emptyContainer : styles.listContent
-          }
+          contentContainerStyle={[
+            reviews.length === 0 ? styles.emptyContainer : styles.listContent,
+            {
+              padding: reviews.length > 0 ? config.horizontalPadding : 0,
+              maxWidth: !useColumnsLayout ? contentMaxWidth : undefined,
+              alignSelf:
+                !useColumnsLayout && contentMaxWidth ? "center" : undefined,
+              width: !useColumnsLayout && contentMaxWidth ? "100%" : undefined,
+            },
+          ]}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -344,38 +573,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.background.secondary,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 14,
-    color: AppColors.text.secondary,
-    marginTop: 12,
-  },
   emptyContainer: {
     flexGrow: 1,
   },
-  listContent: {
-    padding: 16,
+  listContent: {},
+  skeletonContainer: {
+    flex: 1,
+  },
+  skeletonRow: {
+    flexDirection: "row",
   },
   // Header
-  listHeader: {
-    marginBottom: 12,
-  },
+  listHeader: {},
   listHeaderText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   // Review Card
   reviewCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -385,38 +601,27 @@ const styles = StyleSheet.create({
   productInfo: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
   },
   productImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
     backgroundColor: AppColors.gray[100],
   },
   productImagePlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
   },
   productDetails: {
     flex: 1,
-    marginLeft: 12,
   },
   productName: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
     textTransform: "capitalize",
   },
   reviewDate: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     marginTop: 2,
   },
@@ -425,53 +630,48 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginBottom: 8,
   },
   verifiedBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
   },
   verifiedText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.success,
   },
   // Review Content
   reviewTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 4,
   },
   reviewMessage: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    lineHeight: 20,
   },
   // Actions
   actionsRow: {
     flexDirection: "row",
-    gap: 16,
-    marginTop: 12,
-    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[100],
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
   },
   actionText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[600],
   },
   // Footer
   loadingFooter: {
+    flexDirection: "row",
     paddingVertical: 16,
     alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  loadingFooterText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.primary[500],
   },
 })

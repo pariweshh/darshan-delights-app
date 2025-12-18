@@ -1,3 +1,5 @@
+// app/(tabs)/more/favorites.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useCallback, useState } from "react"
@@ -12,20 +14,20 @@ import {
 } from "react-native"
 import Toast from "react-native-toast-message"
 
-import AppColors from "@/src/constants/Colors"
-import { useAuthStore } from "@/src/store/authStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
-import { IsIPAD } from "@/src/themes/app.constants"
-import { Product } from "@/src/types"
-
 import EmptyState from "@/src/components/common/EmptyState"
-import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
 import ProductCard from "@/src/components/product/ProductCard"
+import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import Button from "@/src/components/ui/Button"
+import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
+import { useAuthStore } from "@/src/store/authStore"
+import { useFavoritesStore } from "@/src/store/favoritesStore"
+import { Product } from "@/src/types"
 
 export default function FavoritesScreenTab() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const [refreshing, setRefreshing] = useState(false)
 
   const { token, user } = useAuthStore()
@@ -34,6 +36,19 @@ export default function FavoritesScreenTab() {
 
   const favorites = favoriteList?.products || []
   const favoriteCount = favorites.length
+
+  // Calculate grid columns based on device and orientation
+  const numColumns = isTablet ? (isLandscape ? 4 : 3) : 2
+
+  // Calculate item width for consistent grid
+  const gap = config.gap
+  const horizontalPadding = config.horizontalPadding
+  const totalGaps = gap * (numColumns - 1)
+  const containerWidth = width - horizontalPadding * 2
+  const itemWidth = (containerWidth - totalGaps) / numColumns
+
+  // Content max width for tablet portrait
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
 
   // Pull to refresh
   const onRefresh = useCallback(async () => {
@@ -88,18 +103,37 @@ export default function FavoritesScreenTab() {
 
   // Render product item
   const renderProduct = useCallback(
-    ({ item }: { item: Product }) => (
-      <View style={styles.productContainer}>
-        <ProductCard product={item} customStyle={styles.productCard} />
-      </View>
-    ),
-    []
+    ({ item, index }: { item: Product; index: number }) => {
+      const isLastInRow = (index + 1) % numColumns === 0
+      const marginRight = isLastInRow ? 0 : gap
+
+      return (
+        <View
+          style={{
+            width: itemWidth,
+            marginRight,
+            marginBottom: gap,
+          }}
+        >
+          <ProductCard product={item} customStyle={{ width: "100%" }} />
+        </View>
+      )
+    },
+    [numColumns, itemWidth, gap]
   )
 
   // Render header
   const renderHeader = () => (
-    <View style={styles.listHeader}>
-      <Text style={styles.itemCount}>
+    <View
+      style={[
+        styles.listHeader,
+        {
+          paddingVertical: isTablet ? 14 : 12,
+          paddingHorizontal: isTablet ? 6 : 4,
+        },
+      ]}
+    >
+      <Text style={[styles.itemCount, { fontSize: config.bodyFontSize }]}>
         {favoriteCount} {favoriteCount === 1 ? "item" : "items"}
       </Text>
       {favoriteCount > 0 && (
@@ -108,9 +142,43 @@ export default function FavoritesScreenTab() {
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Text style={styles.clearAllText}>Clear All</Text>
+          <Text
+            style={[styles.clearAllText, { fontSize: config.bodyFontSize }]}
+          >
+            Clear All
+          </Text>
         </TouchableOpacity>
       )}
+    </View>
+  )
+
+  // Render skeleton loading
+  const renderSkeleton = () => (
+    <View
+      style={[
+        styles.skeletonContainer,
+        {
+          paddingHorizontal: config.horizontalPadding,
+          maxWidth: contentMaxWidth,
+          alignSelf: contentMaxWidth ? "center" : undefined,
+          width: contentMaxWidth ? "100%" : undefined,
+        },
+      ]}
+    >
+      {/* Header skeleton */}
+      <View
+        style={[
+          styles.listHeader,
+          {
+            paddingVertical: isTablet ? 14 : 12,
+            paddingHorizontal: isTablet ? 6 : 4,
+          },
+        ]}
+      >
+        <SkeletonBase width={80} height={config.bodyFontSize + 2} />
+      </View>
+
+      <ProductGridSkeleton count={isTablet ? (isLandscape ? 8 : 6) : 6} />
     </View>
   )
 
@@ -118,16 +186,51 @@ export default function FavoritesScreenTab() {
   if (!token || !user) {
     return (
       <Wrapper style={styles.container} edges={[]}>
-        <View style={styles.guestContainer}>
-          <View style={styles.guestIconContainer}>
+        <View
+          style={[
+            styles.guestContainer,
+            {
+              padding: config.horizontalPadding + 8,
+              maxWidth: isTablet ? 450 : undefined,
+              alignSelf: isTablet ? "center" : undefined,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.guestIconContainer,
+              {
+                width: isTablet ? 140 : 120,
+                height: isTablet ? 140 : 120,
+                borderRadius: isTablet ? 70 : 60,
+                marginBottom: isTablet ? 28 : 24,
+              },
+            ]}
+          >
             <Ionicons
               name="heart-outline"
-              size={64}
+              size={isTablet ? 72 : 64}
               color={AppColors.gray[300]}
             />
           </View>
-          <Text style={styles.guestTitle}>Save your favorites</Text>
-          <Text style={styles.guestSubtitle}>
+          <Text
+            style={[
+              styles.guestTitle,
+              { fontSize: isTablet ? 24 : 22, marginBottom: isTablet ? 10 : 8 },
+            ]}
+          >
+            Save your favorites
+          </Text>
+          <Text
+            style={[
+              styles.guestSubtitle,
+              {
+                fontSize: config.bodyFontSize,
+                lineHeight: config.bodyFontSize * 1.5,
+                paddingHorizontal: isTablet ? 24 : 20,
+              },
+            ]}
+          >
             Sign in to save products you love and access them anytime
           </Text>
           <Button
@@ -136,22 +239,29 @@ export default function FavoritesScreenTab() {
             containerStyles="mt-6 px-12"
           />
           <TouchableOpacity
-            style={styles.browseButton}
+            style={[
+              styles.browseButton,
+              { paddingVertical: isTablet ? 14 : 12 },
+            ]}
             onPress={navigateToShop}
             activeOpacity={0.7}
           >
-            <Text style={styles.browseText}>Browse Products</Text>
+            <Text
+              style={[styles.browseText, { fontSize: config.bodyFontSize }]}
+            >
+              Browse Products
+            </Text>
           </TouchableOpacity>
         </View>
       </Wrapper>
     )
   }
 
-  // Loading state
+  // Loading state with skeleton
   if (isLoading && favoriteCount === 0) {
     return (
       <Wrapper style={styles.container} edges={[]}>
-        <Loader text="Loading favorites..." />
+        {renderSkeleton()}
       </Wrapper>
     )
   }
@@ -171,19 +281,26 @@ export default function FavoritesScreenTab() {
     )
   }
 
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `favorites-${numColumns}`
+
   return (
     <Wrapper style={styles.container} edges={[]}>
-      {/* Favorites List */}
       <FlatList
+        key={flatListKey}
         data={favorites}
         renderItem={renderProduct}
         keyExtractor={(item) => item.id.toString()}
-        numColumns={IsIPAD ? 3 : 2}
-        contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.columnWrapper}
+        numColumns={numColumns}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            paddingHorizontal: config.horizontalPadding,
+            paddingBottom: isTablet ? 120 : 100,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={renderHeader}
-        ListFooterComponent={<View style={{ height: 100 }} />}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -192,7 +309,6 @@ export default function FavoritesScreenTab() {
             colors={[AppColors.primary[500]]}
           />
         }
-        // Performance optimizations
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         initialNumToRender={10}
@@ -208,85 +324,49 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.gray[200],
-    backgroundColor: AppColors.background.primary,
-  },
-  title: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 28,
-    color: AppColors.text.primary,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-  },
+  listContent: {},
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 4,
   },
   itemCount: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   clearAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.error,
     textDecorationLine: "underline",
   },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  productContainer: {
-    width: IsIPAD ? "32%" : "48%",
-  },
-  productCard: {
-    width: "100%",
+  skeletonContainer: {
+    flex: 1,
   },
   // Guest styles
   guestContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
   },
   guestIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
   },
   guestTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 22,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   guestSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
   },
   browseButton: {
     marginTop: 16,
-    paddingVertical: 12,
   },
   browseText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.primary[500],
   },
 })

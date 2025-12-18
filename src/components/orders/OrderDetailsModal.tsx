@@ -5,7 +5,6 @@ import * as WebBrowser from "expo-web-browser"
 import React, { useCallback } from "react"
 import {
   Alert,
-  Dimensions,
   Image,
   Modal,
   Platform,
@@ -19,13 +18,11 @@ import Toast from "react-native-toast-message"
 
 import { getUserProductReview } from "@/src/api/reviews"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { CartItem, Order } from "@/src/types"
 import { Review } from "@/src/types/review"
 import OrderDeliveryProgress from "./OrderDeliveryProgress"
-
-const { height: SCREEN_HEIGHT } = Dimensions.get("window")
-const MODAL_HEIGHT = SCREEN_HEIGHT * 0.85
 
 interface Props {
   visible: boolean
@@ -39,7 +36,6 @@ interface Props {
   reviewedProductIds: Set<number>
 }
 
-// Delivery statuses that allow reviews
 const REVIEWABLE_STATUSES = ["delivered", "picked up"]
 
 const OrderDetailsModal: React.FC<Props> = ({
@@ -50,7 +46,12 @@ const OrderDetailsModal: React.FC<Props> = ({
   reviewedProductIds,
 }) => {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width, height } = useResponsive()
   const { token } = useAuthStore()
+
+  // Modal sizing
+  const modalMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+  const modalMaxHeight = isTablet ? height * 0.9 : height * 0.85
 
   // Check if order is reviewable
   const isReviewable =
@@ -113,14 +114,11 @@ const OrderDetailsModal: React.FC<Props> = ({
           token
         )
       } catch (error) {
-        // No existing review
         existingReview = null
       }
 
-      // Close this modal first, then trigger review modal in parent
       onClose()
 
-      // Small delay to allow modal to close
       setTimeout(() => {
         onWriteReview(product, order.id, existingReview)
       }, 300)
@@ -165,9 +163,14 @@ const OrderDetailsModal: React.FC<Props> = ({
     (order.tax_amount || 0) +
     (order.discount_applied || 0)
 
-  // Get shipping details
   const shippingAddress =
     order.shipping_details?.address || order.shipping_details
+
+  // Responsive sizes
+  const productImageSize = isTablet ? 70 : 60
+  const closeButtonSize = isTablet ? 40 : 36
+  const sectionPadding = isTablet ? 18 : 16
+  const cardBorderRadius = config.cardBorderRadius + 4
 
   return (
     <Modal
@@ -184,36 +187,85 @@ const OrderDetailsModal: React.FC<Props> = ({
           onPress={onClose}
         />
 
-        <View style={styles.modalContainer}>
+        <View
+          style={[
+            styles.modalContainer,
+            {
+              maxHeight: modalMaxHeight,
+              maxWidth: modalMaxWidth,
+              alignSelf: modalMaxWidth ? "center" : undefined,
+              width: modalMaxWidth ? "100%" : undefined,
+              borderTopLeftRadius: isTablet ? 28 : 24,
+              borderTopRightRadius: isTablet ? 28 : 24,
+            },
+          ]}
+        >
           <LinearGradient
             colors={[AppColors.primary[50], "#FFFFFF"]}
-            style={styles.gradientHeader}
+            style={[
+              styles.gradientHeader,
+              {
+                borderTopLeftRadius: isTablet ? 28 : 24,
+                borderTopRightRadius: isTablet ? 28 : 24,
+              },
+            ]}
           >
             {/* Header */}
-            <View style={styles.header}>
+            <View
+              style={[
+                styles.header,
+                {
+                  padding: isTablet ? 24 : 20,
+                  paddingBottom: isTablet ? 14 : 12,
+                },
+              ]}
+            >
               <View style={styles.headerContent}>
-                <Text style={styles.headerTitle}>
+                <Text
+                  style={[styles.headerTitle, { fontSize: isTablet ? 22 : 20 }]}
+                >
                   Order #{order.id || order.order_number}
                 </Text>
-                <Text style={styles.headerDate}>
+                <Text
+                  style={[
+                    styles.headerDate,
+                    { fontSize: config.bodyFontSize - 1 },
+                  ]}
+                >
                   {formatDate(order.createdAt)}
                 </Text>
               </View>
               <TouchableOpacity
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  {
+                    width: closeButtonSize,
+                    height: closeButtonSize,
+                    borderRadius: closeButtonSize / 2,
+                  },
+                ]}
                 onPress={onClose}
                 activeOpacity={0.7}
               >
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
               </TouchableOpacity>
             </View>
 
             {/* Delivery Progress */}
-            <View style={styles.progressSection}>
+            <View
+              style={[
+                styles.progressSection,
+                {
+                  marginHorizontal: isTablet ? 20 : 16,
+                  borderRadius: cardBorderRadius,
+                  paddingHorizontal: isTablet ? 14 : 12,
+                },
+              ]}
+            >
               <OrderDeliveryProgress
                 status={order.delivery_status}
                 isPickup={order.localPickup}
@@ -224,20 +276,58 @@ const OrderDetailsModal: React.FC<Props> = ({
           {/* Scrollable Content */}
           <ScrollView
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                padding: isTablet ? 20 : 16,
+                paddingTop: isTablet ? 12 : 8,
+              },
+            ]}
             showsVerticalScrollIndicator={false}
           >
             {/* Review Prompt for Delivered Orders */}
             {isReviewable && (
-              <View style={styles.reviewPromptCard}>
-                <View style={styles.reviewPromptIcon}>
-                  <Ionicons name="star" size={20} color={AppColors.star} />
+              <View
+                style={[
+                  styles.reviewPromptCard,
+                  {
+                    padding: isTablet ? 16 : 14,
+                    borderRadius: cardBorderRadius - 4,
+                    marginBottom: isTablet ? 18 : 16,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.reviewPromptIcon,
+                    {
+                      width: isTablet ? 44 : 40,
+                      height: isTablet ? 44 : 40,
+                      borderRadius: isTablet ? 22 : 20,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="star"
+                    size={isTablet ? 22 : 20}
+                    color={AppColors.star}
+                  />
                 </View>
                 <View style={styles.reviewPromptContent}>
-                  <Text style={styles.reviewPromptTitle}>
+                  <Text
+                    style={[
+                      styles.reviewPromptTitle,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
                     How was your order?
                   </Text>
-                  <Text style={styles.reviewPromptText}>
+                  <Text
+                    style={[
+                      styles.reviewPromptText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
                     Share your experience by reviewing the products below
                   </Text>
                 </View>
@@ -245,30 +335,100 @@ const OrderDetailsModal: React.FC<Props> = ({
             )}
 
             {/* Order Summary */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Order Summary</Text>
-              <View style={styles.card}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal</Text>
-                  <Text style={styles.summaryValue}>
+            <View
+              style={[styles.section, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    fontSize: config.subtitleFontSize,
+                    marginBottom: isTablet ? 12 : 10,
+                  },
+                ]}
+              >
+                Order Summary
+              </Text>
+              <View
+                style={[
+                  styles.card,
+                  {
+                    padding: sectionPadding,
+                    borderRadius: cardBorderRadius,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.summaryRow,
+                    { marginBottom: isTablet ? 12 : 10 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.summaryLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Subtotal
+                  </Text>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
                     {formatCurrency(subtotal)}
                   </Text>
                 </View>
 
                 {(order.discount_applied || 0) > 0 && (
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Discount</Text>
-                    <Text style={[styles.summaryValue, styles.discountText]}>
+                  <View
+                    style={[
+                      styles.summaryRow,
+                      { marginBottom: isTablet ? 12 : 10 },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.summaryLabel,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
+                      Discount
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        styles.discountText,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
                       -{formatCurrency(order.discount_applied)}
                     </Text>
                   </View>
                 )}
 
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>
+                <View
+                  style={[
+                    styles.summaryRow,
+                    { marginBottom: isTablet ? 12 : 10 },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.summaryLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
                     {order.localPickup ? "Pickup" : "Delivery"}
                   </Text>
-                  <Text style={styles.summaryValue}>
+                  <Text
+                    style={[
+                      styles.summaryValue,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
                     {(order.delivery_fee || 0) === 0
                       ? "FREE"
                       : formatCurrency(order.delivery_fee)}
@@ -276,19 +436,53 @@ const OrderDetailsModal: React.FC<Props> = ({
                 </View>
 
                 {(order.tax_amount || 0) > 0 && (
-                  <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>GST</Text>
-                    <Text style={styles.summaryValue}>
+                  <View
+                    style={[
+                      styles.summaryRow,
+                      { marginBottom: isTablet ? 12 : 10 },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.summaryLabel,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
+                      GST
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
                       {formatCurrency(order.tax_amount)}
                     </Text>
                   </View>
                 )}
 
-                <View style={styles.divider} />
+                <View
+                  style={[
+                    styles.divider,
+                    { marginVertical: isTablet ? 12 : 10 },
+                  ]}
+                />
 
                 <View style={styles.summaryRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>
+                  <Text
+                    style={[
+                      styles.totalLabel,
+                      { fontSize: isTablet ? 18 : 16 },
+                    ]}
+                  >
+                    Total
+                  </Text>
+                  <Text
+                    style={[
+                      styles.totalValue,
+                      { fontSize: isTablet ? 20 : 18 },
+                    ]}
+                  >
                     {formatCurrency(order.total_order_amount)}
                   </Text>
                 </View>
@@ -296,35 +490,75 @@ const OrderDetailsModal: React.FC<Props> = ({
             </View>
 
             {/* Delivery/Pickup Info */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
+            <View
+              style={[styles.section, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    fontSize: config.subtitleFontSize,
+                    marginBottom: isTablet ? 12 : 10,
+                  },
+                ]}
+              >
                 {order.localPickup ? "Pickup Details" : "Delivery Address"}
               </Text>
-              <View style={styles.card}>
-                <View style={styles.infoRow}>
+              <View
+                style={[
+                  styles.card,
+                  {
+                    padding: sectionPadding,
+                    borderRadius: cardBorderRadius,
+                  },
+                ]}
+              >
+                <View style={[styles.infoRow, { gap: isTablet ? 14 : 12 }]}>
                   <Ionicons
                     name={
                       order.localPickup
                         ? "storefront-outline"
                         : "location-outline"
                     }
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.primary[600]}
                   />
                   <View style={styles.infoContent}>
                     {order.localPickup ? (
                       <>
-                        <Text style={styles.infoTitle}>Store Pickup</Text>
-                        <Text style={styles.infoText}>
+                        <Text
+                          style={[
+                            styles.infoTitle,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
+                          Store Pickup
+                        </Text>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { fontSize: config.bodyFontSize - 1 },
+                          ]}
+                        >
                           8 Lethbridge Road, Austral, NSW 2179
                         </Text>
                       </>
                     ) : shippingAddress ? (
                       <>
-                        <Text style={styles.infoTitle}>
+                        <Text
+                          style={[
+                            styles.infoTitle,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
                           {order.shipping_details?.name || order.name}
                         </Text>
-                        <Text style={styles.infoText}>
+                        <Text
+                          style={[
+                            styles.infoText,
+                            { fontSize: config.bodyFontSize - 1 },
+                          ]}
+                        >
                           {shippingAddress.line1}
                           {shippingAddress.line2 &&
                             `, ${shippingAddress.line2}`}
@@ -335,30 +569,71 @@ const OrderDetailsModal: React.FC<Props> = ({
                         </Text>
                       </>
                     ) : (
-                      <Text style={styles.infoText}>Address not available</Text>
+                      <Text
+                        style={[
+                          styles.infoText,
+                          { fontSize: config.bodyFontSize - 1 },
+                        ]}
+                      >
+                        Address not available
+                      </Text>
                     )}
                   </View>
                 </View>
 
                 {order.phone && (
-                  <View style={[styles.infoRow, styles.infoRowLast]}>
+                  <View
+                    style={[
+                      styles.infoRow,
+                      styles.infoRowLast,
+                      {
+                        gap: isTablet ? 14 : 12,
+                        marginTop: isTablet ? 14 : 12,
+                      },
+                    ]}
+                  >
                     <Ionicons
                       name="call-outline"
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={AppColors.primary[600]}
                     />
-                    <Text style={styles.infoText}>{order.phone}</Text>
+                    <Text
+                      style={[
+                        styles.infoText,
+                        { fontSize: config.bodyFontSize - 1 },
+                      ]}
+                    >
+                      {order.phone}
+                    </Text>
                   </View>
                 )}
               </View>
             </View>
 
             {/* Products */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
+            <View
+              style={[styles.section, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    fontSize: config.subtitleFontSize,
+                    marginBottom: isTablet ? 12 : 10,
+                  },
+                ]}
+              >
                 Items ({orderProducts.length})
               </Text>
-              <View style={styles.card}>
+              <View
+                style={[
+                  styles.card,
+                  {
+                    padding: sectionPadding,
+                    borderRadius: cardBorderRadius,
+                  },
+                ]}
+              >
                 {orderProducts.map((item, index) => {
                   const isReviewed = reviewedProductIds.has(
                     Number(item.product_id)
@@ -366,32 +641,72 @@ const OrderDetailsModal: React.FC<Props> = ({
 
                   return (
                     <React.Fragment key={`${item.product_id}-${index}`}>
-                      {index > 0 && <View style={styles.productDivider} />}
-                      <View style={styles.productItem}>
+                      {index > 0 && (
+                        <View
+                          style={[
+                            styles.productDivider,
+                            { marginVertical: isTablet ? 12 : 8 },
+                          ]}
+                        />
+                      )}
+                      <View
+                        style={[
+                          styles.productItem,
+                          { paddingVertical: isTablet ? 10 : 8 },
+                        ]}
+                      >
                         <TouchableOpacity
                           onPress={() => handleViewProduct(item)}
                           activeOpacity={0.7}
                         >
                           <Image
                             source={{ uri: item.cover }}
-                            style={styles.productImage}
+                            style={[
+                              styles.productImage,
+                              {
+                                width: productImageSize,
+                                height: productImageSize,
+                                borderRadius: isTablet ? 12 : 10,
+                              },
+                            ]}
                             resizeMode="contain"
                           />
                         </TouchableOpacity>
 
-                        <View style={styles.productInfo}>
+                        <View
+                          style={[
+                            styles.productInfo,
+                            { marginLeft: isTablet ? 14 : 12 },
+                          ]}
+                        >
                           <TouchableOpacity
                             onPress={() => handleViewProduct(item)}
                             activeOpacity={0.7}
                           >
-                            <Text style={styles.productName} numberOfLines={2}>
+                            <Text
+                              style={[
+                                styles.productName,
+                                { fontSize: config.bodyFontSize },
+                              ]}
+                              numberOfLines={2}
+                            >
                               {item.name}
                             </Text>
                           </TouchableOpacity>
-                          <Text style={styles.productPrice}>
+                          <Text
+                            style={[
+                              styles.productPrice,
+                              { fontSize: config.smallFontSize },
+                            ]}
+                          >
                             {formatCurrency(item.unit_price)} × {item.quantity}
                           </Text>
-                          <Text style={styles.productSubtotal}>
+                          <Text
+                            style={[
+                              styles.productSubtotal,
+                              { fontSize: config.bodyFontSize - 1 },
+                            ]}
+                          >
                             {formatCurrency(item.amount)}
                           </Text>
 
@@ -401,6 +716,12 @@ const OrderDetailsModal: React.FC<Props> = ({
                               style={[
                                 styles.reviewButton,
                                 isReviewed && styles.reviewButtonReviewed,
+                                {
+                                  paddingVertical: isTablet ? 8 : 6,
+                                  paddingHorizontal: isTablet ? 12 : 10,
+                                  borderRadius: isTablet ? 8 : 6,
+                                  marginTop: isTablet ? 10 : 8,
+                                },
                               ]}
                               onPress={() => handleWriteReview(item)}
                               activeOpacity={0.7}
@@ -411,7 +732,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                                     ? "checkmark-circle"
                                     : "star-outline"
                                 }
-                                size={14}
+                                size={isTablet ? 16 : 14}
                                 color={
                                   isReviewed
                                     ? AppColors.success
@@ -422,6 +743,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                                 style={[
                                   styles.reviewButtonText,
                                   isReviewed && styles.reviewButtonTextReviewed,
+                                  { fontSize: config.smallFontSize },
                                 ]}
                               >
                                 {isReviewed ? "Reviewed" : "Write Review"}
@@ -439,40 +761,89 @@ const OrderDetailsModal: React.FC<Props> = ({
             {/* Receipt Button */}
             {order.receipt_url && (
               <TouchableOpacity
-                style={styles.receiptButton}
+                style={[
+                  styles.receiptButton,
+                  {
+                    borderRadius: cardBorderRadius - 4,
+                    padding: isTablet ? 16 : 14,
+                    marginBottom: isTablet ? 18 : 16,
+                  },
+                ]}
                 onPress={handleViewReceipt}
                 activeOpacity={0.7}
               >
                 <Ionicons
                   name="receipt-outline"
-                  size={20}
+                  size={isTablet ? 22 : 20}
                   color={AppColors.primary[600]}
                 />
-                <Text style={styles.receiptButtonText}>View Receipt</Text>
+                <Text
+                  style={[
+                    styles.receiptButtonText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  View Receipt
+                </Text>
               </TouchableOpacity>
             )}
 
             {/* Payment Method */}
-            <View style={styles.paymentInfo}>
+            <View
+              style={[
+                styles.paymentInfo,
+                { gap: isTablet ? 8 : 6, marginBottom: isTablet ? 12 : 8 },
+              ]}
+            >
               <Ionicons
                 name="card-outline"
-                size={16}
+                size={isTablet ? 18 : 16}
                 color={AppColors.text.tertiary}
               />
-              <Text style={styles.paymentText}>
+              <Text
+                style={[styles.paymentText, { fontSize: config.smallFontSize }]}
+              >
                 Paid with {order.payment_method || "Card"}
               </Text>
             </View>
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              {
+                padding: isTablet ? 20 : 16,
+                paddingBottom:
+                  Platform.OS === "ios"
+                    ? isTablet
+                      ? 28
+                      : 32
+                    : isTablet
+                    ? 20
+                    : 16,
+              },
+            ]}
+          >
             <TouchableOpacity
-              style={styles.closeFooterButton}
+              style={[
+                styles.closeFooterButton,
+                {
+                  borderRadius: isTablet ? 16 : 14,
+                  paddingVertical: isTablet ? 18 : 16,
+                },
+              ]}
               onPress={onClose}
               activeOpacity={0.8}
             >
-              <Text style={styles.closeFooterButtonText}>Close</Text>
+              <Text
+                style={[
+                  styles.closeFooterButtonText,
+                  { fontSize: isTablet ? 17 : 16 },
+                ]}
+              >
+                Close
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -494,74 +865,49 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: MODAL_HEIGHT,
     overflow: "hidden",
   },
-  gradientHeader: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
+  gradientHeader: {},
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    padding: 20,
-    paddingBottom: 12,
   },
   headerContent: {
     flex: 1,
   },
   headerTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 20,
     color: AppColors.text.primary,
   },
   headerDate: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
   },
   progressSection: {
-    marginHorizontal: 16,
     marginBottom: 8,
     backgroundColor: "white",
-    borderRadius: 16,
-    paddingHorizontal: 12,
   },
   scrollView: {
     flexGrow: 0,
     flexShrink: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingTop: 8,
-  },
+  scrollContent: {},
   // Review Prompt
   reviewPromptCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEF9C3",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#FDE68A",
   },
   reviewPromptIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: "#FDE68A",
     alignItems: "center",
     justifyContent: "center",
@@ -572,45 +918,34 @@ const styles = StyleSheet.create({
   },
   reviewPromptTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#92400E",
   },
   reviewPromptText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: "#A16207",
     marginTop: 2,
   },
   // Sections
-  section: {
-    marginBottom: 16,
-  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
-    marginBottom: 10,
   },
   card: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 16,
-    padding: 16,
   },
   // Summary
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
   },
   summaryLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   summaryValue: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   discountText: {
@@ -619,24 +954,19 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: AppColors.gray[200],
-    marginVertical: 10,
   },
   totalLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   totalValue: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 18,
     color: AppColors.primary[600],
   },
   // Info
   infoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 12,
   },
   infoRowLast: {
     marginBottom: 0,
@@ -646,53 +976,42 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
     marginBottom: 2,
   },
   infoText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     lineHeight: 19,
   },
   // Products
   productItem: {
     flexDirection: "row",
-    paddingVertical: 8,
   },
   productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 10,
     backgroundColor: "white",
   },
   productInfo: {
     flex: 1,
-    marginLeft: 12,
   },
   productName: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
     marginBottom: 4,
     textTransform: "capitalize",
   },
   productPrice: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
   },
   productSubtotal: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 13,
     color: AppColors.text.primary,
     marginTop: 2,
   },
   productDivider: {
     height: 1,
     backgroundColor: AppColors.gray[200],
-    marginVertical: 8,
   },
   // Review Button
   reviewButton: {
@@ -700,10 +1019,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "flex-start",
     backgroundColor: AppColors.primary[50],
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginTop: 8,
     gap: 4,
     borderWidth: 1,
     borderColor: AppColors.primary[200],
@@ -714,7 +1029,6 @@ const styles = StyleSheet.create({
   },
   reviewButtonText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.primary[600],
   },
   reviewButtonTextReviewed: {
@@ -726,14 +1040,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: AppColors.primary[50],
-    borderRadius: 12,
-    padding: 14,
     gap: 8,
-    marginBottom: 16,
   },
   receiptButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   // Payment
@@ -741,31 +1051,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    marginBottom: 8,
   },
   paymentText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
   },
   // Footer
   footer: {
-    padding: 16,
-    paddingBottom: Platform.OS === "ios" ? 32 : 16,
     backgroundColor: "white",
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[100],
   },
   closeFooterButton: {
     backgroundColor: AppColors.primary[500],
-    borderRadius: 14,
-    paddingVertical: 16,
     alignItems: "center",
   },
   closeFooterButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: "white",
   },
 })

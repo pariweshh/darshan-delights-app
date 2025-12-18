@@ -1,8 +1,9 @@
 import { FontAwesome } from "@expo/vector-icons"
 import React from "react"
-import { StyleSheet, Text, View } from "react-native"
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface RatingProps {
   rating: number
@@ -14,12 +15,6 @@ interface RatingProps {
   onRatingChange?: (rating: number) => void
 }
 
-const SIZES = {
-  small: { star: 12, text: 10, gap: 2 },
-  medium: { star: 16, text: 12, gap: 3 },
-  large: { star: 24, text: 16, gap: 4 },
-}
-
 const Rating: React.FC<RatingProps> = ({
   rating,
   showValue = false,
@@ -29,6 +24,27 @@ const Rating: React.FC<RatingProps> = ({
   interactive = false,
   onRatingChange,
 }) => {
+  const { isTablet } = useResponsive()
+
+  // Size configurations with tablet scaling
+  const SIZES = {
+    small: {
+      star: isTablet ? 14 : 12,
+      text: isTablet ? 12 : 10,
+      gap: isTablet ? 3 : 2,
+    },
+    medium: {
+      star: isTablet ? 18 : 16,
+      text: isTablet ? 14 : 12,
+      gap: isTablet ? 4 : 3,
+    },
+    large: {
+      star: isTablet ? 28 : 24,
+      text: isTablet ? 18 : 16,
+      gap: isTablet ? 5 : 4,
+    },
+  }
+
   const sizeConfig = SIZES[size]
 
   const handleStarPress = (star: number) => {
@@ -42,24 +58,38 @@ const Rating: React.FC<RatingProps> = ({
     const roundedRating = Math.round(rating * 2) / 2 // Round to nearest 0.5
 
     for (let i = 1; i <= 5; i++) {
-      let iconName: "star" | "star-o" | "star-half" = "star-o"
+      let iconName: "star" | "star-o" | "star-half-o" = "star-o"
 
       if (i <= roundedRating) {
         iconName = "star"
       } else if (i - 0.5 === roundedRating) {
-        iconName = "star-half"
+        iconName = "star-half-o"
       }
 
-      stars.push(
+      const starElement = (
         <FontAwesome
           key={i}
           name={iconName}
           size={sizeConfig.star}
           color={AppColors.star}
-          onPress={interactive ? () => handleStarPress(i) : undefined}
           style={{ marginRight: sizeConfig.gap }}
         />
       )
+
+      if (interactive) {
+        stars.push(
+          <TouchableOpacity
+            key={i}
+            onPress={() => handleStarPress(i)}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            {starElement}
+          </TouchableOpacity>
+        )
+      } else {
+        stars.push(starElement)
+      }
     }
 
     return stars
@@ -70,13 +100,23 @@ const Rating: React.FC<RatingProps> = ({
       <View style={styles.starsContainer}>{renderStars()}</View>
 
       {showValue && rating > 0 && (
-        <Text style={[styles.ratingValue, { fontSize: sizeConfig.text }]}>
+        <Text
+          style={[
+            styles.ratingValue,
+            { fontSize: sizeConfig.text, marginLeft: isTablet ? 8 : 6 },
+          ]}
+        >
           {rating.toFixed(1)}
         </Text>
       )}
 
       {showCount && (
-        <Text style={[styles.count, { fontSize: sizeConfig.text }]}>
+        <Text
+          style={[
+            styles.count,
+            { fontSize: sizeConfig.text, marginLeft: isTablet ? 6 : 4 },
+          ]}
+        >
           ({count})
         </Text>
       )}
@@ -98,11 +138,9 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontFamily: "Poppins_600SemiBold",
     color: AppColors.text.primary,
-    marginLeft: 6,
   },
   count: {
     fontFamily: "Poppins_400Regular",
     color: AppColors.text.tertiary,
-    marginLeft: 4,
   },
 })

@@ -3,7 +3,6 @@ import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
 import {
-  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -54,13 +53,13 @@ const CategoryList: React.FC<CategoryListProps> = ({
 }) => {
   const { config, isTablet } = useResponsive()
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={AppColors.primary[500]} />
-      </View>
-    )
-  }
+  // if (loading) {
+  //   return (
+  //     <View style={styles.loadingContainer}>
+  //       <ActivityIndicator size="small" color={AppColors.primary[500]} />
+  //     </View>
+  //   )
+  // }
 
   if (!categories || categories.length === 0) {
     return null

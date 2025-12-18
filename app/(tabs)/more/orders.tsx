@@ -15,12 +15,13 @@ import Toast from "react-native-toast-message"
 import { cancelOrder, getUserOrders } from "@/src/api/orders"
 import { getUserProductReview } from "@/src/api/reviews"
 import EmptyState from "@/src/components/common/EmptyState"
-import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
 import OrderCard from "@/src/components/orders/OrderCard"
 import OrderDetailsModal from "@/src/components/orders/OrderDetailsModal"
 import WriteReviewModal from "@/src/components/reviews/WriteReviewModal"
+import { OrderCardSkeleton } from "@/src/components/skeletons"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { CartItem, Order } from "@/src/types"
 import { Review } from "@/src/types/review"
@@ -30,6 +31,7 @@ const REVIEWABLE_STATUSES = ["delivered", "picked up"]
 
 export default function OrdersScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { user, token } = useAuthStore()
   const { orderId: deepLinkOrderId } = useLocalSearchParams<{
     orderId?: string
@@ -62,12 +64,23 @@ export default function OrdersScreen() {
   // Error state
   const [error, setError] = useState<string | null>(null)
 
+  // Layout configuration
+  const useColumnsLayout = isTablet && isLandscape
+  const numColumns = useColumnsLayout ? 2 : 1
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
+
+  // Calculate item width for grid
+  const gap = config.gap
+  const containerPadding = config.horizontalPadding
+  const itemWidth = useColumnsLayout
+    ? (width - containerPadding * 2 - gap) / 2
+    : undefined
+
   // Handle deep link to specific order
   useEffect(() => {
     if (deepLinkOrderId && orders.length > 0 && !isLoading) {
       const order = orders.find((o) => o.id.toString() === deepLinkOrderId)
       if (order) {
-        // Small delay to ensure UI is ready
         setTimeout(() => {
           handleViewDetails(order)
         }, 300)
@@ -100,7 +113,6 @@ export default function OrdersScreen() {
             setOrders(data.orders)
             setCurrentPage(1)
           } else {
-            // Filter duplicates when loading more
             setOrders((prev) => {
               const existingIds = new Set(prev.map((o) => o.id))
               const newOrders = data.orders.filter(
@@ -179,7 +191,7 @@ export default function OrdersScreen() {
                 reviewedIds.add(Number(product.product_id))
               }
             } catch (error) {
-              console.error("No review exists", error)
+              // No review exists
             }
           })
         )
@@ -220,7 +232,6 @@ export default function OrdersScreen() {
         const result = await cancelOrder(orderId, token)
 
         if (result?.order_status === "canceled") {
-          // Update order in list
           setOrders((prev) =>
             prev.map((order) =>
               order.id === orderId
@@ -275,7 +286,7 @@ export default function OrdersScreen() {
   }, [])
 
   /**
-   * Handle write review (called from OrderDetailsModal)
+   * Handle write review
    */
   const handleWriteReview = useCallback(
     (product: CartItem, orderId: number, existingReview: Review | null) => {
@@ -319,14 +330,13 @@ export default function OrdersScreen() {
         visibilityTime: 2000,
       })
 
-      // Optionally re-open the order modal
       if (selectedOrder) {
         setTimeout(() => {
           setShowOrderModal(true)
         }, 300)
       }
     },
-    [reviewProduct, handleCloseReviewModal]
+    [reviewProduct, handleCloseReviewModal, selectedOrder]
   )
 
   /**
@@ -340,26 +350,54 @@ export default function OrdersScreen() {
    * Render order item
    */
   const renderOrderItem = useCallback(
-    ({ item }: { item: Order }) => (
-      <OrderCard
-        order={item}
-        onCancel={handleCancelOrder}
-        onViewDetails={handleViewDetails}
-      />
-    ),
-    [handleCancelOrder, handleViewDetails]
+    ({ item, index }: { item: Order; index: number }) => {
+      if (useColumnsLayout) {
+        const isLastInRow = (index + 1) % numColumns === 0
+        const marginRight = isLastInRow ? 0 : gap
+
+        return (
+          <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+            <OrderCard
+              order={item}
+              onCancel={handleCancelOrder}
+              onViewDetails={handleViewDetails}
+            />
+          </View>
+        )
+      }
+
+      return (
+        <OrderCard
+          order={item}
+          onCancel={handleCancelOrder}
+          onViewDetails={handleViewDetails}
+        />
+      )
+    },
+    [
+      handleCancelOrder,
+      handleViewDetails,
+      useColumnsLayout,
+      numColumns,
+      itemWidth,
+      gap,
+    ]
   )
 
   /**
    * Render list footer
    */
   const renderFooter = () => {
-    if (!isLoadingMore) return null
+    if (!isLoadingMore) return <View style={{ height: isTablet ? 60 : 40 }} />
 
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
-        <Text style={styles.loadingFooterText}>Loading more orders...</Text>
+        <Text
+          style={[styles.loadingFooterText, { fontSize: config.bodyFontSize }]}
+        >
+          Loading more orders...
+        </Text>
       </View>
     )
   }
@@ -371,10 +409,86 @@ export default function OrdersScreen() {
     if (orders.length === 0) return null
 
     return (
-      <View style={styles.listHeader}>
-        <Text style={styles.orderCount}>
+      <View style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}>
+        <Text style={[styles.orderCount, { fontSize: config.bodyFontSize }]}>
           {totalOrders} {totalOrders === 1 ? "order" : "orders"}
         </Text>
+      </View>
+    )
+  }
+
+  /**
+   * Render skeleton loading
+   */
+  const renderSkeleton = () => {
+    const skeletonCount = isTablet ? 4 : 3
+
+    if (useColumnsLayout) {
+      const rows: number[][] = []
+      for (let i = 0; i < skeletonCount; i += numColumns) {
+        const row: number[] = []
+        for (let j = 0; j < numColumns && i + j < skeletonCount; j++) {
+          row.push(i + j)
+        }
+        rows.push(row)
+      }
+
+      return (
+        <View
+          style={[
+            styles.skeletonContainer,
+            { padding: config.horizontalPadding },
+          ]}
+        >
+          {/* Header skeleton */}
+          <View
+            style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}
+          >
+            <SkeletonBase width={80} height={config.bodyFontSize + 2} />
+          </View>
+
+          {rows.map((row, rowIndex) => (
+            <View key={`skeleton-row-${rowIndex}`} style={styles.skeletonRow}>
+              {row.map((_, colIndex) => {
+                const isLastInRow = colIndex === numColumns - 1
+                return (
+                  <View
+                    key={`skeleton-${rowIndex}-${colIndex}`}
+                    style={{
+                      width: itemWidth,
+                      marginRight: isLastInRow ? 0 : gap,
+                    }}
+                  >
+                    <OrderCardSkeleton />
+                  </View>
+                )
+              })}
+            </View>
+          ))}
+        </View>
+      )
+    }
+
+    return (
+      <View
+        style={[
+          styles.skeletonContainer,
+          {
+            padding: config.horizontalPadding,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
+        {/* Header skeleton */}
+        <View style={[styles.listHeader, { marginBottom: isTablet ? 16 : 12 }]}>
+          <SkeletonBase width={80} height={config.bodyFontSize + 2} />
+        </View>
+
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <OrderCardSkeleton key={`skeleton-${index}`} />
+        ))}
       </View>
     )
   }
@@ -386,11 +500,11 @@ export default function OrdersScreen() {
     }, [])
   )
 
-  // Loading state
+  // Loading state with skeleton
   if (isLoading) {
     return (
       <Wrapper style={styles.container} edges={[]}>
-        <Loader fullScreen text="Loading orders..." />
+        {renderSkeleton()}
       </Wrapper>
     )
   }
@@ -402,11 +516,15 @@ export default function OrdersScreen() {
         <View style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
-            size={64}
+            size={isTablet ? 80 : 64}
             color={AppColors.error}
           />
-          <Text style={styles.errorTitle}>Oops!</Text>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={[styles.errorTitle, { fontSize: config.titleFontSize }]}>
+            Oops!
+          </Text>
+          <Text style={[styles.errorText, { fontSize: config.bodyFontSize }]}>
+            {error}
+          </Text>
         </View>
       </Wrapper>
     )
@@ -427,13 +545,28 @@ export default function OrdersScreen() {
     )
   }
 
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `orders-${numColumns}`
+
   return (
     <Wrapper style={styles.container} edges={[]}>
       <FlatList
+        key={flatListKey}
         data={orders}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderOrderItem}
-        contentContainerStyle={styles.listContent}
+        numColumns={numColumns}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+            maxWidth: !useColumnsLayout ? contentMaxWidth : undefined,
+            alignSelf:
+              !useColumnsLayout && contentMaxWidth ? "center" : undefined,
+            width: !useColumnsLayout && contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
@@ -447,7 +580,6 @@ export default function OrdersScreen() {
         }
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
-        // Performance optimizations
         removeClippedSubviews
         initialNumToRender={ORDERS_PER_PAGE}
         maxToRenderPerBatch={ORDERS_PER_PAGE}
@@ -476,22 +608,19 @@ export default function OrdersScreen() {
   )
 }
 
+// Need to import SkeletonBase for the header skeleton
+import { SkeletonBase } from "@/src/components/skeletons"
+
 const styles = StyleSheet.create({
   container: {
     backgroundColor: AppColors.background.secondary,
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  listHeader: {
-    marginBottom: 12,
-  },
+  listContent: {},
+  listHeader: {},
   orderCount: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   loadingFooter: {
@@ -503,7 +632,6 @@ const styles = StyleSheet.create({
   },
   loadingFooterText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.primary[500],
   },
   errorContainer: {
@@ -514,16 +642,20 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 24,
     color: AppColors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
     lineHeight: 22,
+  },
+  skeletonContainer: {
+    flex: 1,
+  },
+  skeletonRow: {
+    flexDirection: "row",
   },
 })

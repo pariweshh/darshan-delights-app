@@ -4,6 +4,7 @@ import React from "react"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import {
   Notification,
   NOTIFICATION_COLORS,
@@ -21,6 +22,8 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   onPress,
   onDelete,
 }) => {
+  const { config, isTablet } = useResponsive()
+
   const iconName =
     NOTIFICATION_ICONS[notification.type] || "notifications-outline"
   const iconColor =
@@ -30,51 +33,108 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
     addSuffix: true,
   })
 
+  // Responsive sizes
+  const iconContainerSize = isTablet ? 50 : 44
+  const iconSize = isTablet ? 24 : 22
+  const unreadDotSize = isTablet ? 10 : 8
+  const deleteIconSize = isTablet ? 20 : 18
+
   return (
     <TouchableOpacity
-      style={[styles.container, !notification.isRead && styles.unreadContainer]}
+      style={[
+        styles.container,
+        {
+          paddingVertical: isTablet ? 16 : 14,
+          paddingHorizontal: isTablet ? 18 : 16,
+        },
+        !notification.isRead && styles.unreadContainer,
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       {/* Unread indicator */}
-      {!notification.isRead && <View style={styles.unreadDot} />}
+      {!notification.isRead && (
+        <View
+          style={[
+            styles.unreadDot,
+            {
+              left: isTablet ? 7 : 6,
+              top: isTablet ? 24 : 22,
+              width: unreadDotSize,
+              height: unreadDotSize,
+              borderRadius: unreadDotSize / 2,
+            },
+          ]}
+        />
+      )}
 
       {/* Icon */}
       <View
-        style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}
+        style={[
+          styles.iconContainer,
+          {
+            width: iconContainerSize,
+            height: iconContainerSize,
+            borderRadius: isTablet ? 14 : 12,
+            marginRight: isTablet ? 14 : 12,
+            backgroundColor: `${iconColor}15`,
+          },
+        ]}
       >
         <Ionicons
           name={iconName as keyof typeof Ionicons.glyphMap}
-          size={22}
+          size={iconSize}
           color={iconColor}
         />
       </View>
 
       {/* Content */}
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, { marginBottom: isTablet ? 6 : 4 }]}>
           <Text
-            style={[styles.title, !notification.isRead && styles.unreadTitle]}
+            style={[
+              styles.title,
+              { fontSize: config.bodyFontSize },
+              !notification.isRead && styles.unreadTitle,
+            ]}
             numberOfLines={1}
           >
             {notification.title}
           </Text>
-          <Text style={styles.time}>{formattedTime}</Text>
+          <Text style={[styles.time, { fontSize: config.smallFontSize - 1 }]}>
+            {formattedTime}
+          </Text>
         </View>
 
-        <Text style={styles.message} numberOfLines={2}>
+        <Text
+          style={[
+            styles.message,
+            {
+              fontSize: config.bodyFontSize - 1,
+              lineHeight: (config.bodyFontSize - 1) * 1.4,
+            },
+          ]}
+          numberOfLines={2}
+        >
           {notification.message}
         </Text>
 
         {/* Order info if available */}
         {notification.order && (
-          <View style={styles.orderInfo}>
+          <View
+            style={[
+              styles.orderInfo,
+              { marginTop: isTablet ? 8 : 6, gap: isTablet ? 5 : 4 },
+            ]}
+          >
             <Ionicons
               name="cube-outline"
-              size={12}
+              size={isTablet ? 14 : 12}
               color={AppColors.text.tertiary}
             />
-            <Text style={styles.orderText}>
+            <Text
+              style={[styles.orderText, { fontSize: config.smallFontSize - 1 }]}
+            >
               Order {notification.order.orderNumber}
             </Text>
           </View>
@@ -84,14 +144,18 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
       {/* Delete button */}
       {onDelete && (
         <TouchableOpacity
-          style={styles.deleteButton}
+          style={[styles.deleteButton, { marginLeft: isTablet ? 10 : 8 }]}
           onPress={(e) => {
             e.stopPropagation()
             onDelete()
           }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <Ionicons name="close" size={18} color={AppColors.gray[400]} />
+          <Ionicons
+            name="close"
+            size={deleteIconSize}
+            color={AppColors.gray[400]}
+          />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -105,8 +169,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: AppColors.background.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
   },
@@ -115,20 +177,11 @@ const styles = StyleSheet.create({
   },
   unreadDot: {
     position: "absolute",
-    left: 6,
-    top: 22,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
     backgroundColor: AppColors.primary[500],
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   content: {
     flex: 1,
@@ -137,11 +190,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 4,
   },
   title: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
     flex: 1,
     marginRight: 8,
@@ -151,28 +202,21 @@ const styles = StyleSheet.create({
   },
   time: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
   },
   message: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    lineHeight: 18,
   },
   orderInfo: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 6,
-    gap: 4,
   },
   orderText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
   },
   deleteButton: {
     padding: 4,
-    marginLeft: 8,
   },
 })

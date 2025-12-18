@@ -1,6 +1,8 @@
-import AppColors from "@/src/constants/Colors"
 import { Ionicons } from "@expo/vector-icons"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+
+import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface SearchSuggestionsProps {
   onSuggestionSelect: (query: string) => void
@@ -21,29 +23,82 @@ const POPULAR_SEARCHES = [
 const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
   onSuggestionSelect,
 }) => {
+  const { config, isTablet, isLandscape } = useResponsive()
+
+  // Responsive sizes
+  const chipPaddingH = isTablet ? 16 : 12
+  const chipPaddingV = isTablet ? 10 : 8
+  const chipFontSize = isTablet ? 14 : 12
+  const iconSize = isTablet ? 16 : 14
+
+  // For tablet landscape, constrain width
+  const maxWidth = isTablet && isLandscape ? 600 : undefined
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingVertical: isTablet ? 24 : 20,
+          paddingHorizontal: config.horizontalPadding,
+        },
+      ]}
+    >
       {/* Header */}
-      <View style={styles.header}>
-        <Ionicons name="trending-up" size={18} color={AppColors.primary[500]} />
-        <Text style={styles.headerTitle}>Popular Searches</Text>
+      <View
+        style={[
+          styles.header,
+          {
+            gap: isTablet ? 10 : 8,
+            marginBottom: isTablet ? 18 : 16,
+            maxWidth,
+          },
+        ]}
+      >
+        <Ionicons
+          name="trending-up"
+          size={isTablet ? 20 : 18}
+          color={AppColors.primary[500]}
+        />
+        <Text
+          style={[styles.headerTitle, { fontSize: config.subtitleFontSize }]}
+        >
+          Popular Searches
+        </Text>
       </View>
 
       {/* Suggestions Grid */}
-      <View style={styles.suggestionsGrid}>
+      <View
+        style={[
+          styles.suggestionsGrid,
+          {
+            gap: isTablet ? 10 : 8,
+            maxWidth,
+          },
+        ]}
+      >
         {POPULAR_SEARCHES.map((suggestion, index) => (
           <TouchableOpacity
             key={`${suggestion}-${index}`}
-            style={styles.suggestionChip}
+            style={[
+              styles.suggestionChip,
+              {
+                paddingHorizontal: chipPaddingH,
+                paddingVertical: chipPaddingV,
+                gap: isTablet ? 6 : 4,
+              },
+            ]}
             onPress={() => onSuggestionSelect(suggestion)}
             activeOpacity={0.7}
           >
             <Ionicons
               name="search-outline"
-              size={14}
+              size={iconSize}
               color={AppColors.gray[400]}
             />
-            <Text style={styles.suggestionText}>{suggestion}</Text>
+            <Text style={[styles.suggestionText, { fontSize: chipFontSize }]}>
+              {suggestion}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -54,40 +109,29 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
 export default SearchSuggestions
 
 const styles = StyleSheet.create({
-  container: {
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-  },
+  container: {},
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 16,
   },
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   suggestionsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
   },
   suggestionChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 20,
-    gap: 4,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
   suggestionText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.primary,
     textTransform: "capitalize",
   },

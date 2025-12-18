@@ -1,4 +1,3 @@
-import AppColors from "@/src/constants/Colors"
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useRef } from "react"
 import {
@@ -8,6 +7,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+
+import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface SearchHeaderProps {
   searchQuery: string
@@ -24,20 +26,67 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
   onSubmit,
   autoFocus = true,
 }) => {
+  const { config, isTablet, isLandscape } = useResponsive()
   const inputRef = useRef<TextInput>(null)
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Search</Text>
+  // Responsive sizes
+  const inputHeight = isTablet ? 56 : 50
+  const buttonSize = isTablet ? 56 : 50
+  const titleSize = isTablet ? 32 : 28
+  const inputFontSize = isTablet ? 16 : 15
 
-      <View style={styles.searchRow}>
+  // For tablet landscape, constrain the search bar width
+  const maxWidth = isTablet && isLandscape ? 600 : undefined
+
+  return (
+    <View
+      style={[
+        styles.container,
+        {
+          paddingHorizontal: config.horizontalPadding,
+          paddingBottom: isTablet ? 20 : 16,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.title,
+          {
+            fontSize: titleSize,
+            marginBottom: isTablet ? 20 : 16,
+          },
+        ]}
+      >
+        Search
+      </Text>
+
+      <View
+        style={[
+          styles.searchRow,
+          {
+            gap: isTablet ? 12 : 10,
+            maxWidth,
+            alignSelf: maxWidth ? "center" : undefined,
+            width: maxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
         {/* Search Input */}
-        <View style={styles.inputContainer}>
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              borderRadius: isTablet ? 14 : 12,
+              paddingHorizontal: isTablet ? 16 : 14,
+              height: inputHeight,
+            },
+          ]}
+        >
           <Ionicons
             name="search-outline"
-            size={20}
+            size={isTablet ? 22 : 20}
             color={AppColors.gray[400]}
-            style={styles.searchIcon}
+            style={[styles.searchIcon, { marginRight: isTablet ? 12 : 10 }]}
           />
           <TextInput
             ref={inputRef}
@@ -46,7 +95,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
             onSubmitEditing={onSubmit}
             placeholder="Search products..."
             placeholderTextColor={AppColors.gray[400]}
-            style={styles.input}
+            style={[styles.input, { fontSize: inputFontSize }]}
             returnKeyType="search"
             autoFocus={autoFocus}
             autoCapitalize="none"
@@ -60,7 +109,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
             >
               <AntDesign
                 name="close-circle"
-                size={18}
+                size={isTablet ? 20 : 18}
                 color={AppColors.gray[400]}
               />
             </TouchableOpacity>
@@ -69,11 +118,18 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
 
         {/* Search Button */}
         <TouchableOpacity
-          style={styles.searchButton}
+          style={[
+            styles.searchButton,
+            {
+              borderRadius: isTablet ? 14 : 12,
+              width: buttonSize,
+              height: buttonSize,
+            },
+          ]}
           onPress={onSubmit}
           activeOpacity={0.8}
         >
-          <Ionicons name="search" size={22} color="white" />
+          <Ionicons name="search" size={isTablet ? 24 : 22} color="white" />
         </TouchableOpacity>
       </View>
     </View>
@@ -85,40 +141,29 @@ export default SearchHeader
 const styles = StyleSheet.create({
   container: {
     backgroundColor: AppColors.background.primary,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.text.primary,
-    marginBottom: 16,
   },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   inputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    height: 50,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
-  searchIcon: {
-    marginRight: 10,
-  },
+  searchIcon: {},
   input: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
     paddingVertical: 0,
   },
@@ -127,9 +172,6 @@ const styles = StyleSheet.create({
   },
   searchButton: {
     backgroundColor: AppColors.primary[500],
-    borderRadius: 12,
-    width: 50,
-    height: 50,
     alignItems: "center",
     justifyContent: "center",
   },

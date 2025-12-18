@@ -1,3 +1,5 @@
+// app/(tabs)/more/index.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import Constants from "expo-constants"
 import { useRouter } from "expo-router"
@@ -16,6 +18,7 @@ import Toast from "react-native-toast-message"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 import { shareApp } from "@/src/utils/share"
@@ -29,6 +32,8 @@ interface MenuItemProps {
   iconColor?: string
   labelColor?: string
   badge?: number
+  isTablet?: boolean
+  config?: any
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({
@@ -40,54 +45,131 @@ const MenuItem: React.FC<MenuItemProps> = ({
   iconColor = AppColors.text.primary,
   labelColor = AppColors.text.primary,
   badge,
-}) => (
-  <TouchableOpacity
-    style={styles.menuItem}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View style={styles.menuItemLeft}>
-      <View style={styles.menuIconContainer}>
-        <Ionicons name={icon} size={22} color={iconColor} />
-      </View>
-      <Text style={[styles.menuItemLabel, { color: labelColor }]}>{label}</Text>
-      {badge !== undefined && badge > 0 && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge}</Text>
+  isTablet = false,
+  config,
+}) => {
+  const iconContainerSize = isTablet ? 42 : 36
+  const iconSize = isTablet ? 24 : 22
+  const chevronSize = isTablet ? 22 : 20
+  const fontSize = config?.bodyFontSize || 15
+  const badgeSize = isTablet ? 22 : 20
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.menuItem,
+        {
+          paddingVertical: isTablet ? 16 : 14,
+          paddingHorizontal: isTablet ? 18 : 16,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.menuItemLeft}>
+        <View
+          style={[
+            styles.menuIconContainer,
+            {
+              width: iconContainerSize,
+              height: iconContainerSize,
+              borderRadius: isTablet ? 12 : 10,
+              marginRight: isTablet ? 14 : 12,
+            },
+          ]}
+        >
+          <Ionicons name={icon} size={iconSize} color={iconColor} />
         </View>
+        <Text style={[styles.menuItemLabel, { color: labelColor, fontSize }]}>
+          {label}
+        </Text>
+        {badge !== undefined && badge > 0 && (
+          <View
+            style={[
+              styles.badge,
+              {
+                minWidth: badgeSize,
+                height: badgeSize,
+                borderRadius: badgeSize / 2,
+              },
+            ]}
+          >
+            <Text style={[styles.badgeText, { fontSize: isTablet ? 12 : 11 }]}>
+              {badge}
+            </Text>
+          </View>
+        )}
+      </View>
+      {showChevron && (
+        <Ionicons
+          name="chevron-forward"
+          size={chevronSize}
+          color={AppColors.gray[400]}
+        />
       )}
-    </View>
-    {showChevron && (
-      <Ionicons name="chevron-forward" size={20} color={AppColors.gray[400]} />
-    )}
+      {showArrow && (
+        <Ionicons
+          name="open-outline"
+          size={chevronSize}
+          color={AppColors.gray[400]}
+        />
+      )}
+    </TouchableOpacity>
+  )
+}
 
-    {showArrow && (
-      <Ionicons
-        name="arrow-forward"
-        size={20}
-        color={AppColors.gray[400]}
-        className="-rotate-45"
-      />
-    )}
-  </TouchableOpacity>
-)
+interface MenuSectionProps {
+  title?: string
+  children: React.ReactNode
+  isTablet?: boolean
+  config?: any
+}
 
-const MenuSection: React.FC<{ title?: string; children: React.ReactNode }> = ({
+const MenuSection: React.FC<MenuSectionProps> = ({
   title,
   children,
+  isTablet = false,
+  config,
 }) => (
-  <View style={styles.menuSection}>
-    {title && <Text style={styles.sectionTitle}>{title}</Text>}
-    <View style={styles.menuCard}>{children}</View>
+  <View style={[styles.menuSection, { marginBottom: isTablet ? 24 : 20 }]}>
+    {title && (
+      <Text
+        style={[
+          styles.sectionTitle,
+          {
+            fontSize: isTablet ? 15 : 14,
+            marginBottom: isTablet ? 10 : 8,
+            marginLeft: isTablet ? 6 : 4,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+    )}
+    <View
+      style={[
+        styles.menuCard,
+        { borderRadius: config?.cardBorderRadius + 4 || 16 },
+      ]}
+    >
+      {children}
+    </View>
   </View>
 )
 
 export default function MoreScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { user, token, logout, isLoading } = useAuthStore()
   const { unreadCount } = useNotificationStore()
 
   const appVersion = Constants.expoConfig?.version || "1.0.0"
+
+  // For tablet landscape, use two-column layout
+  const useColumnsLayout = isTablet && isLandscape
+
+  // Content max width for tablet portrait
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
 
   // Memoize user data
   const initials = useMemo(() => {
@@ -148,6 +230,7 @@ export default function MoreScreen() {
   const handleGoToFavorites = () => {
     router.push("/(tabs)/more/favorites")
   }
+
   const handleGoToReviews = () => {
     router.push("/(tabs)/more/reviews")
   }
@@ -226,164 +309,337 @@ export default function MoreScreen() {
       Alert.alert("Error", "Unable to open terms of service")
     }
   }
+
   const handleOpenProductRecalls = async () => {
     try {
       await WebBrowser.openBrowserAsync(
         "https://darshandelights.com.au/product-recalls"
       )
     } catch (error) {
-      console.error("Error opening terms of service:", error)
-      Alert.alert("Error", "Unable to open terms of service")
+      console.error("Error opening product recalls:", error)
+      Alert.alert("Error", "Unable to open product recalls")
     }
   }
+
+  // Responsive sizes
+  const avatarSize = isTablet ? 70 : 60
+  const avatarFontSize = isTablet ? 24 : 20
+  const guestIconContainerSize = isTablet ? 80 : 70
+  const guestIconSize = isTablet ? 36 : 32
+
+  // Render Profile Card
+  const renderProfileCard = () => {
+    if (token && user) {
+      return (
+        <TouchableOpacity
+          style={[
+            styles.profileCard,
+            {
+              padding: isTablet ? 20 : 16,
+              borderRadius: config.cardBorderRadius + 4,
+              marginBottom: isTablet ? 28 : 24,
+            },
+          ]}
+          onPress={handleGoToProfile}
+          activeOpacity={0.8}
+        >
+          <View
+            style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                marginRight: isTablet ? 16 : 14,
+              },
+            ]}
+          >
+            <Text style={[styles.avatarText, { fontSize: avatarFontSize }]}>
+              {initials}
+            </Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text
+              style={[styles.profileName, { fontSize: isTablet ? 19 : 17 }]}
+            >
+              {displayName}
+            </Text>
+            <Text
+              style={[
+                styles.profileEmail,
+                { fontSize: config.bodyFontSize - 1 },
+              ]}
+            >
+              {user?.email}
+            </Text>
+            <Text
+              style={[
+                styles.profileLink,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginTop: isTablet ? 6 : 4,
+                },
+              ]}
+            >
+              View Profile
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={isTablet ? 26 : 24}
+            color={AppColors.gray[400]}
+          />
+        </TouchableOpacity>
+      )
+    }
+
+    return (
+      <View
+        style={[
+          styles.guestCard,
+          {
+            padding: isTablet ? 24 : 20,
+            borderRadius: config.cardBorderRadius + 4,
+            marginBottom: isTablet ? 28 : 24,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.guestIconContainer,
+            {
+              width: guestIconContainerSize,
+              height: guestIconContainerSize,
+              borderRadius: guestIconContainerSize / 2,
+              marginBottom: isTablet ? 16 : 12,
+            },
+          ]}
+        >
+          <Ionicons
+            name="person-outline"
+            size={guestIconSize}
+            color={AppColors.gray[400]}
+          />
+        </View>
+        <View style={styles.guestInfo}>
+          <Text style={[styles.guestTitle, { fontSize: isTablet ? 19 : 17 }]}>
+            Welcome to Darshan Delights
+          </Text>
+          <Text
+            style={[
+              styles.guestSubtitle,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginTop: isTablet ? 6 : 4,
+                lineHeight: isTablet ? 22 : 18,
+              },
+            ]}
+          >
+            Sign in to access your orders, favorites, and more
+          </Text>
+        </View>
+        <Button
+          title="Sign In"
+          onPress={handleLogin}
+          size="small"
+          containerStyles="mt-3"
+        />
+      </View>
+    )
+  }
+
+  // Render Account Section
+  const renderAccountSection = () => (
+    <MenuSection title="My Account" isTablet={isTablet} config={config}>
+      <MenuItem
+        icon="receipt-outline"
+        label="My Orders"
+        onPress={handleGoToOrders}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="heart-outline"
+        label="My Favorites"
+        onPress={handleGoToFavorites}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="chatbubble-outline"
+        label="My Reviews"
+        onPress={handleGoToReviews}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="notifications-outline"
+        label="Notifications"
+        onPress={handleGoToNotifications}
+        badge={unreadCount}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="location-outline"
+        label="Saved Addresses"
+        onPress={handleGoToAddresses}
+        isTablet={isTablet}
+        config={config}
+      />
+    </MenuSection>
+  )
+
+  // Render Support Section
+  const renderSupportSection = () => (
+    <MenuSection title="Support" isTablet={isTablet} config={config}>
+      <MenuItem
+        icon="help-circle-outline"
+        label="Help & Contact"
+        onPress={handleGoToHelp}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="document-text-outline"
+        label="Privacy Policy"
+        onPress={handleOpenPrivacyPolicy}
+        showChevron={false}
+        showArrow={true}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="shield-checkmark-outline"
+        label="Terms of Service"
+        onPress={handleOpenTermsOfService}
+        showChevron={false}
+        showArrow={true}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="warning-outline"
+        label="Product Recalls"
+        onPress={handleOpenProductRecalls}
+        showChevron={false}
+        showArrow={true}
+        isTablet={isTablet}
+        config={config}
+      />
+    </MenuSection>
+  )
+
+  // Render Other Sections
+  const renderOtherSections = () => (
+    <>
+      {/* Share Section */}
+      <MenuSection isTablet={isTablet} config={config}>
+        <MenuItem
+          icon="share-social-outline"
+          label="Share App"
+          onPress={handleShareApp}
+          showChevron={false}
+          isTablet={isTablet}
+          config={config}
+        />
+      </MenuSection>
+
+      {/* Logout Section */}
+      {token && user && (
+        <MenuSection isTablet={isTablet} config={config}>
+          <MenuItem
+            icon="log-out-outline"
+            label={isLoading ? "Logging out..." : "Logout"}
+            onPress={handleLogout}
+            showChevron={false}
+            iconColor={AppColors.error}
+            labelColor={AppColors.error}
+            isTablet={isTablet}
+            config={config}
+          />
+        </MenuSection>
+      )}
+    </>
+  )
+
+  // Render Version Info
+  const renderVersionInfo = () => (
+    <View
+      style={[styles.versionContainer, { paddingVertical: isTablet ? 24 : 20 }]}
+    >
+      <Text style={[styles.versionText, { fontSize: config.bodyFontSize }]}>
+        Darshan Delights
+      </Text>
+      <Text
+        style={[
+          styles.versionNumber,
+          { fontSize: config.smallFontSize, marginTop: isTablet ? 4 : 2 },
+        ]}
+      >
+        Version {appVersion}
+      </Text>
+    </View>
+  )
 
   return (
     <Wrapper style={styles.container}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile Section */}
-        {token && user ? (
-          <TouchableOpacity
-            style={styles.profileCard}
-            onPress={handleGoToProfile}
-            activeOpacity={0.8}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+        {useColumnsLayout ? (
+          // Tablet Landscape: Two-column layout
+          <>
+            {/* Profile Card - Full Width */}
+            <View style={{ maxWidth: 700, alignSelf: "center", width: "100%" }}>
+              {renderProfileCard()}
             </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{displayName}</Text>
-              <Text style={styles.profileEmail}>{user?.email}</Text>
-              <Text style={styles.profileLink}>View Profile</Text>
+
+            {/* Two Columns */}
+            <View style={styles.columnsContainer}>
+              {/* Left Column */}
+              <View style={styles.column}>
+                {renderAccountSection()}
+                {renderOtherSections()}
+              </View>
+
+              {/* Right Column */}
+              <View style={styles.column}>{renderSupportSection()}</View>
             </View>
-            <Ionicons
-              name="chevron-forward"
-              size={24}
-              color={AppColors.gray[400]}
-            />
-          </TouchableOpacity>
+
+            {renderVersionInfo()}
+          </>
         ) : (
-          <View style={styles.guestCard}>
-            <View style={styles.guestIconContainer}>
-              <Ionicons
-                name="person-outline"
-                size={32}
-                color={AppColors.gray[400]}
-              />
-            </View>
-            <View style={styles.guestInfo}>
-              <Text style={styles.guestTitle}>Welcome to Darshan Delights</Text>
-              <Text style={styles.guestSubtitle}>
-                Sign in to access your orders, favorites, and more
-              </Text>
-            </View>
-            <Button
-              title="Sign In"
-              onPress={handleLogin}
-              size="small"
-              containerStyles="mt-3"
-            />
+          // Phone & Tablet Portrait: Single column
+          <View
+            style={{
+              maxWidth: contentMaxWidth,
+              alignSelf: contentMaxWidth ? "center" : undefined,
+              width: contentMaxWidth ? "100%" : undefined,
+            }}
+          >
+            {renderProfileCard()}
+            {renderAccountSection()}
+            {renderSupportSection()}
+            {renderOtherSections()}
+            {renderVersionInfo()}
           </View>
         )}
-
-        {/* Account Section */}
-        <MenuSection title="My Account">
-          <MenuItem
-            icon="receipt-outline"
-            label="My Orders"
-            onPress={handleGoToOrders}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="heart-outline"
-            label="My Favorites"
-            onPress={handleGoToFavorites}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="chatbubble-outline"
-            label="My Reviews"
-            onPress={handleGoToReviews}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="notifications-outline"
-            label="Notifications"
-            onPress={handleGoToNotifications}
-            badge={unreadCount}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="location-outline"
-            label="Saved Addresses"
-            onPress={handleGoToAddresses}
-          />
-        </MenuSection>
-
-        {/* Support Section */}
-        <MenuSection title="Support">
-          <MenuItem
-            icon="help-circle-outline"
-            label="Help & Contact"
-            onPress={handleGoToHelp}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="document-text-outline"
-            label="Privacy Policy"
-            onPress={handleOpenPrivacyPolicy}
-            showChevron={false}
-            showArrow={true}
-          />
-          <View style={styles.menuDivider} />
-          <MenuItem
-            icon="shield-checkmark-outline"
-            label="Terms of Service"
-            onPress={handleOpenTermsOfService}
-            showChevron={false}
-            showArrow={true}
-          />
-          <MenuItem
-            icon="shield-checkmark-outline"
-            label="Product Recalls"
-            onPress={handleOpenProductRecalls}
-            showChevron={false}
-            showArrow={true}
-          />
-        </MenuSection>
-
-        {/* Share Section */}
-        <MenuSection>
-          <MenuItem
-            icon="share-social-outline"
-            label="Share App"
-            onPress={handleShareApp}
-            showChevron={false}
-          />
-        </MenuSection>
-
-        {/* Logout Section */}
-        {token && user && (
-          <MenuSection>
-            <MenuItem
-              icon="log-out-outline"
-              label={isLoading ? "Logging out..." : "Logout"}
-              onPress={handleLogout}
-              showChevron={false}
-              iconColor={AppColors.error}
-              labelColor={AppColors.error}
-            />
-          </MenuSection>
-        )}
-
-        {/* App Version */}
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Darshan Delights</Text>
-          <Text style={styles.versionNumber}>Version {appVersion}</Text>
-        </View>
       </ScrollView>
     </Wrapper>
   )
@@ -395,33 +651,23 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: AppColors.background.primary,
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.gray[200],
-  },
-  headerTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 28,
-    color: AppColors.text.primary,
-  },
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
+  scrollContent: {},
+  // Columns Layout (Tablet Landscape)
+  columnsContainer: {
+    flexDirection: "row",
+    gap: 20,
+  },
+  column: {
+    flex: 1,
   },
   // Profile Card
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -429,17 +675,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
     backgroundColor: AppColors.primary[500],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 14,
   },
   avatarText: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 20,
     color: "white",
   },
   profileInfo: {
@@ -447,27 +688,20 @@ const styles = StyleSheet.create({
   },
   profileName: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 17,
     color: AppColors.text.primary,
   },
   profileEmail: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   profileLink: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[500],
-    marginTop: 4,
   },
   // Guest Card
   guestCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
     alignItems: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -476,47 +710,33 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   guestIconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
   guestInfo: {
     alignItems: "center",
   },
   guestTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 17,
     color: AppColors.text.primary,
     textAlign: "center",
   },
   guestSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     textAlign: "center",
-    marginTop: 4,
-    lineHeight: 18,
   },
   // Menu Section
-  menuSection: {
-    marginBottom: 20,
-  },
+  menuSection: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.secondary,
-    marginBottom: 8,
-    marginLeft: 4,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   menuCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -528,8 +748,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -537,29 +755,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   menuItemLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   menuDivider: {
     height: 1,
     backgroundColor: AppColors.gray[100],
-    marginLeft: 64,
   },
   badge: {
     backgroundColor: AppColors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
     alignItems: "center",
     justifyContent: "center",
     marginLeft: 8,
@@ -567,23 +776,18 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 11,
     color: "white",
   },
   // Version
   versionContainer: {
     alignItems: "center",
-    paddingVertical: 20,
   },
   versionText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   versionNumber: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
-    marginTop: 2,
   },
 })
