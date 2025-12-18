@@ -1,6 +1,6 @@
 import { IsIPAD } from "@/src/themes/app.constants"
 import { Dimensions, Image } from "react-native"
-import { verticalScale } from "react-native-size-matters"
+import { moderateScale, verticalScale } from "react-native-size-matters"
 import { LandingSlide } from "../types"
 
 // Screen dimensions
@@ -20,6 +20,22 @@ export enum Side {
   NONE,
 }
 
+// Responsive image dimensions for landing slides
+const getLandingImageSize = () => {
+  if (IsIPAD) {
+    return {
+      width: moderateScale(300, 0.3),
+      height: moderateScale(320, 0.3),
+    }
+  }
+  return {
+    width: verticalScale(320),
+    height: verticalScale(330),
+  }
+}
+
+const landingImageSize = getLandingImageSize()
+
 // Landing screen slides - images will be added once you provide the assets
 export const landingScreenSlides: LandingSlide[] = [
   {
@@ -30,8 +46,8 @@ export const landingScreenSlides: LandingSlide[] = [
       <Image
         source={require("@/assets/images/landing/1.png")}
         style={{
-          width: IsIPAD ? verticalScale(285) : verticalScale(320),
-          height: IsIPAD ? verticalScale(345) : verticalScale(330),
+          width: landingImageSize.width,
+          height: landingImageSize.height,
         }}
         resizeMode="contain"
       />
@@ -45,8 +61,8 @@ export const landingScreenSlides: LandingSlide[] = [
       <Image
         source={require("@/assets/images/landing/2.png")}
         style={{
-          width: IsIPAD ? verticalScale(285) : verticalScale(320),
-          height: IsIPAD ? verticalScale(345) : verticalScale(330),
+          width: landingImageSize.width,
+          height: landingImageSize.height,
         }}
         resizeMode="contain"
       />
@@ -60,8 +76,8 @@ export const landingScreenSlides: LandingSlide[] = [
       <Image
         source={require("@/assets/images/landing/3.png")}
         style={{
-          width: IsIPAD ? verticalScale(285) : verticalScale(320),
-          height: IsIPAD ? verticalScale(345) : verticalScale(300),
+          width: landingImageSize.width,
+          height: landingImageSize.height,
           marginBottom: verticalScale(30),
         }}
         resizeMode="contain"

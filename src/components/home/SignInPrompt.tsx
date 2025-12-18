@@ -1,29 +1,54 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 const SignInPrompt = () => {
   const router = useRouter()
+  const { config, isTablet } = useResponsive()
+
+  const iconContainerSize = isTablet ? 56 : 48
 
   return (
     <TouchableOpacity
-      style={styles.container}
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 20 : 16,
+          borderRadius: config.cardBorderRadius + 4,
+        },
+      ]}
       onPress={() => router.push("/(auth)/login")}
       activeOpacity={0.8}
     >
       <View style={styles.content}>
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Sign in or sign up</Text>
-          <Text style={styles.subtitle}>
+          <Text
+            style={[styles.title, { fontSize: config.subtitleFontSize + 2 }]}
+          >
+            Sign in or sign up
+          </Text>
+          <Text
+            style={[styles.subtitle, { fontSize: config.bodyFontSize - 1 }]}
+          >
             Place orders, add products to wishlist, and more.
           </Text>
         </View>
 
-        <View style={styles.iconContainer}>
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              width: iconContainerSize,
+              height: iconContainerSize,
+              borderRadius: iconContainerSize / 2,
+            },
+          ]}
+        >
           <Ionicons
             name="person-outline"
-            size={24}
+            size={config.iconSizeLarge}
             color={AppColors.primary[500]}
           />
         </View>
@@ -32,7 +57,7 @@ const SignInPrompt = () => {
       <View style={styles.arrowContainer}>
         <Ionicons
           name="chevron-forward"
-          size={20}
+          size={config.iconSize}
           color={AppColors.gray[400]}
         />
       </View>
@@ -45,8 +70,6 @@ export default SignInPrompt
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "white",
-    borderRadius: 16,
-    padding: 16,
     marginHorizontal: 4,
     marginBottom: 8,
     flexDirection: "row",
@@ -70,20 +93,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
     marginBottom: 2,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     lineHeight: 18,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     borderWidth: 1.5,
     borderColor: AppColors.primary[200],
     backgroundColor: AppColors.primary[50],

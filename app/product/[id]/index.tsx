@@ -3,7 +3,6 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
-  Dimensions,
   Platform,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import Toast from "react-native-toast-message"
 
 import { getProductById, getProductBySlug } from "@/src/api/products"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCartStore } from "@/src/store/cartStore"
 import { useFavoritesStore } from "@/src/store/favoritesStore"
@@ -42,12 +42,12 @@ import { useRecentlyViewed } from "@/src/hooks/useRecentlyViewed"
 import { Review, ReviewStats } from "@/src/types/review"
 import { shareProduct } from "@/src/utils/share"
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window")
 const MAX_DESCRIPTION_LENGTH = 150
 const INITIAL_REVIEWS_COUNT = 3
 
 export default function ProductDetailScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { id, isSlug } = useLocalSearchParams<{ id: string; isSlug?: string }>()
 
   // State
@@ -82,6 +82,9 @@ export default function ProductDetailScreen() {
   const quantityInCart = productInCart?.quantity || 0
   const availableStock = (product?.stock || 0) - quantityInCart
   const isOutOfStock = availableStock <= 0
+
+  // Tablet layout: side-by-side in landscape
+  const useHorizontalLayout = isTablet && isLandscape
 
   // Fetch product
   useEffect(() => {
@@ -137,18 +140,15 @@ export default function ProductDetailScreen() {
     if (!token || !product?.id) return
 
     try {
-      // Check if user has already reviewed
       const existingReview = await getUserProductReview(product.id, token)
       setUserReview(existingReview)
 
-      // Check if user can review (has purchased)
       if (!existingReview) {
         const result = await canUserReviewProduct(product.id, token)
         setCanReview(result.canReview)
         setReviewOrderId(result.orderId)
       }
     } catch (err) {
-      // User hasn't reviewed - that's fine
       if ((err as any)?.response?.status !== 404) {
         console.error("Error checking review status:", err)
       }
@@ -162,7 +162,6 @@ export default function ProductDetailScreen() {
     }
   }, [product, fetchReviews, checkUserReviewStatus])
 
-  // Reset quantity when stock changes
   useEffect(() => {
     if (quantity > availableStock && availableStock > 0) {
       setQuantity(availableStock)
@@ -230,7 +229,7 @@ export default function ProductDetailScreen() {
           text2: `${product.name} has been added to your cart`,
           visibilityTime: 2000,
         })
-        setQuantity(1) // Reset quantity after adding
+        setQuantity(1)
       } else {
         Toast.show({
           type: "error",
@@ -278,8 +277,6 @@ export default function ProductDetailScreen() {
     })
 
     if (result.success) {
-      // TODO: Track share analytics
-
       console.log("Product shared successfully!")
     }
   }
@@ -306,7 +303,7 @@ export default function ProductDetailScreen() {
   const handleReviewSuccess = (review: Review) => {
     setUserReview(review)
     setCanReview(false)
-    fetchReviews() // Refresh reviews
+    fetchReviews()
   }
 
   const handleEditReview = () => {
@@ -320,7 +317,6 @@ export default function ProductDetailScreen() {
       await deleteReview(userReview.id, token)
       setUserReview(null)
 
-      // Re-check if user can review
       const result = await canUserReviewProduct(product.id, token)
       setCanReview(result.canReview)
       setReviewOrderId(result.orderId)
@@ -381,15 +377,12 @@ export default function ProductDetailScreen() {
       ? `${product?.description?.slice(0, MAX_DESCRIPTION_LENGTH)}...`
       : product?.description
 
-  // Get reviews to display (limited or all)
+  // Get reviews to display
   const otherReviews = reviews.filter((r) => r.id !== userReview?.id)
-
   const displayedReviews = showAllReviews
     ? otherReviews
     : otherReviews.slice(0, INITIAL_REVIEWS_COUNT)
-
   const hasMoreReviews = otherReviews.length > INITIAL_REVIEWS_COUNT
-
   const totalReviewsCount = reviewStats?.totalReviews || reviews.length
 
   // Loading state
@@ -408,10 +401,14 @@ export default function ProductDetailScreen() {
         <View style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
-            size={64}
+            size={isTablet ? 80 : 64}
             color={AppColors.gray[400]}
           />
-          <Text style={styles.errorText}>{error || "Product not found"}</Text>
+          <Text
+            style={[styles.errorText, { fontSize: config.subtitleFontSize }]}
+          >
+            {error || "Product not found"}
+          </Text>
           <Button
             title="Go Back"
             onPress={() => router.back()}
@@ -423,6 +420,355 @@ export default function ProductDetailScreen() {
     )
   }
 
+  // Render product info content
+  const renderProductInfo = () => (
+    <View
+      style={[
+        styles.infoContainer,
+        {
+          padding: isTablet ? 24 : 20,
+          borderTopLeftRadius: useHorizontalLayout ? 0 : 24,
+          borderTopRightRadius: useHorizontalLayout ? 0 : 24,
+          marginTop: useHorizontalLayout ? 0 : -20,
+        },
+      ]}
+    >
+      {/* Category */}
+      {product.categories?.[0]?.name && (
+        <Text style={[styles.category, { fontSize: config.bodyFontSize - 1 }]}>
+          {product.categories[0].name}
+        </Text>
+      )}
+
+      {/* Title */}
+      <Text
+        style={[
+          styles.title,
+          {
+            fontSize: isTablet ? 28 : 24,
+            lineHeight: isTablet ? 36 : 32,
+          },
+        ]}
+      >
+        {product.name}
+      </Text>
+
+      {/* Rating Summary (Compact) */}
+      {reviewStats && reviewStats.totalReviews > 0 && (
+        <TouchableOpacity
+          style={styles.ratingRow}
+          onPress={navigateToAllReviews}
+          activeOpacity={0.7}
+        >
+          <Rating rating={reviewStats.averageRating} size="small" showValue />
+          <Text
+            style={[styles.reviewCount, { fontSize: config.bodyFontSize - 1 }]}
+          >
+            ({reviewStats.totalReviews}{" "}
+            {reviewStats.totalReviews === 1 ? "review" : "reviews"})
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={config.iconSizeSmall}
+            color={AppColors.gray[400]}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Price Row */}
+      <View style={styles.priceRow}>
+        <View style={styles.priceContainer}>
+          {product.sale_price ? (
+            <>
+              <Text
+                style={[styles.salePrice, { fontSize: isTablet ? 32 : 28 }]}
+              >
+                ${product.sale_price.toFixed(2)}
+              </Text>
+              <Text
+                style={[
+                  styles.originalPrice,
+                  { fontSize: config.subtitleFontSize },
+                ]}
+              >
+                ${product.rrp.toFixed(2)}
+              </Text>
+              <View style={styles.saveBadge}>
+                <Text
+                  style={[styles.saveText, { fontSize: config.smallFontSize }]}
+                >
+                  Save ${(product.rrp - product.sale_price).toFixed(2)}
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Text style={[styles.price, { fontSize: isTablet ? 32 : 28 }]}>
+              ${product.rrp.toFixed(2)}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      {/* Nutrition Link */}
+      {product?.nutrition && (
+        <TouchableOpacity
+          style={[
+            styles.nutritionLink,
+            {
+              padding: isTablet ? 16 : 14,
+              borderRadius: config.cardBorderRadius,
+            },
+          ]}
+          onPress={navigateToNutrition}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="nutrition-outline"
+            size={config.iconSize}
+            color={AppColors.primary[500]}
+          />
+          <Text
+            style={[styles.nutritionText, { fontSize: config.bodyFontSize }]}
+          >
+            Nutritional Information
+          </Text>
+          <Ionicons
+            name="chevron-forward"
+            size={config.iconSizeSmall}
+            color={AppColors.gray[400]}
+          />
+        </TouchableOpacity>
+      )}
+
+      {/* Divider */}
+      <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />
+
+      {/* Description */}
+      <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>
+        Description
+      </Text>
+      <Text
+        style={[
+          styles.description,
+          {
+            fontSize: config.bodyFontSize,
+            lineHeight: config.bodyFontSize * 1.6,
+          },
+        ]}
+      >
+        {displayDescription}
+      </Text>
+      {shouldTruncateDescription && (
+        <TouchableOpacity
+          onPress={() => setShowFullDescription(!showFullDescription)}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[styles.readMoreText, { fontSize: config.bodyFontSize }]}
+          >
+            {showFullDescription ? "Show less" : "Read more"}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Divider */}
+      <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />
+
+      {/* Quantity Section */}
+      <View style={styles.quantitySection}>
+        <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>
+          Quantity
+        </Text>
+        {isOutOfStock ? (
+          <Text
+            style={[styles.outOfStockText, { fontSize: config.bodyFontSize }]}
+          >
+            Out of stock
+          </Text>
+        ) : (
+          <QuantitySelector
+            quantity={quantity}
+            onIncrease={handleIncreaseQuantity}
+            onDecrease={handleDecreaseQuantity}
+            maxQuantity={availableStock}
+          />
+        )}
+      </View>
+
+      {/* Stock Warning */}
+      {!isOutOfStock && availableStock <= 5 && (
+        <Text
+          style={[styles.stockWarning, { fontSize: config.bodyFontSize - 1 }]}
+        >
+          Only {availableStock} left in stock!
+        </Text>
+      )}
+
+      {/* Cart Info */}
+      {quantityInCart > 0 && (
+        <Text style={[styles.cartInfo, { fontSize: config.bodyFontSize - 1 }]}>
+          {quantityInCart} already in your cart
+        </Text>
+      )}
+
+      {/* Divider */}
+      <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />
+
+      {/* Reviews Section */}
+      <View style={styles.reviewsSection}>
+        <View style={styles.reviewsHeader}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
+          >
+            Reviews
+          </Text>
+          {reviewStats && reviewStats.totalReviews > 0 && (
+            <TouchableOpacity
+              onPress={navigateToAllReviews}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[styles.seeAllText, { fontSize: config.bodyFontSize }]}
+              >
+                See All
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Rating Summary */}
+        {reviewStats && reviewStats.totalReviews > 0 && (
+          <RatingSummary stats={reviewStats} />
+        )}
+
+        {/* Write Review Button */}
+        {token && (canReview || userReview) && (
+          <TouchableOpacity
+            style={[
+              styles.writeReviewButton,
+              {
+                paddingVertical: isTablet ? 14 : 12,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+            onPress={handleWriteReviewPress}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={userReview ? "pencil" : "create-outline"}
+              size={config.iconSize}
+              color={AppColors.primary[600]}
+            />
+            <Text
+              style={[
+                styles.writeReviewText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              {userReview ? "Edit Your Review" : "Write a Review"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* User's Review */}
+        {userReview && (
+          <View style={styles.userReviewContainer}>
+            <Text
+              style={[
+                styles.userReviewLabel,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Your Review
+            </Text>
+            <ReviewCard
+              review={userReview}
+              onEdit={handleEditReview}
+              onDelete={handleDeleteReview}
+            />
+          </View>
+        )}
+
+        {/* Reviews List */}
+        {reviewsLoading ? (
+          <View style={styles.reviewsLoading}>
+            <ActivityIndicator size="small" color={AppColors.primary[500]} />
+            <Text
+              style={[
+                styles.reviewsLoadingText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Loading reviews...
+            </Text>
+          </View>
+        ) : totalReviewsCount > 0 ? (
+          <View style={styles.reviewsList}>
+            {displayedReviews.map((review) => (
+              <ReviewCard key={review.id} review={review} showActions={false} />
+            ))}
+
+            {hasMoreReviews && (
+              <TouchableOpacity
+                style={styles.viewAllButton}
+                onPress={navigateToAllReviews}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.viewAllText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  View All {reviewStats?.totalReviews} Reviews
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={config.iconSize}
+                  color={AppColors.primary[600]}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          <View style={styles.noReviewsContainer}>
+            <Ionicons
+              name="chatbubble-outline"
+              size={isTablet ? 48 : 40}
+              color={AppColors.gray[300]}
+            />
+            <Text
+              style={[
+                styles.noReviewsText,
+                { fontSize: config.subtitleFontSize },
+              ]}
+            >
+              No reviews yet
+            </Text>
+            <Text
+              style={[
+                styles.noReviewsSubtext,
+                { fontSize: config.bodyFontSize - 1 },
+              ]}
+            >
+              Be the first to review this product!
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Divider */}
+      <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />
+
+      {/* Disclaimer */}
+      <Text style={[styles.disclaimer, { fontSize: config.smallFontSize }]}>
+        Disclaimer: Product details may change from time to time. When precise
+        information is important, we recommend reading the label on the products
+        you purchase.
+      </Text>
+    </View>
+  )
+
   return (
     <Wrapper style={styles.container} edges={["top"]}>
       {/* Header */}
@@ -433,269 +779,59 @@ export default function ProductDetailScreen() {
       />
 
       {/* Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Image Carousel */}
-        <ImageCarousel
-          coverImage={product.cover}
-          images={product.images || []}
-        />
-
-        {/* Product Info */}
-        <View style={styles.infoContainer}>
-          {/* Category */}
-          {product.categories?.[0]?.name && (
-            <Text style={styles.category}>{product.categories[0].name}</Text>
-          )}
-
-          {/* Title */}
-          <Text style={styles.title}>{product.name}</Text>
-
-          {/* Rating Summary (Compact) */}
-          {reviewStats && reviewStats.totalReviews > 0 && (
-            <TouchableOpacity
-              style={styles.ratingRow}
-              onPress={navigateToAllReviews}
-              activeOpacity={0.7}
-            >
-              <Rating
-                rating={reviewStats.averageRating}
-                size="small"
-                showValue
-              />
-              <Text style={styles.reviewCount}>
-                ({reviewStats.totalReviews}{" "}
-                {reviewStats.totalReviews === 1 ? "review" : "reviews"})
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={AppColors.gray[400]}
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* Price Row */}
-          <View style={styles.priceRow}>
-            <View style={styles.priceContainer}>
-              {product.sale_price ? (
-                <>
-                  <Text style={styles.salePrice}>
-                    ${product.sale_price.toFixed(2)}
-                  </Text>
-                  <Text style={styles.originalPrice}>
-                    ${product.rrp.toFixed(2)}
-                  </Text>
-                  <View style={styles.saveBadge}>
-                    <Text style={styles.saveText}>
-                      Save ${(product.rrp - product.sale_price).toFixed(2)}
-                    </Text>
-                  </View>
-                </>
-              ) : (
-                <Text style={styles.price}>${product.rrp.toFixed(2)}</Text>
-              )}
-            </View>
+      {useHorizontalLayout ? (
+        // Tablet Landscape: Side-by-side layout
+        <View style={styles.horizontalContainer}>
+          <View style={styles.imageColumn}>
+            <ImageCarousel
+              coverImage={product.cover}
+              images={product.images || []}
+            />
           </View>
-
-          {/* Nutrition Link */}
-          {product.nutrition && (
-            <TouchableOpacity
-              style={styles.nutritionLink}
-              onPress={navigateToNutrition}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="nutrition-outline"
-                size={18}
-                color={AppColors.primary[500]}
-              />
-              <Text style={styles.nutritionText}>Nutritional Information</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={AppColors.gray[400]}
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Description */}
-          <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{displayDescription}</Text>
-          {shouldTruncateDescription && (
-            <TouchableOpacity
-              onPress={() => setShowFullDescription(!showFullDescription)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.readMoreText}>
-                {showFullDescription ? "Show less" : "Read more"}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Quantity Section */}
-          <View style={styles.quantitySection}>
-            <Text style={styles.sectionTitle}>Quantity</Text>
-            {isOutOfStock ? (
-              <Text style={styles.outOfStockText}>Out of stock</Text>
-            ) : (
-              <QuantitySelector
-                quantity={quantity}
-                onIncrease={handleIncreaseQuantity}
-                onDecrease={handleDecreaseQuantity}
-                maxQuantity={availableStock}
-              />
-            )}
-          </View>
-
-          {/* Stock Warning */}
-          {!isOutOfStock && availableStock <= 5 && (
-            <Text style={styles.stockWarning}>
-              Only {availableStock} left in stock!
-            </Text>
-          )}
-
-          {/* Cart Info */}
-          {quantityInCart > 0 && (
-            <Text style={styles.cartInfo}>
-              {quantityInCart} already in your cart
-            </Text>
-          )}
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Reviews Section */}
-          <View style={styles.reviewsSection}>
-            <View style={styles.reviewsHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
-              {reviewStats && reviewStats.totalReviews > 0 && (
-                <TouchableOpacity
-                  onPress={navigateToAllReviews}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            {/* Rating Summary */}
-            {reviewStats && reviewStats.totalReviews > 0 && (
-              <RatingSummary stats={reviewStats} />
-            )}
-
-            {/* Write Review Button */}
-            {token && (canReview || userReview) && (
-              <TouchableOpacity
-                style={styles.writeReviewButton}
-                onPress={handleWriteReviewPress}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={userReview ? "pencil" : "create-outline"}
-                  size={20}
-                  color={AppColors.primary[600]}
-                />
-                <Text style={styles.writeReviewText}>
-                  {userReview ? "Edit Your Review" : "Write a Review"}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* User's Review */}
-            {userReview && (
-              <View style={styles.userReviewContainer}>
-                <Text style={styles.userReviewLabel}>Your Review</Text>
-                <ReviewCard
-                  review={userReview}
-                  onEdit={handleEditReview}
-                  onDelete={handleDeleteReview}
-                />
-              </View>
-            )}
-
-            {/* Reviews List */}
-            {reviewsLoading ? (
-              <View style={styles.reviewsLoading}>
-                <ActivityIndicator
-                  size="small"
-                  color={AppColors.primary[500]}
-                />
-                <Text style={styles.reviewsLoadingText}>
-                  Loading reviews...
-                </Text>
-              </View>
-            ) : totalReviewsCount > 0 ? (
-              <View style={styles.reviewsList}>
-                {displayedReviews.map((review) => (
-                  <ReviewCard
-                    key={review.id}
-                    review={review}
-                    showActions={false}
-                  />
-                ))}
-
-                {/* Show More / View All */}
-                {hasMoreReviews && (
-                  <TouchableOpacity
-                    style={styles.viewAllButton}
-                    onPress={navigateToAllReviews}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.viewAllText}>
-                      View All {reviewStats?.totalReviews} Reviews
-                    </Text>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={18}
-                      color={AppColors.primary[600]}
-                    />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <View style={styles.noReviewsContainer}>
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={40}
-                  color={AppColors.gray[300]}
-                />
-                <Text style={styles.noReviewsText}>No reviews yet</Text>
-                <Text style={styles.noReviewsSubtext}>
-                  Be the first to review this product!
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Divider */}
-          <View style={styles.divider} />
-
-          {/* Disclaimer */}
-          <Text style={styles.disclaimer}>
-            Disclaimer: Product details may change from time to time. When
-            precise information is important, we recommend reading the label on
-            the products you purchase.
-          </Text>
+          <ScrollView
+            style={styles.infoColumn}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {renderProductInfo()}
+            <RecentlyViewed excludeProductId={product.id} />
+          </ScrollView>
         </View>
-
-        <RecentlyViewed excludeProductId={product.id} />
-      </ScrollView>
+      ) : (
+        // Phone & Tablet Portrait: Vertical layout
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <ImageCarousel
+            coverImage={product.cover}
+            images={product.images || []}
+          />
+          {renderProductInfo()}
+          <RecentlyViewed excludeProductId={product.id} />
+        </ScrollView>
+      )}
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingHorizontal: config.horizontalPadding + 4,
+            paddingVertical: isTablet ? 20 : 16,
+            paddingBottom:
+              Platform.OS === "ios" ? (isTablet ? 24 : 28) : isTablet ? 20 : 16,
+          },
+        ]}
+      >
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalPrice}>${totalPrice}</Text>
+          <Text style={[styles.totalLabel, { fontSize: config.smallFontSize }]}>
+            Total
+          </Text>
+          <Text style={[styles.totalPrice, { fontSize: isTablet ? 26 : 22 }]}>
+            ${totalPrice}
+          </Text>
         </View>
         <Button
           title={isOutOfStock ? "Out of Stock" : "Add to Cart"}
@@ -705,7 +841,11 @@ export default function ProductDetailScreen() {
           containerStyles="flex-1 ml-4"
           icon={
             !isOutOfStock ? (
-              <Ionicons name="cart-outline" size={20} color="white" />
+              <Ionicons
+                name="cart-outline"
+                size={config.iconSize}
+                color="white"
+              />
             ) : undefined
           }
         />
@@ -735,28 +875,32 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 16,
   },
+  // Horizontal layout for tablet landscape
+  horizontalContainer: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  imageColumn: {
+    width: "45%",
+  },
+  infoColumn: {
+    flex: 1,
+  },
   infoContainer: {
-    padding: 20,
     backgroundColor: AppColors.background.secondary,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: -20,
     marginBottom: 12,
   },
   category: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[500],
     textTransform: "capitalize",
     marginBottom: 4,
   },
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 24,
     color: AppColors.text.primary,
     textTransform: "capitalize",
     marginBottom: 12,
-    lineHeight: 32,
   },
   ratingRow: {
     flexDirection: "row",
@@ -766,7 +910,6 @@ const styles = StyleSheet.create({
   },
   reviewCount: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginLeft: 4,
   },
@@ -784,17 +927,14 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.primary[600],
   },
   salePrice: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.error,
   },
   originalPrice: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 16,
     color: AppColors.text.tertiary,
     textDecorationLine: "line-through",
   },
@@ -806,43 +946,34 @@ const styles = StyleSheet.create({
   },
   saveText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 12,
     color: "#166534",
   },
   nutritionLink: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.primary,
-    padding: 14,
-    borderRadius: 12,
     gap: 8,
   },
   nutritionText: {
     flex: 1,
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   divider: {
     height: 1,
     backgroundColor: AppColors.gray[200],
-    marginVertical: 20,
   },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
     marginBottom: 10,
   },
   description: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
-    lineHeight: 24,
   },
   readMoreText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[500],
     marginTop: 8,
   },
@@ -853,18 +984,15 @@ const styles = StyleSheet.create({
   },
   outOfStockText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.error,
   },
   stockWarning: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.warning,
     marginTop: 12,
   },
   cartInfo: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 8,
   },
@@ -879,7 +1007,6 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   writeReviewButton: {
@@ -888,14 +1015,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     backgroundColor: AppColors.primary[50],
-    paddingVertical: 12,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.primary[200],
   },
   writeReviewText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   userReviewContainer: {
@@ -903,7 +1027,6 @@ const styles = StyleSheet.create({
   },
   userReviewLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
     marginBottom: 8,
   },
@@ -919,7 +1042,6 @@ const styles = StyleSheet.create({
   },
   reviewsLoadingText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   noReviewsContainer: {
@@ -928,13 +1050,11 @@ const styles = StyleSheet.create({
   },
   noReviewsText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.secondary,
     marginTop: 12,
   },
   noReviewsSubtext: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.tertiary,
     marginTop: 4,
   },
@@ -950,21 +1070,16 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   disclaimer: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     lineHeight: 18,
   },
   footer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: Platform.OS === "ios" ? 28 : 16,
     backgroundColor: AppColors.background.primary,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[200],
@@ -974,12 +1089,10 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
   },
   totalPrice: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 22,
     color: AppColors.text.primary,
   },
   errorContainer: {
@@ -990,7 +1103,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.secondary,
     textAlign: "center",
     marginTop: 16,

@@ -5,6 +5,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -14,10 +15,14 @@ import { SafeAreaView } from "react-native-safe-area-context"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function LoginScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { login, isLoading, error, clearError } = useAuthStore()
 
   const [email, setEmail] = useState("")
@@ -25,42 +30,65 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    const trimmedEmail = email.trim()
+    const trimmedPassword = password.trim()
+    if (!trimmedEmail || !trimmedPassword) {
       Alert.alert("Error", "Please enter your email and password")
       return
     }
 
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address")
+      return
+    }
+
     clearError()
-    const result = await login(email.trim(), password)
+    const result = await login(trimmedEmail, trimmedPassword)
 
     if (result?.user) {
       router.replace("/(tabs)/home")
     }
   }
 
+  // For tablet, constrain form width
+  const formMaxWidth = isTablet ? (isLandscape ? 450 : 400) : undefined
+  const contentPadding = isTablet ? 32 : 24
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+        style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: contentPadding,
+              paddingTop: isTablet ? 60 : 40,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="flex-1 px-6 pt-10">
+          {/* Centered form container for tablets */}
+          <View
+            style={[
+              styles.formContainer,
+              {
+                maxWidth: formMaxWidth,
+                alignSelf: formMaxWidth ? "center" : undefined,
+                width: formMaxWidth ? "100%" : undefined,
+              },
+            ]}
+          >
             {/* Header */}
-            <View className="mb-10">
-              <Text
-                style={{ fontFamily: "Poppins_700Bold" }}
-                className="text-3xl text-gray-900"
-              >
+            <View style={[styles.header, { marginBottom: isTablet ? 48 : 40 }]}>
+              <Text style={[styles.title, { fontSize: isTablet ? 36 : 30 }]}>
                 Welcome Back
               </Text>
               <Text
-                style={{ fontFamily: "Poppins_400Regular" }}
-                className="text-gray-500 mt-2"
+                style={[styles.subtitle, { fontSize: config.subtitleFontSize }]}
               >
                 Sign in to continue shopping
               </Text>
@@ -68,10 +96,18 @@ export default function LoginScreen() {
 
             {/* Error Message */}
             {error && (
-              <View className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+              <View
+                style={[
+                  styles.errorContainer,
+                  {
+                    padding: isTablet ? 18 : 16,
+                    borderRadius: config.cardBorderRadius,
+                    marginBottom: isTablet ? 28 : 24,
+                  },
+                ]}
+              >
                 <Text
-                  style={{ fontFamily: "Poppins_400Regular" }}
-                  className="text-red-600 text-center"
+                  style={[styles.errorText, { fontSize: config.bodyFontSize }]}
                 >
                   {error}
                 </Text>
@@ -79,51 +115,84 @@ export default function LoginScreen() {
             )}
 
             {/* Form */}
-            <View className="space-y-5">
+            <View style={[styles.form, { gap: isTablet ? 24 : 20 }]}>
               {/* Email Input */}
               <View>
                 <Text
-                  style={{ fontFamily: "Poppins_500Medium" }}
-                  className="text-gray-700 mb-2"
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize,
+                      marginBottom: isTablet ? 10 : 8,
+                    },
+                  ]}
                 >
                   Email
                 </Text>
                 <TextInput
-                  className="border border-gray-300 rounded-xl px-4 py-4 text-base"
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: isTablet ? 18 : 16,
+                      paddingVertical: isTablet ? 18 : 16,
+                      borderRadius: config.cardBorderRadius,
+                      fontSize: config.bodyFontSize,
+                    },
+                  ]}
                   placeholder="Enter your email"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={AppColors.gray[400]}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={email}
                   onChangeText={setEmail}
-                  style={{ fontFamily: "Poppins_400Regular" }}
                 />
               </View>
 
               {/* Password Input */}
-              <View className="mt-4">
+              <View>
                 <Text
-                  style={{ fontFamily: "Poppins_500Medium" }}
-                  className="text-gray-700 mb-2"
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize,
+                      marginBottom: isTablet ? 10 : 8,
+                    },
+                  ]}
                 >
                   Password
                 </Text>
-                <View className="relative">
+                <View style={styles.passwordContainer}>
                   <TextInput
-                    className="border border-gray-300 rounded-xl px-4 py-4 text-base pr-12"
+                    style={[
+                      styles.input,
+                      styles.passwordInput,
+                      {
+                        paddingHorizontal: isTablet ? 18 : 16,
+                        paddingVertical: isTablet ? 18 : 16,
+                        borderRadius: config.cardBorderRadius,
+                        fontSize: config.bodyFontSize,
+                      },
+                    ]}
                     placeholder="Enter your password"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={AppColors.gray[400]}
                     secureTextEntry={!showPassword}
                     value={password}
                     onChangeText={setPassword}
-                    style={{ fontFamily: "Poppins_400Regular" }}
                   />
                   <TouchableOpacity
-                    className="absolute right-4 top-4"
+                    style={[
+                      styles.showPasswordButton,
+                      { top: isTablet ? 18 : 16, right: isTablet ? 18 : 16 },
+                    ]}
                     onPress={() => setShowPassword(!showPassword)}
                   >
-                    <Text className="text-primary-500">
+                    <Text
+                      style={[
+                        styles.showPasswordText,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
                       {showPassword ? "Hide" : "Show"}
                     </Text>
                   </TouchableOpacity>
@@ -132,42 +201,47 @@ export default function LoginScreen() {
 
               {/* Forgot Password */}
               <TouchableOpacity
-                className="self-end mt-2"
+                style={styles.forgotPassword}
                 onPress={() => router.push("/(auth)/forgot-password")}
               >
                 <Text
-                  style={{
-                    fontFamily: "Poppins_500Medium",
-                    color: AppColors.primary[500],
-                  }}
+                  style={[
+                    styles.forgotPasswordText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
                 >
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
 
               {/* Login Button */}
-              <Button
-                title="Sign In"
-                onPress={handleLogin}
-                loading={isLoading}
-                containerStyles="w-full mt-6"
-              />
+              <View style={{ marginTop: isTablet ? 12 : 8 }}>
+                <Button
+                  title="Sign In"
+                  onPress={handleLogin}
+                  loading={isLoading}
+                />
+              </View>
 
               {/* Sign Up Link */}
-              <View className="flex-row justify-center mt-6">
+              <View
+                style={[
+                  styles.linkContainer,
+                  { marginTop: isTablet ? 28 : 24 },
+                ]}
+              >
                 <Text
-                  style={{ fontFamily: "Poppins_400Regular" }}
-                  className="text-gray-600"
+                  style={[styles.linkText, { fontSize: config.bodyFontSize }]}
                 >
                   Don't have an account?{" "}
                 </Text>
                 <Link href="/(auth)/signup" asChild>
                   <TouchableOpacity>
                     <Text
-                      style={{
-                        fontFamily: "Poppins_600SemiBold",
-                        color: AppColors.primary[500],
-                      }}
+                      style={[
+                        styles.linkHighlight,
+                        { fontSize: config.bodyFontSize },
+                      ]}
                     >
                       Sign Up
                     </Text>
@@ -177,15 +251,11 @@ export default function LoginScreen() {
 
               {/* Browse as Guest */}
               <TouchableOpacity
-                className="mt-4"
+                style={[styles.guestButton, { marginTop: isTablet ? 20 : 16 }]}
                 onPress={() => router.replace("/(tabs)/home")}
               >
                 <Text
-                  style={{
-                    fontFamily: "Poppins_500Medium",
-                    color: AppColors.gray[500],
-                  }}
-                  className="text-center underline"
+                  style={[styles.guestText, { fontSize: config.bodyFontSize }]}
                 >
                   Browse as Guest
                 </Text>
@@ -197,3 +267,89 @@ export default function LoginScreen() {
     </SafeAreaView>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: AppColors.background.primary,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  formContainer: {},
+  header: {},
+  title: {
+    fontFamily: "Poppins_700Bold",
+    color: AppColors.text.primary,
+  },
+  subtitle: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.text.secondary,
+    marginTop: 8,
+  },
+  errorContainer: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  errorText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.error,
+    textAlign: "center",
+  },
+  form: {},
+  label: {
+    fontFamily: "Poppins_500Medium",
+    color: AppColors.text.primary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: AppColors.gray[300],
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.text.primary,
+    backgroundColor: AppColors.background.primary,
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  passwordInput: {
+    paddingRight: 70,
+  },
+  showPasswordButton: {
+    position: "absolute",
+  },
+  showPasswordText: {
+    fontFamily: "Poppins_500Medium",
+    color: AppColors.primary[500],
+  },
+  forgotPassword: {
+    alignSelf: "flex-end",
+  },
+  forgotPasswordText: {
+    fontFamily: "Poppins_500Medium",
+    color: AppColors.primary[500],
+  },
+  linkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  linkText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.text.secondary,
+  },
+  linkHighlight: {
+    fontFamily: "Poppins_600SemiBold",
+    color: AppColors.primary[500],
+  },
+  guestButton: {
+    alignItems: "center",
+  },
+  guestText: {
+    fontFamily: "Poppins_500Medium",
+    color: AppColors.gray[500],
+    textDecorationLine: "underline",
+  },
+})

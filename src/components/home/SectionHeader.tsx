@@ -1,4 +1,5 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Ionicons } from "@expo/vector-icons"
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
@@ -13,19 +14,27 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   onViewAll,
   showViewAll = true,
 }) => {
+  const { config } = useResponsive()
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { fontSize: config.titleFontSize }]}>
+        {title}
+      </Text>
       {showViewAll && onViewAll && (
         <TouchableOpacity
           style={styles.viewAllButton}
           onPress={onViewAll}
           activeOpacity={0.7}
         >
-          <Text style={styles.viewAllText}>View All</Text>
+          <Text
+            style={[styles.viewAllText, { fontSize: config.subtitleFontSize }]}
+          >
+            View All
+          </Text>
           <Ionicons
             name="chevron-forward"
-            size={16}
+            size={config.iconSizeSmall}
             color={AppColors.primary[500]}
           />
         </TouchableOpacity>
@@ -46,7 +55,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   viewAllButton: {
@@ -56,7 +64,6 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[500],
   },
 })

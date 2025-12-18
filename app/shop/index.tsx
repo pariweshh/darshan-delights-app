@@ -12,26 +12,29 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useCartStore } from "@/src/store/cartStore"
 import { useProductsStore } from "@/src/store/productStore"
-import { IsIPAD } from "@/src/themes/app.constants"
 import { Brand, Product } from "@/src/types"
 
 import EmptyState from "@/src/components/common/EmptyState"
-import Loader from "@/src/components/common/Loader"
 import ProductCard from "@/src/components/product/ProductCard"
 import ActiveFilters from "@/src/components/shop/ActiveFilters"
 import CategoryChips from "@/src/components/shop/CategoryChips"
 import FilterModal from "@/src/components/shop/FilterModal"
+import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
 
 const ITEMS_PER_PAGE = 12
 
 export default function ShopScreen() {
   const router = useRouter()
   const navigation = useNavigation()
-  const { category: categoryParam } = useLocalSearchParams<{
+  const { config, isTablet, isLandscape, width } = useResponsive()
+  const { category: categoryParam, brand: brandParam } = useLocalSearchParams<{
     category?: string
+    brand?: string
   }>()
+
   const { cart } = useCartStore()
 
   const {
@@ -57,32 +60,61 @@ export default function ShopScreen() {
   const [activeSortOption, setActiveSortOption] = useState<string | null>(null)
   const [selectedBrands, setSelectedBrands] = useState<Brand[]>([])
 
+  // Track if initial params have been applied
+  const [paramsApplied, setParamsApplied] = useState(false)
+
   const isFilterActive =
     selectedCategory !== null ||
     activeSortOption !== null ||
     selectedBrands.length > 0
 
-  // Set header options
+  // Calculate number of columns based on device and orientation
+  const numColumns = config.productGridColumns
+
+  // Calculate item width for the grid
+  const gap = config.gap
+  const horizontalPadding = config.horizontalPadding
+  const totalGap = gap * (numColumns - 1)
+  const availableWidth = width - horizontalPadding * 2
+  const itemWidth = (availableWidth - totalGap) / numColumns
+
   useEffect(() => {
     navigation.setOptions({
-      headerShown: false, // We'll handle our own header
+      headerShown: false,
     })
   }, [navigation])
 
-  // Fetch categories and brands on mount
   useEffect(() => {
     if (!categories || categories.length === 0) fetchCategories()
     if (!brands || brands.length === 0) fetchBrands()
   }, [])
 
-  // Handle category param from URL
   useEffect(() => {
+    // Wait for brands to load before applying params
+    if (!brands || brands.length === 0) return
+
+    // Only apply params once
+    if (paramsApplied) return
+
+    // Apply category param
     if (categoryParam && categoryParam !== selectedCategory) {
       setCategory(categoryParam)
     }
-  }, [categoryParam])
 
-  // Build API params
+    // Apply brand param
+    if (brandParam) {
+      const matchedBrand = brands.find(
+        (b) => b.name.toLowerCase() === brandParam.toLowerCase()
+      )
+      if (matchedBrand) {
+        setSelectedBrands([matchedBrand])
+      }
+    }
+
+    // Mark params as applied
+    setParamsApplied(true)
+  }, [brands, brandParam, categoryParam])
+
   const buildApiParams = useCallback(() => {
     const params: any = {
       limit: ITEMS_PER_PAGE,
@@ -100,7 +132,6 @@ export default function ShopScreen() {
     return params
   }, [selectedCategory, selectedBrands, activeSortOption])
 
-  // Load initial products
   const loadInitialProducts = useCallback(async () => {
     setIsInitialLoading(true)
     setProducts([])
@@ -126,7 +157,6 @@ export default function ShopScreen() {
     }
   }, [buildApiParams, fetchProducts])
 
-  // Load more products
   const loadMoreProducts = useCallback(async () => {
     if (isLoadingMore || !hasMoreData || isInitialLoading) return
 
@@ -166,12 +196,24 @@ export default function ShopScreen() {
     products.length,
   ])
 
-  // Reload when filters change
   useEffect(() => {
-    if (categories && brands) {
-      loadInitialProducts()
-    }
-  }, [selectedCategory, activeSortOption, selectedBrands, categories, brands])
+    // Don't load until we have categories and brands data
+    if (!categories || categories.length === 0) return
+    if (!brands || brands.length === 0) return
+
+    // Don't load until URL params have been applied
+    if (!paramsApplied) return
+
+    loadInitialProducts()
+  }, [
+    selectedCategory,
+    activeSortOption,
+    selectedBrands,
+    categories,
+    brands,
+    paramsApplied,
+    loadInitialProducts,
+  ])
 
   // Handlers
   const handleCategoryChange = (category: string | null) => {
@@ -215,38 +257,71 @@ export default function ShopScreen() {
 
   // Render functions
   const renderTopHeader = () => (
-    <View style={styles.topHeader}>
+    <View
+      style={[
+        styles.topHeader,
+        { paddingHorizontal: config.horizontalPadding },
+      ]}
+    >
       <TouchableOpacity
-        style={styles.backButton}
+        style={[
+          styles.backButton,
+          {
+            width: isTablet ? 48 : 40,
+            height: isTablet ? 48 : 40,
+            borderRadius: isTablet ? 24 : 20,
+          },
+        ]}
         onPress={handleGoBack}
         activeOpacity={0.7}
       >
         <Ionicons
           name="chevron-back"
-          size={24}
+          size={config.iconSizeLarge}
           color={AppColors.text.primary}
         />
       </TouchableOpacity>
 
-      <Text style={styles.headerTitle} numberOfLines={1}>
+      <Text
+        style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
+        numberOfLines={1}
+      >
         {selectedCategory
           ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
           : "Shop"}
       </Text>
 
       <TouchableOpacity
-        style={styles.headerCartButton}
+        style={[
+          styles.headerCartButton,
+          {
+            width: isTablet ? 48 : 40,
+            height: isTablet ? 48 : 40,
+            borderRadius: isTablet ? 12 : 10,
+          },
+        ]}
         onPress={() => router.push("/(tabs)/cart")}
         activeOpacity={0.7}
       >
         <MaterialCommunityIcons
           name="cart-outline"
-          size={22}
+          size={config.iconSize + 2}
           color={AppColors.primary[700]}
         />
         {cart?.length > 0 && (
-          <View style={styles.cartBadge}>
-            <Text style={styles.cartBadgeText}>
+          <View
+            style={[
+              styles.cartBadge,
+              {
+                minWidth: config.badgeSize,
+                height: config.badgeSize,
+                borderRadius: config.badgeSize / 2,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.cartBadgeText, { fontSize: isTablet ? 11 : 10 }]}
+            >
               {cart.length > 99 ? "99+" : cart.length}
             </Text>
           </View>
@@ -258,19 +333,43 @@ export default function ShopScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       {/* Search Row */}
-      <View style={styles.searchRow}>
+      <View
+        style={[
+          styles.searchRow,
+          {
+            paddingHorizontal: config.horizontalPadding + 4,
+            gap: config.gapSmall,
+          },
+        ]}
+      >
         <TouchableOpacity
           style={styles.searchContainer}
           onPress={() => router.push("/(tabs)/search")}
           activeOpacity={0.7}
         >
-          <View style={styles.searchInput}>
+          <View
+            style={[
+              styles.searchInput,
+              {
+                paddingVertical: isTablet ? 14 : 12,
+                paddingHorizontal: isTablet ? 16 : 14,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+          >
             <Ionicons
               name="search-outline"
-              size={18}
+              size={config.iconSizeSmall + 2}
               color={AppColors.gray[400]}
             />
-            <Text style={styles.searchPlaceholder}>Search products...</Text>
+            <Text
+              style={[
+                styles.searchPlaceholder,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Search products...
+            </Text>
           </View>
         </TouchableOpacity>
 
@@ -278,13 +377,18 @@ export default function ShopScreen() {
           style={[
             styles.filterButton,
             isFilterActive && styles.filterButtonActive,
+            {
+              width: isTablet ? 52 : 46,
+              height: isTablet ? 52 : 46,
+              borderRadius: isTablet ? 12 : 10,
+            },
           ]}
           onPress={() => setShowFilterModal(true)}
           activeOpacity={0.7}
         >
           <AntDesign
             name="filter"
-            size={20}
+            size={config.iconSize}
             color={
               isFilterActive ? AppColors.primary[500] : AppColors.text.primary
             }
@@ -306,8 +410,13 @@ export default function ShopScreen() {
       />
 
       {/* Results Count */}
-      <View style={styles.resultsRow}>
-        <Text style={styles.resultsText}>
+      <View
+        style={[
+          styles.resultsRow,
+          { paddingHorizontal: config.horizontalPadding + 4 },
+        ]}
+      >
+        <Text style={[styles.resultsText, { fontSize: config.bodyFontSize }]}>
           {totalProducts > 0
             ? `${totalProducts} results`
             : `${products.length} results`}
@@ -322,16 +431,27 @@ export default function ShopScreen() {
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
-        <Text style={styles.loadingText}>Loading more...</Text>
+        <Text style={[styles.loadingText, { fontSize: config.bodyFontSize }]}>
+          Loading more...
+        </Text>
       </View>
     )
   }
 
-  const renderProduct = ({ item }: { item: Product }) => (
-    <View style={styles.productContainer}>
-      <ProductCard product={item} customStyle={{ width: "100%" }} />
-    </View>
-  )
+  const renderProduct = ({ item, index }: { item: Product; index: number }) => {
+    // Calculate margin for grid layout
+    const isLastInRow = (index + 1) % numColumns === 0
+    const marginRight = isLastInRow ? 0 : gap
+
+    return (
+      <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+        <ProductCard product={item} customStyle={{ width: "100%" }} />
+      </View>
+    )
+  }
+
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `grid-${numColumns}`
 
   return (
     <SafeAreaView
@@ -346,7 +466,19 @@ export default function ShopScreen() {
 
       {/* Content */}
       {isInitialLoading ? (
-        <Loader fullScreen />
+        // <Loader fullScreen />
+        <View
+          style={{
+            paddingHorizontal: config.horizontalPadding,
+            paddingTop: 16,
+          }}
+        >
+          {/* Results count skeleton */}
+          <View style={{ marginBottom: 12 }}>
+            <SkeletonBase width={80} height={config.bodyFontSize + 2} />
+          </View>
+          <ProductGridSkeleton count={isTablet ? (isLandscape ? 8 : 6) : 6} />
+        </View>
       ) : products.length === 0 ? (
         <EmptyState
           type="search"
@@ -357,12 +489,15 @@ export default function ShopScreen() {
         />
       ) : (
         <FlatList
+          key={flatListKey}
           data={products}
           renderItem={renderProduct}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={IsIPAD ? 3 : 2}
-          contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.columnWrapper}
+          numColumns={numColumns}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingHorizontal: config.horizontalPadding },
+          ]}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
@@ -399,7 +534,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: AppColors.background.primary,
     borderBottomWidth: 1,
@@ -407,25 +541,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backButton: {
-    width: 40,
-    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
   },
   headerTitle: {
     flex: 1,
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
     textAlign: "center",
     marginHorizontal: 8,
   },
   headerCartButton: {
     backgroundColor: AppColors.primary[50],
-    borderRadius: 10,
-    width: 40,
-    height: 40,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -436,16 +563,12 @@ const styles = StyleSheet.create({
     top: -4,
     right: -4,
     backgroundColor: AppColors.error,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
   },
   cartBadgeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     color: "white",
   },
   header: {
@@ -457,9 +580,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
     marginBottom: 12,
-    gap: 10,
   },
   searchContainer: {
     flex: 1,
@@ -468,22 +589,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
     gap: 8,
   },
   searchPlaceholder: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.gray[400],
   },
   filterButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
     alignItems: "center",
@@ -495,23 +609,14 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primary[50],
   },
   resultsRow: {
-    paddingHorizontal: 20,
     marginTop: 8,
   },
   resultsText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   listContent: {
-    paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  productContainer: {
-    width: IsIPAD ? "32%" : "48%",
   },
   loadingFooter: {
     flexDirection: "row",
@@ -522,7 +627,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[500],
   },
 })

@@ -5,6 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCartStore } from "@/src/store/cartStore"
 import { useFavoritesStore } from "@/src/store/favoritesStore"
@@ -13,6 +14,7 @@ import Logo from "../common/Logo"
 
 const HomeHeader = () => {
   const router = useRouter()
+  const { config, isTablet } = useResponsive()
   const { cart, fetchCart } = useCartStore()
   const { token } = useAuthStore()
   const { favoriteList, fetchFavorites } = useFavoritesStore()
@@ -28,21 +30,30 @@ const HomeHeader = () => {
   const cartCount = cart?.length || 0
   const favCount = favoriteList?.products?.length || 0
 
+  const iconButtonSize = isTablet ? 48 : 40
+  const iconSize = isTablet ? 24 : 20
+  const badgeSize = isTablet ? 20 : 18
+
   return (
     <SafeAreaView edges={["top"]} style={styles.container}>
-      <View style={styles.header}>
+      <View
+        style={[styles.header, { paddingHorizontal: config.horizontalPadding }]}
+      >
         <Logo />
 
-        <View style={styles.iconContainer}>
+        <View style={[styles.iconContainer, { gap: isTablet ? 12 : 8 }]}>
           {/* Search Button */}
           <TouchableOpacity
-            style={styles.iconButton}
+            style={[
+              styles.iconButton,
+              { width: iconButtonSize, height: iconButtonSize },
+            ]}
             onPress={() => router.push("/(tabs)/search")}
             activeOpacity={0.7}
           >
             <Ionicons
               name="search-outline"
-              size={20}
+              size={iconSize}
               color={AppColors.primary[700]}
             />
           </TouchableOpacity>
@@ -51,18 +62,35 @@ const HomeHeader = () => {
             <>
               {/* Favorites Button */}
               <TouchableOpacity
-                style={styles.iconButton}
+                style={[
+                  styles.iconButton,
+                  { width: iconButtonSize, height: iconButtonSize },
+                ]}
                 onPress={() => router.push("/favorites")}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="heart-outline"
-                  size={20}
+                  size={iconSize}
                   color={AppColors.primary[700]}
                 />
                 {favCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
+                  <View
+                    style={[
+                      styles.badge,
+                      {
+                        minWidth: badgeSize,
+                        height: badgeSize,
+                        borderRadius: badgeSize / 2,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { fontSize: isTablet ? 11 : 10 },
+                      ]}
+                    >
                       {favCount > 99 ? "99+" : favCount}
                     </Text>
                   </View>
@@ -71,18 +99,35 @@ const HomeHeader = () => {
 
               {/* Notifications Button */}
               <TouchableOpacity
-                style={styles.iconButton}
+                style={[
+                  styles.iconButton,
+                  { width: iconButtonSize, height: iconButtonSize },
+                ]}
                 onPress={() => router.push("/notifications")}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="bell-outline"
-                  size={20}
+                  size={iconSize}
                   color={AppColors.primary[700]}
                 />
                 {unreadCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
+                  <View
+                    style={[
+                      styles.badge,
+                      {
+                        minWidth: badgeSize,
+                        height: badgeSize,
+                        borderRadius: badgeSize / 2,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { fontSize: isTablet ? 11 : 10 },
+                      ]}
+                    >
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </Text>
                   </View>
@@ -91,18 +136,35 @@ const HomeHeader = () => {
 
               {/* Cart Button */}
               <TouchableOpacity
-                style={styles.iconButton}
+                style={[
+                  styles.iconButton,
+                  { width: iconButtonSize, height: iconButtonSize },
+                ]}
                 onPress={() => router.push("/(tabs)/cart")}
                 activeOpacity={0.7}
               >
                 <MaterialCommunityIcons
                   name="cart-outline"
-                  size={20}
+                  size={iconSize}
                   color={AppColors.primary[700]}
                 />
                 {cartCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
+                  <View
+                    style={[
+                      styles.badge,
+                      {
+                        minWidth: badgeSize,
+                        height: badgeSize,
+                        borderRadius: badgeSize / 2,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.badgeText,
+                        { fontSize: isTablet ? 11 : 10 },
+                      ]}
+                    >
                       {cartCount > 99 ? "99+" : cartCount}
                     </Text>
                   </View>
@@ -127,18 +189,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
-    paddingHorizontal: 16,
   },
   iconContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   iconButton: {
     backgroundColor: AppColors.primary[50],
     borderRadius: 8,
-    width: 40,
-    height: 40,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
@@ -150,15 +208,11 @@ const styles = StyleSheet.create({
     top: -6,
     right: -6,
     backgroundColor: AppColors.error,
-    borderRadius: 10,
-    minWidth: 18,
-    height: 18,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
   },
   badgeText: {
-    fontSize: 10,
     color: "white",
     fontFamily: "Poppins_600SemiBold",
   },

@@ -14,6 +14,7 @@ import Toast from "react-native-toast-message"
 
 import { getProductById } from "@/src/api/products"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useCartStore } from "@/src/store/cartStore"
 import { CartItem } from "@/src/types"
 
@@ -25,6 +26,7 @@ interface CartItemCardProps {
 
 const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
   const router = useRouter()
+  const { config, isTablet } = useResponsive()
   const { updateQuantity, removeItem } = useCartStore()
 
   const [loading, setLoading] = useState(false)
@@ -33,6 +35,10 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
 
   const isAtMaxStock = maxStock !== null && item.quantity >= maxStock
   const totalPrice = (item.unit_price * item.quantity).toFixed(2)
+
+  const imageSize = isTablet ? 100 : 90
+  const quantityButtonSize = isTablet ? 36 : 32
+  const removeButtonSize = isTablet ? 40 : 36
 
   const handlePress = () => {
     router.push(`/product/${item.product_id}`)
@@ -113,7 +119,6 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
         const newWeight = product.weight_in_grams * newQuantity
         await handleUpdateQuantity(newQuantity, newWeight)
       } else {
-        // Remove item if quantity is 1
         await handleRemoveItem()
       }
     } catch (error) {
@@ -169,18 +174,46 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
 
   if (removing) {
     return (
-      <View style={[styles.container, styles.removingContainer]}>
+      <View
+        style={[
+          styles.container,
+          styles.removingContainer,
+          {
+            padding: isTablet ? 18 : 16,
+            borderRadius: config.cardBorderRadius + 4,
+          },
+        ]}
+      >
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
-        <Text style={styles.removingText}>Removing...</Text>
+        <Text style={[styles.removingText, { fontSize: config.bodyFontSize }]}>
+          Removing...
+        </Text>
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 18 : 16,
+          borderRadius: config.cardBorderRadius + 4,
+          marginBottom: config.gap,
+        },
+      ]}
+    >
       {/* Product Image */}
       <TouchableOpacity
-        style={styles.imageContainer}
+        style={[
+          styles.imageContainer,
+          {
+            width: imageSize,
+            height: imageSize,
+            borderRadius: config.cardBorderRadius,
+            marginRight: isTablet ? 16 : 14,
+          },
+        ]}
         onPress={handlePress}
         activeOpacity={0.8}
       >
@@ -194,20 +227,50 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
       {/* Product Details */}
       <View style={styles.details}>
         <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
-          <Text style={styles.name} numberOfLines={2}>
+          <Text
+            style={[
+              styles.name,
+              {
+                fontSize: config.bodyFontSize,
+                lineHeight: config.bodyFontSize * 1.35,
+              },
+            ]}
+            numberOfLines={2}
+          >
             {item.name}
           </Text>
         </TouchableOpacity>
 
-        {item.brand && <Text style={styles.brand}>{item.brand}</Text>}
+        {item.brand && (
+          <Text style={[styles.brand, { fontSize: config.smallFontSize }]}>
+            {item.brand}
+          </Text>
+        )}
 
-        <Text style={styles.price}>${totalPrice}</Text>
+        <Text style={[styles.price, { fontSize: isTablet ? 20 : 18 }]}>
+          ${totalPrice}
+        </Text>
 
         {/* Quantity Controls */}
         <View style={styles.actionsRow}>
-          <View style={styles.quantityContainer}>
+          <View
+            style={[
+              styles.quantityContainer,
+              {
+                padding: isTablet ? 5 : 4,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+          >
             <TouchableOpacity
-              style={styles.quantityButton}
+              style={[
+                styles.quantityButton,
+                {
+                  width: quantityButtonSize,
+                  height: quantityButtonSize,
+                  borderRadius: isTablet ? 10 : 8,
+                },
+              ]}
               onPress={handleDecreaseQuantity}
               disabled={loading}
               activeOpacity={0.7}
@@ -215,32 +278,46 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
               {item.quantity === 1 ? (
                 <Ionicons
                   name="trash-outline"
-                  size={16}
+                  size={config.iconSizeSmall}
                   color={AppColors.error}
                 />
               ) : (
                 <AntDesign
                   name="minus"
-                  size={16}
+                  size={config.iconSizeSmall}
                   color={AppColors.text.primary}
                 />
               )}
             </TouchableOpacity>
 
-            <View style={styles.quantityDisplay}>
+            <View
+              style={[styles.quantityDisplay, { minWidth: isTablet ? 48 : 40 }]}
+            >
               {loading ? (
                 <ActivityIndicator
                   size="small"
                   color={AppColors.primary[500]}
                 />
               ) : (
-                <Text style={styles.quantity}>{item.quantity}</Text>
+                <Text
+                  style={[
+                    styles.quantity,
+                    { fontSize: config.subtitleFontSize },
+                  ]}
+                >
+                  {item.quantity}
+                </Text>
               )}
             </View>
 
             <TouchableOpacity
               style={[
                 styles.quantityButton,
+                {
+                  width: quantityButtonSize,
+                  height: quantityButtonSize,
+                  borderRadius: isTablet ? 10 : 8,
+                },
                 isAtMaxStock && styles.quantityButtonDisabled,
               ]}
               onPress={handleIncreaseQuantity}
@@ -249,7 +326,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
             >
               <AntDesign
                 name="plus"
-                size={16}
+                size={config.iconSizeSmall}
                 color={
                   isAtMaxStock ? AppColors.gray[400] : AppColors.text.primary
                 }
@@ -259,11 +336,22 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
 
           {/* Remove Button */}
           <TouchableOpacity
-            style={styles.removeButton}
+            style={[
+              styles.removeButton,
+              {
+                width: removeButtonSize,
+                height: removeButtonSize,
+                borderRadius: removeButtonSize / 2,
+              },
+            ]}
             onPress={handleRemoveItem}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={20} color={AppColors.gray[500]} />
+            <Ionicons
+              name="close"
+              size={config.iconSize}
+              color={AppColors.gray[500]}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -277,9 +365,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     backgroundColor: AppColors.background.primary,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -297,16 +382,11 @@ const styles = StyleSheet.create({
   },
   removingText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   imageContainer: {
-    width: 90,
-    height: 90,
     backgroundColor: AppColors.gray[50],
-    borderRadius: 12,
     overflow: "hidden",
-    marginRight: 14,
   },
   image: {
     width: "100%",
@@ -318,22 +398,18 @@ const styles = StyleSheet.create({
   },
   name: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
     textTransform: "capitalize",
-    lineHeight: 20,
     marginBottom: 2,
   },
   brand: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     textTransform: "capitalize",
     marginBottom: 4,
   },
   price: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 18,
     color: AppColors.primary[600],
     marginBottom: 8,
   },
@@ -346,13 +422,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
-    padding: 4,
   },
   quantityButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
     backgroundColor: AppColors.background.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -361,19 +432,14 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.gray[100],
   },
   quantityDisplay: {
-    minWidth: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   quantity: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   removeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",

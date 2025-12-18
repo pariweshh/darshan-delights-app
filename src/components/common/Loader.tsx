@@ -1,4 +1,5 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
 
 interface LoaderProps {
@@ -14,19 +15,29 @@ const Loader: React.FC<LoaderProps> = ({
   text,
   fullScreen = false,
 }) => {
+  const { config } = useResponsive()
+
   if (fullScreen) {
     return (
       <View style={styles.fullScreen}>
         <ActivityIndicator size={size} color={color} />
-        {text && <Text style={styles.text}>{text}</Text>}
+        {text && (
+          <Text style={[styles.text, { fontSize: config.bodyFontSize }]}>
+            {text}
+          </Text>
+        )}
       </View>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { padding: config.gap }]}>
       <ActivityIndicator size={size} color={color} />
-      {text && <Text style={styles.text}>{text}</Text>}
+      {text && (
+        <Text style={[styles.text, { fontSize: config.bodyFontSize }]}>
+          {text}
+        </Text>
+      )}
     </View>
   )
 }
@@ -35,7 +46,6 @@ export default Loader
 
 const styles = StyleSheet.create({
   container: {
-    padding: 16,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -47,7 +57,6 @@ const styles = StyleSheet.create({
   },
   text: {
     marginTop: 8,
-    fontSize: 14,
     fontFamily: "Poppins_400Regular",
     color: AppColors.text.secondary,
   },

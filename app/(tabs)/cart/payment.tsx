@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useCallback, useState } from "react"
-import { ScrollView, StyleSheet, Text, View } from "react-native"
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
@@ -9,6 +9,7 @@ import { applyCoupon } from "@/src/api/coupon"
 import { createOrderAndPaymentIntent, deleteOrder } from "@/src/api/orders"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCartStore } from "@/src/store/cartStore"
 import { useStripe } from "@stripe/stripe-react-native"
@@ -27,10 +28,9 @@ interface PaymentIntentResponse {
 
 export default function PaymentScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { orderData } = useLocalSearchParams()
   const parsedOrderData = JSON.parse(orderData as string)
-
-  console.log({ parsedOrderData })
 
   const { user, token } = useAuthStore()
   const { clearCart } = useCartStore()
@@ -42,10 +42,54 @@ export default function PaymentScreen() {
   const coupon = parsedOrderData?.coupon
   const discountAmount = parsedOrderData?.discountAmount || 0
 
+  // Layout configuration
+  const useHorizontalLayout = isTablet && isLandscape
+  const contentMaxWidth = isTablet && !isLandscape ? 500 : undefined
+
   const calculateGST = useCallback((totalAmount: number): number => {
-    console.log(totalAmount)
     return (totalAmount * GST_RATE) / (100 + GST_RATE)
   }, [])
+
+  const stripeTheme = {
+    colors: {
+      // Brand
+      primary: AppColors.primary[500],
+
+      // Backgrounds
+      background: "#F9FAFB",
+      componentBackground: "#F3F4F6",
+      surface: "#F3F4F6",
+
+      // Borders & dividers
+      componentBorder: "#E5E7EB",
+      componentDivider: "#E5E7EB",
+
+      // Text — explicitly dark
+      primaryText: "#111827",
+      secondaryText: "#374151",
+      placeholderText: "#6B7280",
+      surfaceText: "#111827",
+
+      // Icons
+      icon: "#374151",
+    },
+
+    shapes: {
+      borderRadius: 12,
+      borderWidth: 1,
+    },
+
+    primaryButton: {
+      colors: {
+        background: AppColors.primary[500],
+        text: "#FFFFFF",
+        border: AppColors.primary[500],
+      },
+      shapes: {
+        borderRadius: 12,
+      },
+    },
+  }
 
   const createPaymentIntent =
     useCallback(async (): Promise<PaymentIntentResponse | null> => {
@@ -152,7 +196,7 @@ export default function PaymentScreen() {
         allowsDelayedPaymentMethods: true,
         defaultBillingDetails: {
           name: parsedOrderData.billingDetails?.name,
-          email: parsedOrderData.billingDeatails?.email,
+          email: parsedOrderData.billingDetails?.email,
           phone: parsedOrderData.billingDetails?.phone,
           address: parsedOrderData.billingDetails?.address,
         },
@@ -164,34 +208,7 @@ export default function PaymentScreen() {
           },
         }),
         style: "alwaysLight",
-
-        appearance: {
-          colors: {
-            primary: AppColors.primary[500],
-            background: "#ffffff",
-            componentBackground: "#F9FAFB",
-            componentBorder: "#E5E7EB",
-            componentDivider: "#E5E7EB",
-            primaryText: "#111827",
-            secondaryText: "#4B5563",
-            placeholderText: "#9CA3AF",
-            icon: "#6B7280",
-          },
-          shapes: {
-            borderRadius: 12,
-            borderWidth: 1,
-          },
-          primaryButton: {
-            colors: {
-              background: AppColors.primary[500],
-              text: "#FFFFFF",
-              border: "F97316",
-            },
-            shapes: {
-              borderRadius: 12,
-            },
-          },
-        },
+        appearance: stripeTheme,
       })
 
       if (initError) {
@@ -261,7 +278,6 @@ export default function PaymentScreen() {
   const handlePaymentSuccess = useCallback(
     async (orderId: number, orderNumber: string) => {
       try {
-        // Apply coupon usage if one was used
         if (coupon?.code && token) {
           try {
             await applyCoupon(
@@ -272,12 +288,10 @@ export default function PaymentScreen() {
               token
             )
           } catch (couponError) {
-            // Don't fail the order if coupon tracking fails
             console.error("Failed to track coupon usage:", couponError)
           }
         }
 
-        // clear cart
         if (token) {
           await clearCart(token)
         }
@@ -289,7 +303,6 @@ export default function PaymentScreen() {
           visibilityTime: 2000,
         })
 
-        // navigate to success screen
         router.replace({
           pathname: "/payment-success",
           params: { orderId: orderId.toString() },
@@ -305,16 +318,13 @@ export default function PaymentScreen() {
     [token, clearCart, router, coupon]
   )
 
-  // Helper function to format shipping details
   const formatShippingAddress = useCallback((shippingDetails: any): string => {
     if (!shippingDetails) return "Address not provided"
 
-    // If address is a string
     if (typeof shippingDetails.address === "string") {
       return shippingDetails.address
     }
 
-    // Build from object fields
     const parts = [
       shippingDetails.address?.line1 || shippingDetails.street,
       shippingDetails.address?.line2 || shippingDetails.apartment,
@@ -326,7 +336,6 @@ export default function PaymentScreen() {
     return parts.length > 0 ? parts.join(", ") : "Address not provided"
   }, [])
 
-  // Delivery info for display
   const deliveryInfo = parsedOrderData.localPickup
     ? {
         title: "Store Pickup",
@@ -339,148 +348,350 @@ export default function PaymentScreen() {
         icon: "location-outline" as const,
       }
 
-  return (
-    <SafeAreaView style={styles.container} edges={[]}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons
-              name="card-outline"
-              size={40}
-              color={AppColors.primary[500]}
-            />
-          </View>
-        </View>
+  // Card styles helper
+  const getCardStyle = () => [
+    styles.card,
+    {
+      padding: isTablet ? 20 : 16,
+      borderRadius: config.cardBorderRadius + 4,
+      marginBottom: isTablet ? 20 : 16,
+    },
+  ]
 
-        {/* Title */}
-        <Text style={styles.title}>Complete Your Payment</Text>
-        <Text style={styles.subtitle}>
-          Review your order and confirm payment
+  // Render order summary
+  const renderOrderSummary = () => (
+    <View style={getCardStyle()}>
+      <Text style={[styles.cardTitle, { fontSize: isTablet ? 18 : 16 }]}>
+        Order Summary
+      </Text>
+
+      <View style={[styles.summaryRow, { marginBottom: isTablet ? 12 : 10 }]}>
+        <Text style={[styles.summaryLabel, { fontSize: config.bodyFontSize }]}>
+          Subtotal ({parsedOrderData.cart?.length || 0} items)
         </Text>
+        <Text style={[styles.summaryValue, { fontSize: config.bodyFontSize }]}>
+          ${(parsedOrderData.subtotal || 0).toFixed(2)}
+        </Text>
+      </View>
 
-        {/* Order Summary Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Order Summary</Text>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>
-              Subtotal ({parsedOrderData.cart?.length || 0} items)
-            </Text>
-            <Text style={styles.summaryValue}>
-              ${(parsedOrderData.subtotal || 0).toFixed(2)}
-            </Text>
-          </View>
-
-          {/* Discount Row */}
-          {coupon && discountAmount > 0 && (
-            <View style={styles.summaryRow}>
-              <View style={styles.discountLabelRow}>
-                <Ionicons name="pricetag" size={14} color="#16A34A" />
-                <Text style={styles.discountLabelText}>
-                  Discount ({coupon.code})
-                </Text>
-              </View>
-              <Text style={styles.discountValueText}>
-                -${discountAmount.toFixed(2)}
-              </Text>
-            </View>
-          )}
-
-          {parsedOrderData.shippingCost > 0 && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Shipping</Text>
-              <Text style={styles.summaryValue}>
-                ${parsedOrderData.shippingCost.toFixed(2)}
-              </Text>
-            </View>
-          )}
-
-          {parsedOrderData.shippingCost === 0 &&
-            !parsedOrderData.localPickup && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Shipping</Text>
-                <Text style={[styles.summaryValue, styles.freeText]}>FREE</Text>
-              </View>
-            )}
-
-          <View style={styles.divider} />
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>
-              ${(parsedOrderData.totalAmount || 0).toFixed(2)}
+      {coupon && discountAmount > 0 && (
+        <View style={[styles.summaryRow, { marginBottom: isTablet ? 12 : 10 }]}>
+          <View style={styles.discountLabelRow}>
+            <Ionicons
+              name="pricetag"
+              size={config.iconSizeSmall}
+              color="#16A34A"
+            />
+            <Text
+              style={[
+                styles.discountLabelText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Discount ({coupon.code})
             </Text>
           </View>
-
-          <Text style={styles.gstNote}>
-            Includes $
-            {calculateGST(parsedOrderData.totalAmount || 0).toFixed(2)} GST
+          <Text
+            style={[
+              styles.discountValueText,
+              { fontSize: config.bodyFontSize },
+            ]}
+          >
+            -${discountAmount.toFixed(2)}
           </Text>
         </View>
+      )}
 
-        {/* Delivery Info Card */}
-        <View style={styles.card}>
-          <View style={styles.deliveryRow}>
-            <View style={styles.deliveryIconContainer}>
-              <Ionicons
-                name={deliveryInfo.icon}
-                size={24}
-                color={AppColors.primary[500]}
-              />
-            </View>
-            <View style={styles.deliveryInfo}>
-              <Text style={styles.deliveryTitle}>{deliveryInfo.title}</Text>
-              <Text style={styles.deliveryAddress}>{deliveryInfo.address}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Contact Info */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Contact Information</Text>
-          <Text style={styles.contactText}>{parsedOrderData.customerName}</Text>
-          <Text style={styles.contactText}>
-            {parsedOrderData.customerEmail}
+      {parsedOrderData.shippingCost > 0 && (
+        <View style={[styles.summaryRow, { marginBottom: isTablet ? 12 : 10 }]}>
+          <Text
+            style={[styles.summaryLabel, { fontSize: config.bodyFontSize }]}
+          >
+            Shipping
           </Text>
-          <Text style={styles.contactText}>
-            {parsedOrderData.customerPhone}
+          <Text
+            style={[styles.summaryValue, { fontSize: config.bodyFontSize }]}
+          >
+            ${parsedOrderData.shippingCost.toFixed(2)}
           </Text>
         </View>
-      </ScrollView>
+      )}
 
-      {/* Pay Button */}
-      <View style={styles.footer}>
-        <Button
-          title={
-            loading
-              ? "Processing..."
-              : `Pay $${(parsedOrderData.totalAmount || 0).toFixed(2)}`
-          }
-          onPress={handlePayment}
-          loading={loading}
-          disabled={loading}
-          icon={
-            !loading ? (
-              <Ionicons name="lock-closed" size={18} color="white" />
-            ) : undefined
-          }
-        />
-        <View style={styles.secureContainer}>
+      {parsedOrderData.shippingCost === 0 && !parsedOrderData.localPickup && (
+        <View style={[styles.summaryRow, { marginBottom: isTablet ? 12 : 10 }]}>
+          <Text
+            style={[styles.summaryLabel, { fontSize: config.bodyFontSize }]}
+          >
+            Shipping
+          </Text>
+          <Text
+            style={[
+              styles.summaryValue,
+              styles.freeText,
+              { fontSize: config.bodyFontSize },
+            ]}
+          >
+            FREE
+          </Text>
+        </View>
+      )}
+
+      <View style={[styles.divider, { marginVertical: isTablet ? 16 : 12 }]} />
+
+      <View style={styles.summaryRow}>
+        <Text style={[styles.totalLabel, { fontSize: isTablet ? 18 : 16 }]}>
+          Total
+        </Text>
+        <Text style={[styles.totalValue, { fontSize: isTablet ? 24 : 20 }]}>
+          ${(parsedOrderData.totalAmount || 0).toFixed(2)}
+        </Text>
+      </View>
+
+      <Text style={[styles.gstNote, { fontSize: config.smallFontSize }]}>
+        Includes ${calculateGST(parsedOrderData.totalAmount || 0).toFixed(2)}{" "}
+        GST
+      </Text>
+    </View>
+  )
+
+  // Render delivery info
+  const renderDeliveryInfo = () => (
+    <View style={getCardStyle()}>
+      <View style={styles.deliveryRow}>
+        <View
+          style={[
+            styles.deliveryIconContainer,
+            {
+              width: isTablet ? 56 : 48,
+              height: isTablet ? 56 : 48,
+              borderRadius: isTablet ? 14 : 12,
+            },
+          ]}
+        >
           <Ionicons
-            name="shield-checkmark"
-            size={14}
-            color={AppColors.success}
+            name={deliveryInfo.icon}
+            size={config.iconSizeLarge}
+            color={AppColors.primary[500]}
           />
-          <Text style={styles.secureText}>
-            Secure payment powered by Stripe
+        </View>
+        <View style={[styles.deliveryInfo, { marginLeft: isTablet ? 16 : 12 }]}>
+          <Text
+            style={[styles.deliveryTitle, { fontSize: config.bodyFontSize }]}
+          >
+            {deliveryInfo.title}
+          </Text>
+          <Text
+            style={[
+              styles.deliveryAddress,
+              { fontSize: config.bodyFontSize - 1 },
+            ]}
+          >
+            {deliveryInfo.address}
           </Text>
         </View>
       </View>
+    </View>
+  )
+
+  // Render contact info
+  const renderContactInfo = () => (
+    <View style={getCardStyle()}>
+      <Text style={[styles.cardTitle, { fontSize: isTablet ? 18 : 16 }]}>
+        Contact Information
+      </Text>
+      <Text style={[styles.contactText, { fontSize: config.bodyFontSize }]}>
+        {parsedOrderData.customerName}
+      </Text>
+      <Text style={[styles.contactText, { fontSize: config.bodyFontSize }]}>
+        {parsedOrderData.customerEmail}
+      </Text>
+      <Text style={[styles.contactText, { fontSize: config.bodyFontSize }]}>
+        {parsedOrderData.customerPhone}
+      </Text>
+    </View>
+  )
+
+  // Render pay button
+  const renderPayButton = () => (
+    <View
+      style={[
+        styles.footer,
+        {
+          padding: isTablet ? 20 : 16,
+          paddingTop: isTablet ? 16 : 12,
+          paddingBottom:
+            Platform.OS === "ios" ? (isTablet ? 20 : 24) : isTablet ? 20 : 16,
+        },
+      ]}
+    >
+      <Button
+        title={
+          loading
+            ? "Processing..."
+            : `Pay $${(parsedOrderData.totalAmount || 0).toFixed(2)}`
+        }
+        onPress={handlePayment}
+        loading={loading}
+        disabled={loading}
+        icon={
+          !loading ? (
+            <Ionicons name="lock-closed" size={config.iconSize} color="white" />
+          ) : undefined
+        }
+      />
+      <View style={[styles.secureContainer, { marginTop: isTablet ? 16 : 12 }]}>
+        <Ionicons
+          name="shield-checkmark"
+          size={config.iconSizeSmall}
+          color={AppColors.success}
+        />
+        <Text style={[styles.secureText, { fontSize: config.smallFontSize }]}>
+          Secure payment powered by Stripe
+        </Text>
+      </View>
+    </View>
+  )
+
+  // Icon size calculations
+  const iconCircleSize = isTablet ? 96 : 80
+  const iconSize = isTablet ? 48 : 40
+
+  return (
+    <SafeAreaView style={styles.container} edges={[]}>
+      {useHorizontalLayout ? (
+        // Tablet Landscape: Side-by-side layout
+        <View style={styles.horizontalContainer}>
+          {/* Left Column - Order Details */}
+          <ScrollView
+            style={styles.leftColumn}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { padding: config.horizontalPadding + 4 },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header Icon */}
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 24 : 20 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: iconCircleSize,
+                    height: iconCircleSize,
+                    borderRadius: iconCircleSize / 2,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="card-outline"
+                  size={iconSize}
+                  color={AppColors.primary[500]}
+                />
+              </View>
+            </View>
+
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: isTablet ? 28 : 24 }]}>
+              Complete Your Payment
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  marginBottom: isTablet ? 28 : 24,
+                },
+              ]}
+            >
+              Review your order and confirm payment
+            </Text>
+
+            {renderDeliveryInfo()}
+            {renderContactInfo()}
+          </ScrollView>
+
+          {/* Right Column - Summary & Pay */}
+          <View style={styles.rightColumn}>
+            <ScrollView
+              contentContainerStyle={{ padding: config.horizontalPadding }}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderOrderSummary()}
+            </ScrollView>
+            {renderPayButton()}
+          </View>
+        </View>
+      ) : (
+        // Phone & Tablet Portrait: Vertical layout
+        <>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                padding: config.horizontalPadding + 4,
+                paddingBottom: isTablet ? 48 : 40,
+                maxWidth: contentMaxWidth,
+                alignSelf: contentMaxWidth ? "center" : undefined,
+                width: contentMaxWidth ? "100%" : undefined,
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header Icon */}
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 24 : 20 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: iconCircleSize,
+                    height: iconCircleSize,
+                    borderRadius: iconCircleSize / 2,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="card-outline"
+                  size={iconSize}
+                  color={AppColors.primary[500]}
+                />
+              </View>
+            </View>
+
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: isTablet ? 28 : 24 }]}>
+              Complete Your Payment
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  marginBottom: isTablet ? 28 : 24,
+                },
+              ]}
+            >
+              Review your order and confirm payment
+            </Text>
+
+            {renderOrderSummary()}
+            {renderDeliveryInfo()}
+            {renderContactInfo()}
+          </ScrollView>
+
+          {renderPayButton()}
+        </>
+      )}
     </SafeAreaView>
   )
 }
@@ -493,19 +704,25 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 40,
+  scrollContent: {},
+  horizontalContainer: {
+    flex: 1,
+    flexDirection: "row",
+  },
+  leftColumn: {
+    flex: 1,
+  },
+  rightColumn: {
+    width: "40%",
+    backgroundColor: AppColors.background.primary,
+    borderLeftWidth: 1,
+    borderLeftColor: AppColors.gray[200],
   },
   // Icon
   iconContainer: {
     alignItems: "center",
-    marginBottom: 20,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
@@ -513,24 +730,18 @@ const styles = StyleSheet.create({
   // Title
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 24,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     textAlign: "center",
-    marginBottom: 24,
   },
   // Card
   card: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -539,7 +750,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
     marginBottom: 12,
   },
@@ -548,16 +758,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
   },
   summaryLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   summaryValue: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   freeText: {
@@ -567,21 +774,17 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: AppColors.gray[200],
-    marginVertical: 12,
   },
   totalLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   totalValue: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 20,
     color: AppColors.primary[600],
   },
   gstNote: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     textAlign: "right",
     marginTop: 4,
@@ -592,39 +795,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   deliveryIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   deliveryInfo: {
     flex: 1,
   },
   deliveryTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   deliveryAddress: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   // Contact
   contactText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     marginBottom: 4,
   },
   // Footer
   footer: {
-    padding: 16,
-    paddingTop: 12,
     backgroundColor: AppColors.background.primary,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[100],
@@ -633,12 +827,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 12,
     gap: 6,
   },
   secureText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
   },
   discountLabelRow: {
@@ -648,12 +840,10 @@ const styles = StyleSheet.create({
   },
   discountLabelText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: "#16A34A",
   },
   discountValueText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#16A34A",
   },
 })

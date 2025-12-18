@@ -1,4 +1,5 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { ScrollView, StyleSheet, Text, View } from "react-native"
 
 interface ActiveFiltersProps {
@@ -10,6 +11,8 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
   selectedBrands,
   activeSortOption,
 }) => {
+  const { config, isTablet } = useResponsive()
+
   if (selectedBrands.length === 0 && !activeSortOption) {
     return null
   }
@@ -29,21 +32,51 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
     }
   }
 
+  const chipPaddingHorizontal = isTablet ? 12 : 10
+  const chipPaddingVertical = isTablet ? 6 : 4
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { paddingHorizontal: config.horizontalPadding + 4 },
+      ]}
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { gap: config.gapSmall }]}
       >
         {selectedBrands.map((brand) => (
-          <View key={brand.id} style={styles.chip}>
-            <Text style={styles.chipText}>{brand.name}</Text>
+          <View
+            key={brand.id}
+            style={[
+              styles.chip,
+              {
+                paddingHorizontal: chipPaddingHorizontal,
+                paddingVertical: chipPaddingVertical,
+                borderRadius: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            <Text style={[styles.chipText, { fontSize: config.smallFontSize }]}>
+              {brand.name}
+            </Text>
           </View>
         ))}
         {activeSortOption && (
-          <View style={[styles.chip, styles.sortChip]}>
-            <Text style={styles.chipText}>
+          <View
+            style={[
+              styles.chip,
+              styles.sortChip,
+              {
+                paddingHorizontal: chipPaddingHorizontal,
+                paddingVertical: chipPaddingVertical,
+                borderRadius: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            <Text style={[styles.chipText, { fontSize: config.smallFontSize }]}>
               {getSortLabel(activeSortOption)}
             </Text>
           </View>
@@ -58,23 +91,16 @@ export default ActiveFilters
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 8,
-    paddingHorizontal: 20,
   },
-  scrollContent: {
-    gap: 6,
-  },
+  scrollContent: {},
   chip: {
     backgroundColor: AppColors.primary[100],
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
   sortChip: {
-    backgroundColor: AppColors.accent[100] || AppColors.primary[100],
+    backgroundColor: AppColors.accent?.[100] || AppColors.primary[100],
   },
   chipText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.primary[700],
     textTransform: "capitalize",
   },

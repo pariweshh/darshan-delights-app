@@ -1,6 +1,9 @@
+// app/(auth)/confirm-email.tsx
+
 import { verifyToken } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -13,11 +16,15 @@ type ConfirmationStatus = "loading" | "success" | "error" | "already_confirmed"
 
 export default function ConfirmEmailScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { token } = useLocalSearchParams<{ token: string }>()
   const { setSession } = useAuthStore()
 
   const [status, setStatus] = useState<ConfirmationStatus>("loading")
   const [errorMessage, setErrorMessage] = useState("")
+
+  const formMaxWidth = isTablet ? (isLandscape ? 450 : 400) : undefined
+  const iconSize = isTablet ? 96 : 80
 
   useEffect(() => {
     const confirmEmail = async () => {
@@ -40,7 +47,6 @@ export default function ConfirmEmailScreen() {
             text2: "Welcome to Darshan Delights",
           })
 
-          // Auto-navigate after delay
           setTimeout(() => {
             router.replace("/(tabs)/home")
           }, 2000)
@@ -71,15 +77,32 @@ export default function ConfirmEmailScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          {
+            paddingHorizontal: config.horizontalPadding + 8,
+            maxWidth: formMaxWidth,
+            alignSelf: formMaxWidth ? "center" : undefined,
+            width: formMaxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
         {/* Loading State */}
         {status === "loading" && (
           <>
-            <View style={styles.loadingContainer}>
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
               <ActivityIndicator size="large" color={AppColors.primary[500]} />
             </View>
-            <Text style={styles.loadingTitle}>Confirming your email...</Text>
-            <Text style={styles.loadingSubtitle}>
+            <Text style={[styles.title, { fontSize: isTablet ? 24 : 20 }]}>
+              Confirming your email...
+            </Text>
+            <Text style={[styles.subtitle, { fontSize: config.bodyFontSize }]}>
               Please wait while we verify your account
             </Text>
           </>
@@ -88,18 +111,39 @@ export default function ConfirmEmailScreen() {
         {/* Success State */}
         {status === "success" && (
           <>
-            <View style={styles.successIconContainer}>
-              <Ionicons name="checkmark-circle" size={80} color="#22C55E" />
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
+              <Ionicons
+                name="checkmark-circle"
+                size={iconSize}
+                color="#22C55E"
+              />
             </View>
-            <Text style={styles.successTitle}>Email Confirmed!</Text>
-            <Text style={styles.successSubtitle}>
+            <Text
+              style={[styles.successTitle, { fontSize: isTablet ? 32 : 28 }]}
+            >
+              Email Confirmed!
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  lineHeight: config.bodyFontSize * 1.5,
+                },
+              ]}
+            >
               Your account has been verified successfully.{"\n"}
               Redirecting you to the app...
             </Text>
             <ActivityIndicator
               size="small"
               color={AppColors.primary[500]}
-              style={styles.redirectLoader}
+              style={[styles.redirectLoader, { marginTop: isTablet ? 32 : 24 }]}
             />
           </>
         )}
@@ -107,45 +151,81 @@ export default function ConfirmEmailScreen() {
         {/* Already Confirmed State */}
         {status === "already_confirmed" && (
           <>
-            <View style={styles.infoIconContainer}>
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
               <Ionicons
                 name="information-circle"
-                size={80}
+                size={iconSize}
                 color={AppColors.primary[500]}
               />
             </View>
-            <Text style={styles.infoTitle}>Already Verified</Text>
-            <Text style={styles.infoSubtitle}>
+            <Text
+              style={[styles.successTitle, { fontSize: isTablet ? 32 : 28 }]}
+            >
+              Already Verified
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  lineHeight: config.bodyFontSize * 1.5,
+                },
+              ]}
+            >
               Your email has already been confirmed.{"\n"}
               You can log in to your account.
             </Text>
-            <Button
-              title="Go to Login"
-              onPress={handleGoToLogin}
-              containerStyles="w-full mt-8"
-            />
+            <View style={{ width: "100%", marginTop: isTablet ? 40 : 32 }}>
+              <Button title="Go to Login" onPress={handleGoToLogin} />
+            </View>
           </>
         )}
 
         {/* Error State */}
         {status === "error" && (
           <>
-            <View style={styles.errorIconContainer}>
-              <Ionicons name="close-circle" size={80} color={AppColors.error} />
-            </View>
-            <Text style={styles.errorTitle}>Confirmation Failed</Text>
-            <Text style={styles.errorSubtitle}>{errorMessage}</Text>
-            <View style={styles.errorActions}>
-              <Button
-                title="Go to Login"
-                onPress={handleGoToLogin}
-                containerStyles="w-full"
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
+              <Ionicons
+                name="close-circle"
+                size={iconSize}
+                color={AppColors.error}
               />
+            </View>
+            <Text
+              style={[styles.successTitle, { fontSize: isTablet ? 32 : 28 }]}
+            >
+              Confirmation Failed
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  lineHeight: config.bodyFontSize * 1.5,
+                },
+              ]}
+            >
+              {errorMessage}
+            </Text>
+            <View
+              style={[styles.errorActions, { marginTop: isTablet ? 40 : 32 }]}
+            >
+              <Button title="Go to Login" onPress={handleGoToLogin} />
+              <View style={{ height: isTablet ? 16 : 12 }} />
               <Button
                 title="Go to Home"
                 onPress={handleGoToHome}
                 variant="outline"
-                containerStyles="w-full mt-3"
               />
             </View>
           </>
@@ -164,84 +244,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
   },
-  // Loading
-  loadingContainer: {
-    marginBottom: 24,
-  },
-  loadingTitle: {
+  iconContainer: {},
+  title: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 20,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
-  },
-  loadingSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 15,
-    color: AppColors.text.secondary,
-    textAlign: "center",
-  },
-  // Success
-  successIconContainer: {
-    marginBottom: 24,
   },
   successTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
-  successSubtitle: {
+  subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
-    lineHeight: 22,
   },
-  redirectLoader: {
-    marginTop: 24,
-  },
-  // Info (Already Confirmed)
-  infoIconContainer: {
-    marginBottom: 24,
-  },
-  infoTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 28,
-    color: AppColors.text.primary,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  infoSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 15,
-    color: AppColors.text.secondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  // Error
-  errorIconContainer: {
-    marginBottom: 24,
-  },
-  errorTitle: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 28,
-    color: AppColors.text.primary,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  errorSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 15,
-    color: AppColors.text.secondary,
-    textAlign: "center",
-    lineHeight: 22,
-  },
+  redirectLoader: {},
   errorActions: {
     width: "100%",
-    marginTop: 32,
   },
 })

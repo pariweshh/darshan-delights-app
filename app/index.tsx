@@ -1,14 +1,21 @@
 import { useAuthStore } from "@/src/store/authStore"
 import { hasCompletedOnboarding } from "@/src/utils/storage"
 import { useRouter } from "expo-router"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 
 const Index = () => {
   const router = useRouter()
-  const { user, token } = useAuthStore()
+  const { user, token, isLoading } = useAuthStore()
+  const hasRouted = useRef(false)
 
   useEffect(() => {
     const determineRoute = async () => {
+      // Only run routing logic once
+      if (hasRouted.current) return
+
+      // Wait for auth to finish loading
+      if (isLoading) return
+
       // Check if user has completed onboarding
       const onboardingCompleted = await hasCompletedOnboarding()
 
@@ -17,6 +24,9 @@ const Index = () => {
         router.replace("/(auth)/intro")
         return
       }
+
+      // Mark as routed so we don't run this again
+      hasRouted.current = true
 
       if (user && token) {
         // User is logged in - go to home

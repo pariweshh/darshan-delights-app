@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons"
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   KeyboardAvoidingView,
   Modal,
@@ -15,8 +15,10 @@ import Toast from "react-native-toast-message"
 
 import { createReview, updateReview } from "@/src/api/reviews"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Button from "../ui/Button"
 import StarRatingInput from "./StarRatingInput"
 
@@ -39,6 +41,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
   existingReview,
   orderId,
 }) => {
+  const { config, isTablet, isLandscape, width, height } = useResponsive()
   const { token } = useAuthStore()
 
   const [rating, setRating] = useState(existingReview?.rating || 0)
@@ -47,9 +50,10 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const insets = useSafeAreaInsets()
+
   const isEditing = !!existingReview
 
-  // Reset form when modal opens/closes
   useEffect(() => {
     if (visible) {
       setRating(existingReview?.rating || 0)
@@ -87,9 +91,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
       return
     }
 
-    if (!validateForm()) {
-      return
-    }
+    if (!validateForm()) return
 
     setIsSubmitting(true)
 
@@ -147,48 +149,92 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
     onClose()
   }
 
+  // Modal sizing for tablet
+  const modalMaxWidth = isTablet ? (isLandscape ? 550 : 500) : undefined
+  const modalMaxHeight = isTablet ? height * 0.85 : undefined
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle={isTablet ? "formSheet" : "pageSheet"}
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[
+          styles.container,
+          { paddingTop: Platform.OS === "android" ? insets.top : 0 },
+          isTablet && {
+            maxWidth: modalMaxWidth,
+            alignSelf: "center",
+            width: "100%",
+          },
+        ]}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              paddingHorizontal: config.horizontalPadding,
+              paddingVertical: isTablet ? 20 : 16,
+            },
+          ]}
+        >
           <TouchableOpacity
             onPress={handleClose}
             disabled={isSubmitting}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={24} color={AppColors.text.primary} />
+            <Ionicons
+              name="close"
+              size={config.iconSizeLarge}
+              color={AppColors.text.primary}
+            />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
+          <Text
+            style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
+          >
             {isEditing ? "Edit Review" : "Write a Review"}
           </Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: config.iconSizeLarge }} />
         </View>
 
         <ScrollView
           style={styles.content}
-          contentContainerStyle={styles.contentContainer}
+          contentContainerStyle={[
+            styles.contentContainer,
+            { padding: config.horizontalPadding },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           {/* Product Name */}
-          <View style={styles.productInfo}>
-            <Text style={styles.productLabel}>Reviewing:</Text>
-            <Text style={styles.productName} numberOfLines={2}>
+          <View
+            style={[
+              styles.productInfo,
+              {
+                padding: isTablet ? 14 : 12,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.productLabel, { fontSize: config.smallFontSize }]}
+            >
+              Reviewing:
+            </Text>
+            <Text
+              style={[styles.productName, { fontSize: config.bodyFontSize }]}
+              numberOfLines={2}
+            >
               {productName}
             </Text>
           </View>
 
           {/* Star Rating */}
-          <View style={styles.section}>
+          <View style={[styles.section, { marginBottom: isTablet ? 24 : 20 }]}>
             <StarRatingInput
               rating={rating}
               onRatingChange={(r) => {
@@ -203,10 +249,20 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
           </View>
 
           {/* Title (Optional) */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Review Title (Optional)</Text>
+          <View style={[styles.section, { marginBottom: isTablet ? 24 : 20 }]}>
+            <Text style={[styles.label, { fontSize: config.bodyFontSize }]}>
+              Review Title (Optional)
+            </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  paddingHorizontal: isTablet ? 16 : 14,
+                  paddingVertical: isTablet ? 14 : 12,
+                  borderRadius: isTablet ? 12 : 10,
+                  fontSize: config.bodyFontSize,
+                },
+              ]}
               value={title}
               onChangeText={setTitle}
               placeholder="Summarise your experience"
@@ -216,13 +272,22 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
           </View>
 
           {/* Message */}
-          <View style={styles.section}>
-            <Text style={styles.label}>Your Review *</Text>
+          <View style={[styles.section, { marginBottom: isTablet ? 24 : 20 }]}>
+            <Text style={[styles.label, { fontSize: config.bodyFontSize }]}>
+              Your Review *
+            </Text>
             <TextInput
               style={[
                 styles.input,
                 styles.textArea,
                 errors.message && styles.inputError,
+                {
+                  paddingHorizontal: isTablet ? 16 : 14,
+                  paddingVertical: isTablet ? 14 : 12,
+                  borderRadius: isTablet ? 12 : 10,
+                  fontSize: config.bodyFontSize,
+                  minHeight: isTablet ? 140 : 120,
+                },
               ]}
               value={message}
               onChangeText={(text) => {
@@ -239,17 +304,51 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
               maxLength={1000}
             />
             <View style={styles.charCount}>
-              <Text style={styles.charCountText}>{message.length}/1000</Text>
+              <Text
+                style={[
+                  styles.charCountText,
+                  { fontSize: config.smallFontSize - 1 },
+                ]}
+              >
+                {message.length}/1000
+              </Text>
             </View>
             {errors.message && (
-              <Text style={styles.errorText}>{errors.message}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.message}
+              </Text>
             )}
           </View>
 
           {/* Guidelines */}
-          <View style={styles.guidelines}>
-            <Text style={styles.guidelinesTitle}>Review Guidelines</Text>
-            <Text style={styles.guidelinesText}>
+          <View
+            style={[
+              styles.guidelines,
+              {
+                padding: isTablet ? 14 : 12,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.guidelinesTitle,
+                { fontSize: config.smallFontSize },
+              ]}
+            >
+              Review Guidelines
+            </Text>
+            <Text
+              style={[
+                styles.guidelinesText,
+                {
+                  fontSize: config.smallFontSize,
+                  lineHeight: config.smallFontSize * 1.5,
+                },
+              ]}
+            >
               • Be honest and helpful to other shoppers{"\n"}• Focus on the
               product quality and your experience{"\n"}• Avoid inappropriate
               language or personal information
@@ -258,7 +357,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
         </ScrollView>
 
         {/* Footer */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { padding: config.horizontalPadding }]}>
           <Button
             title={isEditing ? "Update Review" : "Submit Review"}
             onPress={handleSubmit}
@@ -278,70 +377,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.background.primary,
   },
-  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
-  // Content
   content: {
     flex: 1,
   },
-  contentContainer: {
-    padding: 16,
-  },
-  // Product Info
+  contentContainer: {},
   productInfo: {
     backgroundColor: AppColors.gray[50],
-    padding: 12,
-    borderRadius: 10,
     marginBottom: 20,
   },
   productLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     marginBottom: 4,
   },
   productName: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
     textTransform: "capitalize",
   },
-  // Section
-  section: {
-    marginBottom: 20,
-  },
+  section: {},
   label: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
     marginBottom: 8,
   },
   input: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   textArea: {
-    minHeight: 120,
     textAlignVertical: "top",
   },
   inputError: {
@@ -353,38 +431,28 @@ const styles = StyleSheet.create({
   },
   charCountText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 4,
   },
-  // Guidelines
   guidelines: {
     backgroundColor: AppColors.primary[50],
-    padding: 12,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.primary[100],
   },
   guidelinesTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 12,
     color: AppColors.primary[700],
     marginBottom: 6,
   },
   guidelinesText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.primary[600],
-    lineHeight: 18,
   },
-  // Footer
   footer: {
-    padding: 16,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[200],
   },

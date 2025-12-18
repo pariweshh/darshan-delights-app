@@ -1,3 +1,5 @@
+// src/components/reviews/ReviewCard.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import { formatDistanceToNow } from "date-fns"
 import React, { useState } from "react"
@@ -5,6 +7,7 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"
 
 import { markReviewHelpful } from "@/src/api/reviews"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
 import Rating from "./Rating"
@@ -22,29 +25,30 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
   onDelete,
   showActions = true,
 }) => {
+  const { config, isTablet } = useResponsive()
   const { user: currentUser, token } = useAuthStore()
   const [helpfulCount, setHelpfulCount] = useState(review.helpfulCount || 0)
   const [hasMarkedHelpful, setHasMarkedHelpful] = useState(false)
 
-  const isOwnReview = currentUser && +currentUser?.id === +review.user.id
+  const isOwnReview = currentUser && +currentUser?.id === +review?.user?.id
 
   const getUserDisplayName = (): string => {
-    if (review.user.fName) {
-      const lastName = review.user.lName
-        ? ` ${review.user.lName.charAt(0)}.`
+    if (review?.user?.fName) {
+      const lastName = review?.user?.lName
+        ? ` ${review?.user?.lName.charAt(0)}.`
         : ""
-      return `${review.user.fName}${lastName}`
+      return `${review?.user?.fName}${lastName}`
     }
-    return review.user.username
+    return review?.user?.username
   }
 
   const getInitials = (): string => {
-    if (review.user.fName) {
-      const firstInitial = review.user.fName.charAt(0)
-      const lastInitial = review.user.lName?.charAt(0) || ""
+    if (review?.user?.fName) {
+      const firstInitial = review?.user?.fName.charAt(0)
+      const lastInitial = review?.user?.lName?.charAt(0) || ""
       return `${firstInitial}${lastInitial}`.toUpperCase()
     }
-    return review.user.username.charAt(0).toUpperCase()
+    return review?.user?.username.charAt(0).toUpperCase()
   }
 
   const handleHelpful = async () => {
@@ -53,13 +57,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
       return
     }
 
-    if (isOwnReview) {
-      return
-    }
-
-    if (hasMarkedHelpful) {
-      return
-    }
+    if (isOwnReview || hasMarkedHelpful) return
 
     try {
       const result = await markReviewHelpful(review.id, token)
@@ -76,11 +74,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
       "Are you sure you want to delete your review?",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: onDelete,
-        },
+        { text: "Delete", style: "destructive", onPress: onDelete },
       ]
     )
   }
@@ -89,44 +83,81 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
     addSuffix: true,
   })
 
+  const avatarSize = isTablet ? 48 : 40
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 20 : 16,
+          borderRadius: isTablet ? 10 : 8,
+        },
+      ]}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.userInfo}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getInitials()}</Text>
+          <View
+            style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                marginRight: isTablet ? 12 : 10,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.avatarText, { fontSize: config.bodyFontSize }]}
+            >
+              {getInitials()}
+            </Text>
           </View>
           <View style={styles.userDetails}>
-            <View style={styles.nameRow}>
-              <Text style={styles.userName}>{getUserDisplayName()}</Text>
+            <View style={[styles.nameRow, { gap: isTablet ? 8 : 6 }]}>
+              <Text
+                style={[styles.userName, { fontSize: config.bodyFontSize }]}
+              >
+                {getUserDisplayName()}
+              </Text>
               {review.isVerifiedPurchase && (
                 <View style={styles.verifiedBadge}>
                   <Ionicons
                     name="checkmark-circle"
-                    size={12}
+                    size={isTablet ? 14 : 12}
                     color={AppColors.success}
                   />
-                  <Text style={styles.verifiedText}>Verified Purchase</Text>
+                  <Text
+                    style={[
+                      styles.verifiedText,
+                      { fontSize: isTablet ? 11 : 10 },
+                    ]}
+                  >
+                    Verified Purchase
+                  </Text>
                 </View>
               )}
             </View>
-            <Text style={styles.date}>{formattedDate}</Text>
+            <Text style={[styles.date, { fontSize: config.smallFontSize }]}>
+              {formattedDate}
+            </Text>
           </View>
         </View>
 
         {/* Edit/Delete for own reviews */}
         {isOwnReview && showActions && (
-          <View style={styles.actions}>
+          <View style={[styles.actions, { gap: isTablet ? 10 : 8 }]}>
             {onEdit && (
               <TouchableOpacity
                 onPress={onEdit}
-                style={styles.actionButton}
+                style={[styles.actionButton, { padding: isTablet ? 6 : 4 }]}
                 activeOpacity={0.7}
               >
                 <Ionicons
                   name="pencil-outline"
-                  size={18}
+                  size={config.iconSize}
                   color={AppColors.text.secondary}
                 />
               </TouchableOpacity>
@@ -134,12 +165,12 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             {onDelete && (
               <TouchableOpacity
                 onPress={handleDelete}
-                style={styles.actionButton}
+                style={[styles.actionButton, { padding: isTablet ? 6 : 4 }]}
                 activeOpacity={0.7}
               >
                 <Ionicons
                   name="trash-outline"
-                  size={18}
+                  size={config.iconSize}
                   color={AppColors.error}
                 />
               </TouchableOpacity>
@@ -149,13 +180,27 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
       </View>
 
       {/* Rating */}
-      <View style={styles.ratingRow}>
+      <View style={[styles.ratingRow, { gap: isTablet ? 10 : 8 }]}>
         <Rating rating={review.rating} size="small" />
-        {review.title && <Text style={styles.title}>{review.title}</Text>}
+        {review.title && (
+          <Text style={[styles.title, { fontSize: config.bodyFontSize }]}>
+            {review.title}
+          </Text>
+        )}
       </View>
 
       {/* Message */}
-      <Text style={styles.message}>{review.message}</Text>
+      <Text
+        style={[
+          styles.message,
+          {
+            fontSize: config.bodyFontSize,
+            lineHeight: config.bodyFontSize * 1.5,
+          },
+        ]}
+      >
+        {review.message}
+      </Text>
 
       {/* Helpful */}
       {!isOwnReview && (
@@ -164,6 +209,11 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             style={[
               styles.helpfulButton,
               hasMarkedHelpful && styles.helpfulButtonActive,
+              {
+                paddingVertical: isTablet ? 6 : 4,
+                paddingHorizontal: isTablet ? 10 : 8,
+                borderRadius: isTablet ? 8 : 6,
+              },
             ]}
             onPress={handleHelpful}
             disabled={hasMarkedHelpful}
@@ -171,7 +221,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
           >
             <Ionicons
               name={hasMarkedHelpful ? "thumbs-up" : "thumbs-up-outline"}
-              size={14}
+              size={config.iconSizeSmall}
               color={
                 hasMarkedHelpful
                   ? AppColors.primary[600]
@@ -182,6 +232,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
               style={[
                 styles.helpfulText,
                 hasMarkedHelpful && styles.helpfulTextActive,
+                { fontSize: config.smallFontSize },
               ]}
             >
               Helpful ({helpfulCount})
@@ -198,12 +249,9 @@ export default ReviewCard
 const styles = StyleSheet.create({
   container: {
     backgroundColor: AppColors.background.primary,
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
-    borderRadius: 8,
   },
-  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -216,17 +264,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: AppColors.primary[100],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
   },
   avatarText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[700],
   },
   userDetails: {
@@ -236,11 +279,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    gap: 6,
   },
   userName: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   verifiedBadge: {
@@ -250,43 +291,31 @@ const styles = StyleSheet.create({
   },
   verifiedText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 10,
     color: AppColors.success,
   },
   date: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     marginTop: 2,
   },
   actions: {
     flexDirection: "row",
-    gap: 8,
   },
-  actionButton: {
-    padding: 4,
-  },
-  // Rating
+  actionButton: {},
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
     marginBottom: 8,
   },
   title: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
     flex: 1,
   },
-  // Message
   message: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
-    lineHeight: 20,
   },
-  // Helpful
   helpfulSection: {
     marginTop: 12,
     paddingTop: 12,
@@ -298,9 +327,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     alignSelf: "flex-start",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
     backgroundColor: AppColors.gray[100],
   },
   helpfulButtonActive: {
@@ -308,7 +334,6 @@ const styles = StyleSheet.create({
   },
   helpfulText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
   },
   helpfulTextActive: {

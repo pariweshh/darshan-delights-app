@@ -12,6 +12,7 @@ import Toast from "react-native-toast-message"
 
 import { ValidatedCoupon, validateCoupon } from "@/src/api/coupon"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface CouponInputProps {
   subtotal: number
@@ -28,6 +29,8 @@ export default function CouponInput({
   onRemove,
   token,
 }: CouponInputProps) {
+  const { config, isTablet } = useResponsive()
+
   const [code, setCode] = useState("")
   const [isValidating, setIsValidating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,17 +84,47 @@ export default function CouponInput({
     setIsExpanded(false)
   }
 
+  const iconContainerSize = isTablet ? 40 : 36
+
   // Applied coupon display
   if (appliedCoupon) {
     return (
-      <View style={styles.appliedContainer}>
-        <View style={styles.appliedContent}>
-          <View style={styles.appliedIconContainer}>
-            <Ionicons name="pricetag" size={18} color="#16A34A" />
+      <View
+        style={[
+          styles.appliedContainer,
+          {
+            padding: isTablet ? 14 : 12,
+            borderRadius: config.cardBorderRadius,
+            marginHorizontal: config.horizontalPadding,
+            marginTop: isTablet ? 20 : 16,
+          },
+        ]}
+      >
+        <View style={[styles.appliedContent, { gap: isTablet ? 12 : 10 }]}>
+          <View
+            style={[
+              styles.appliedIconContainer,
+              {
+                width: iconContainerSize,
+                height: iconContainerSize,
+                borderRadius: isTablet ? 10 : 8,
+              },
+            ]}
+          >
+            <Ionicons name="pricetag" size={config.iconSize} color="#16A34A" />
           </View>
           <View style={styles.appliedTextContainer}>
-            <Text style={styles.appliedCode}>{appliedCoupon.code}</Text>
-            <Text style={styles.appliedDiscount}>
+            <Text
+              style={[styles.appliedCode, { fontSize: config.bodyFontSize }]}
+            >
+              {appliedCoupon.code}
+            </Text>
+            <Text
+              style={[
+                styles.appliedDiscount,
+                { fontSize: config.smallFontSize },
+              ]}
+            >
               {appliedCoupon.discountType === "percentage"
                 ? `${appliedCoupon.discountValue}% off`
                 : `$${appliedCoupon.discountValue} off`}{" "}
@@ -104,31 +137,44 @@ export default function CouponInput({
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.removeButton}
         >
-          <Ionicons name="close-circle" size={22} color={AppColors.gray[400]} />
+          <Ionicons
+            name="close-circle"
+            size={isTablet ? 24 : 22}
+            color={AppColors.gray[400]}
+          />
         </TouchableOpacity>
       </View>
     )
   }
 
-  // Collapsed state - just show "Add Coupon" button
+  // Collapsed state
   if (!isExpanded) {
     return (
       <TouchableOpacity
-        style={styles.addCouponButton}
+        style={[
+          styles.addCouponButton,
+          {
+            padding: isTablet ? 16 : 14,
+          },
+        ]}
         onPress={() => setIsExpanded(true)}
         activeOpacity={0.7}
       >
-        <View style={styles.addCouponLeft}>
+        <View style={[styles.addCouponLeft, { gap: isTablet ? 12 : 10 }]}>
           <Ionicons
             name="pricetag-outline"
-            size={20}
+            size={config.iconSize}
             color={AppColors.primary[600]}
           />
-          <Text style={styles.addCouponText}>Add Promo Code</Text>
+          <Text
+            style={[styles.addCouponText, { fontSize: config.bodyFontSize }]}
+          >
+            Add Promo Code
+          </Text>
         </View>
         <Ionicons
           name="chevron-forward"
-          size={20}
+          size={config.iconSize}
           color={AppColors.gray[400]}
         />
       </TouchableOpacity>
@@ -137,9 +183,22 @@ export default function CouponInput({
 
   // Expanded input state
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.label}>Promo Code</Text>
+    <View
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 16 : 14,
+          borderRadius: config.cardBorderRadius,
+          marginHorizontal: config.horizontalPadding,
+          marginTop: isTablet ? 20 : 16,
+          marginBottom: isTablet ? 20 : 16,
+        },
+      ]}
+    >
+      <View style={[styles.header, { marginBottom: isTablet ? 14 : 12 }]}>
+        <Text style={[styles.label, { fontSize: config.bodyFontSize }]}>
+          Promo Code
+        </Text>
         <TouchableOpacity
           onPress={() => {
             setIsExpanded(false)
@@ -148,19 +207,38 @@ export default function CouponInput({
           }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={20} color={AppColors.gray[400]} />
+          <Ionicons
+            name="close"
+            size={config.iconSize}
+            color={AppColors.gray[400]}
+          />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.inputRow}>
-        <View style={[styles.inputContainer, error && styles.inputError]}>
+      <View style={[styles.inputRow, { gap: isTablet ? 12 : 10 }]}>
+        <View
+          style={[
+            styles.inputContainer,
+            error && styles.inputError,
+            {
+              paddingHorizontal: isTablet ? 14 : 12,
+              borderRadius: isTablet ? 12 : 10,
+            },
+          ]}
+        >
           <Ionicons
             name="pricetag-outline"
-            size={18}
+            size={config.iconSize}
             color={error ? AppColors.error : AppColors.gray[400]}
           />
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                fontSize: config.bodyFontSize,
+                paddingVertical: isTablet ? 14 : 12,
+              },
+            ]}
             placeholder="Enter code"
             placeholderTextColor={AppColors.gray[400]}
             value={code}
@@ -180,7 +258,7 @@ export default function CouponInput({
             >
               <Ionicons
                 name="close-circle"
-                size={18}
+                size={config.iconSize}
                 color={AppColors.gray[400]}
               />
             </TouchableOpacity>
@@ -190,6 +268,11 @@ export default function CouponInput({
           style={[
             styles.applyButton,
             (!code.trim() || isValidating) && styles.applyButtonDisabled,
+            {
+              paddingHorizontal: isTablet ? 24 : 20,
+              borderRadius: isTablet ? 12 : 10,
+              minWidth: isTablet ? 90 : 80,
+            },
           ]}
           onPress={handleApply}
           disabled={!code.trim() || isValidating}
@@ -198,21 +281,37 @@ export default function CouponInput({
           {isValidating ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.applyButtonText}>Apply</Text>
+            <Text
+              style={[
+                styles.applyButtonText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Apply
+            </Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && (
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {error}
+        </Text>
+      )}
 
       {/* App exclusive hint */}
-      <View style={styles.hintContainer}>
+      <View
+        style={[
+          styles.hintContainer,
+          { marginTop: isTablet ? 14 : 12, paddingTop: isTablet ? 14 : 12 },
+        ]}
+      >
         <Ionicons
           name="phone-portrait-outline"
-          size={14}
+          size={config.iconSizeSmall}
           color={AppColors.primary[500]}
         />
-        <Text style={styles.hintText}>
+        <Text style={[styles.hintText, { fontSize: config.smallFontSize }]}>
           Use code <Text style={styles.hintCode}>APP10</Text> for 10% off app
           orders!
         </Text>
@@ -228,8 +327,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: AppColors.primary[50],
-    borderRadius: 12,
-    padding: 14,
     borderWidth: 1,
     borderColor: AppColors.primary[100],
     borderStyle: "dashed",
@@ -237,20 +334,15 @@ const styles = StyleSheet.create({
   addCouponLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   addCouponText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
 
   // Expanded container
   container: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -258,26 +350,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   label: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   inputRow: {
     flexDirection: "row",
-    gap: 10,
   },
   inputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 12,
     gap: 8,
   },
   inputError: {
@@ -286,30 +373,23 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
-    paddingVertical: 12,
     letterSpacing: 1,
   },
   applyButton: {
     backgroundColor: AppColors.primary[500],
-    borderRadius: 10,
-    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 80,
   },
   applyButtonDisabled: {
     backgroundColor: AppColors.gray[300],
   },
   applyButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#fff",
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 8,
   },
@@ -317,14 +397,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[100],
   },
   hintText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
   },
   hintCode: {
@@ -338,22 +415,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "#DCFCE7",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
   appliedContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
     flex: 1,
   },
   appliedIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
@@ -363,13 +433,11 @@ const styles = StyleSheet.create({
   },
   appliedCode: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#166534",
     letterSpacing: 0.5,
   },
   appliedDiscount: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: "#15803D",
     marginTop: 1,
   },

@@ -1,4 +1,5 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Brand } from "@/src/types"
 import { AntDesign } from "@expo/vector-icons"
 import {
@@ -40,11 +41,17 @@ const FilterModal: React.FC<FilterModalProps> = ({
   onReset,
   productCount,
 }) => {
+  const { config, isTablet, isLandscape, width, height } = useResponsive()
+
   const isFilterActive = selectedBrands.length > 0 || activeSortOption !== null
 
   const isBrandSelected = (brandId: string | number) => {
     return selectedBrands.some((b) => b.id.toString() === brandId.toString())
   }
+
+  // Modal sizing for tablet
+  const modalMaxWidth = isTablet ? (isLandscape ? 500 : 450) : undefined
+  const modalMaxHeight = isTablet ? height * 0.8 : "85%"
 
   return (
     <Modal
@@ -54,14 +61,43 @@ const FilterModal: React.FC<FilterModalProps> = ({
       transparent
     >
       <View style={styles.overlay}>
-        <View style={styles.content}>
+        <View
+          style={[
+            styles.content,
+            {
+              maxHeight: modalMaxHeight,
+              maxWidth: modalMaxWidth,
+              width: modalMaxWidth ? "100%" : undefined,
+              alignSelf: modalMaxWidth ? "center" : undefined,
+              padding: isTablet ? 24 : 20,
+              borderTopLeftRadius: isTablet ? 24 : 20,
+              borderTopRightRadius: isTablet ? 24 : 20,
+              // For tablet, also round bottom corners
+              ...(isTablet && {
+                borderBottomLeftRadius: 24,
+                borderBottomRightRadius: 24,
+                marginBottom: 40,
+              }),
+            },
+          ]}
+        >
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Filter & Sort</Text>
+          <View
+            style={[
+              styles.header,
+              {
+                marginBottom: isTablet ? 24 : 20,
+                paddingBottom: isTablet ? 20 : 16,
+              },
+            ]}
+          >
+            <Text style={[styles.title, { fontSize: config.titleFontSize }]}>
+              Filter & Sort
+            </Text>
             <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
               <AntDesign
                 name="close"
-                size={24}
+                size={config.iconSizeLarge}
                 color={AppColors.text.primary}
               />
             </TouchableOpacity>
@@ -70,12 +106,30 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Brand Filters */}
             {brands && brands.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Brands</Text>
+              <View
+                style={[
+                  styles.section,
+                  { marginBottom: config.sectionSpacing },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    {
+                      fontSize: config.subtitleFontSize,
+                      marginBottom: config.gap,
+                    },
+                  ]}
+                >
+                  Brands
+                </Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.brandsContainer}
+                  contentContainerStyle={[
+                    styles.brandsContainer,
+                    { gap: config.gapSmall },
+                  ]}
                 >
                   {brands.map((brand) => (
                     <TouchableOpacity
@@ -83,6 +137,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       style={[
                         styles.brandChip,
                         isBrandSelected(brand.id) && styles.brandChipSelected,
+                        {
+                          paddingHorizontal: isTablet ? 18 : 14,
+                          paddingVertical: isTablet ? 10 : 8,
+                          borderRadius: isTablet ? 24 : 20,
+                        },
                       ]}
                       onPress={() =>
                         onBrandToggle({
@@ -97,6 +156,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           styles.brandChipText,
                           isBrandSelected(brand.id) &&
                             styles.brandChipTextSelected,
+                          { fontSize: config.bodyFontSize },
                         ]}
                       >
                         {brand.name}
@@ -108,8 +168,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
             )}
 
             {/* Sort Options */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Sort By</Text>
+            <View
+              style={[styles.section, { marginBottom: config.sectionSpacing }]}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  {
+                    fontSize: config.subtitleFontSize,
+                    marginBottom: config.gap,
+                  },
+                ]}
+              >
+                Sort By
+              </Text>
               {SORT_OPTIONS.map((option) => (
                 <TouchableOpacity
                   key={option.value}
@@ -117,6 +189,10 @@ const FilterModal: React.FC<FilterModalProps> = ({
                     styles.sortOption,
                     activeSortOption === option.value &&
                       styles.sortOptionActive,
+                    {
+                      padding: isTablet ? 16 : 14,
+                      borderRadius: isTablet ? 10 : 8,
+                    },
                   ]}
                   onPress={() => onSortChange(option.value)}
                   activeOpacity={0.7}
@@ -124,7 +200,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   {activeSortOption === option.value && (
                     <AntDesign
                       name="check"
-                      size={16}
+                      size={config.iconSizeSmall}
                       color={AppColors.primary[500]}
                     />
                   )}
@@ -133,6 +209,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       styles.sortOptionText,
                       activeSortOption === option.value &&
                         styles.sortOptionTextActive,
+                      { fontSize: config.subtitleFontSize },
                     ]}
                   >
                     {option.label}
@@ -143,27 +220,75 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
             {/* Applied Filters */}
             {isFilterActive && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Applied Filters</Text>
-                <View style={styles.appliedFilters}>
+              <View
+                style={[
+                  styles.section,
+                  { marginBottom: config.sectionSpacing },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    {
+                      fontSize: config.subtitleFontSize,
+                      marginBottom: config.gap,
+                    },
+                  ]}
+                >
+                  Applied Filters
+                </Text>
+                <View style={[styles.appliedFilters, { gap: config.gapSmall }]}>
                   {selectedBrands.map((brand) => (
-                    <View key={brand.id} style={styles.appliedChip}>
-                      <Text style={styles.appliedChipText}>{brand.name}</Text>
+                    <View
+                      key={brand.id}
+                      style={[
+                        styles.appliedChip,
+                        {
+                          paddingHorizontal: isTablet ? 14 : 12,
+                          paddingVertical: isTablet ? 8 : 6,
+                          borderRadius: isTablet ? 18 : 16,
+                          gap: config.gapSmall,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.appliedChipText,
+                          { fontSize: config.smallFontSize },
+                        ]}
+                      >
+                        {brand.name}
+                      </Text>
                       <TouchableOpacity
                         onPress={() => onBrandToggle(brand)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <AntDesign
                           name="close"
-                          size={14}
+                          size={config.iconSizeSmall - 2}
                           color={AppColors.text.secondary}
                         />
                       </TouchableOpacity>
                     </View>
                   ))}
                   {activeSortOption && (
-                    <View style={styles.appliedChip}>
-                      <Text style={styles.appliedChipText}>
+                    <View
+                      style={[
+                        styles.appliedChip,
+                        {
+                          paddingHorizontal: isTablet ? 14 : 12,
+                          paddingVertical: isTablet ? 8 : 6,
+                          borderRadius: isTablet ? 18 : 16,
+                          gap: config.gapSmall,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.appliedChipText,
+                          { fontSize: config.smallFontSize },
+                        ]}
+                      >
                         {SORT_OPTIONS.find((o) => o.value === activeSortOption)
                           ?.label || "Sorted"}
                       </Text>
@@ -173,7 +298,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       >
                         <AntDesign
                           name="close"
-                          size={14}
+                          size={config.iconSizeSmall - 2}
                           color={AppColors.text.secondary}
                         />
                       </TouchableOpacity>
@@ -186,22 +311,48 @@ const FilterModal: React.FC<FilterModalProps> = ({
             {/* Reset Button */}
             {isFilterActive && (
               <TouchableOpacity
-                style={styles.resetButton}
+                style={[
+                  styles.resetButton,
+                  {
+                    padding: isTablet ? 16 : 14,
+                    borderRadius: isTablet ? 10 : 8,
+                    marginBottom: config.gap,
+                  },
+                ]}
                 onPress={onReset}
                 activeOpacity={0.7}
               >
-                <Text style={styles.resetButtonText}>Reset All Filters</Text>
+                <Text
+                  style={[
+                    styles.resetButtonText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  Reset All Filters
+                </Text>
               </TouchableOpacity>
             )}
           </ScrollView>
 
           {/* Apply Button */}
           <TouchableOpacity
-            style={styles.applyButton}
+            style={[
+              styles.applyButton,
+              {
+                padding: isTablet ? 18 : 16,
+                borderRadius: isTablet ? 14 : 12,
+                marginTop: config.gapSmall,
+              },
+            ]}
             onPress={onClose}
             activeOpacity={0.8}
           >
-            <Text style={styles.applyButtonText}>
+            <Text
+              style={[
+                styles.applyButtonText,
+                { fontSize: config.subtitleFontSize },
+              ]}
+            >
               Apply Filters
               {productCount > 0 ? ` (${productCount} products)` : ""}
             </Text>
@@ -222,41 +373,25 @@ const styles = StyleSheet.create({
   },
   content: {
     backgroundColor: AppColors.background.primary,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "85%",
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   title: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
-  section: {
-    marginBottom: 24,
-  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
-  brandsContainer: {
-    gap: 8,
-  },
+  brandsContainer: {},
   brandChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
     backgroundColor: AppColors.background.secondary,
     borderWidth: 1,
     borderColor: AppColors.gray[300],
@@ -267,7 +402,6 @@ const styles = StyleSheet.create({
   },
   brandChipText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
     textTransform: "capitalize",
   },
@@ -278,8 +412,6 @@ const styles = StyleSheet.create({
   sortOption: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 14,
-    borderRadius: 8,
     gap: 10,
   },
   sortOptionActive: {
@@ -287,7 +419,6 @@ const styles = StyleSheet.create({
   },
   sortOptionText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   sortOptionTextActive: {
@@ -297,46 +428,32 @@ const styles = StyleSheet.create({
   appliedFilters: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
   },
   appliedChip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.primary[100],
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 8,
   },
   appliedChipText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.primary[700],
     textTransform: "capitalize",
   },
   resetButton: {
-    padding: 14,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: AppColors.error,
     alignItems: "center",
-    marginBottom: 16,
   },
   resetButtonText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.error,
   },
   applyButton: {
     backgroundColor: AppColors.primary[500],
-    padding: 16,
-    borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
   },
   applyButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: "white",
   },
 })

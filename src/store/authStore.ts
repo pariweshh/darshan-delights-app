@@ -129,6 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (identifier: string, password: string) => {
     try {
       set({ isLoading: true, error: null })
+
       const res = await signIn({ identifier, password })
 
       await setUserAuth(res.jwt || "")
@@ -148,7 +149,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
         isLoading: false,
       })
-
       return { user: res.user }
     } catch (error: any) {
       const errorMessage = error.message?.includes("status code 400")
@@ -163,6 +163,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       })
 
       await removeUserAuth()
+
       return undefined
     }
   },
@@ -328,16 +329,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         await get().loadBiometricPreference()
       } else {
+        const isActualError =
+          res?.session?.error &&
+          !res.session.error.toLowerCase().includes("no token") &&
+          !res.session.error.toLowerCase().includes("not found") &&
+          !res.session.error.toLowerCase().includes("no user")
         set({
           user: null,
           token: null,
           isLoading: false,
-          error: res.session.error || "",
+          error: isActualError ? res.session.error : null,
           biometricAuthEnabled: false,
         })
       }
     } catch (error: any) {
-      set({ user: null, error: error.message, isLoading: false })
+      const errorMessage = error.message?.toLowerCase() || ""
+      const isSessionMissingError =
+        errorMessage.includes("no token") ||
+        errorMessage.includes("not found") ||
+        errorMessage.includes("no user") ||
+        errorMessage.includes("no session")
+      set({
+        user: null,
+        token: null,
+        isLoading: false,
+        error: isSessionMissingError ? null : error.message,
+      })
     }
   },
 

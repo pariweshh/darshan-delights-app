@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
-import React from "react"
 import { StyleSheet, TouchableOpacity, ViewStyle } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import React from "react"
 
 interface ShareButtonProps {
   onPress: () => void

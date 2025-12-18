@@ -1,5 +1,3 @@
-// app/(auth)/forgot-password.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useState } from "react"
@@ -20,26 +18,29 @@ import Toast from "react-native-toast-message"
 import { forgotPassword } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 export default function ForgotPasswordScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
 
   const [email, setEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Validate email
+  const formMaxWidth = isTablet ? (isLandscape ? 450 : 400) : undefined
+  const iconCircleSize = isTablet ? 112 : 96
+  const iconSize = isTablet ? 56 : 48
+  const backButtonSize = isTablet ? 48 : 40
+
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
   }
 
-  // Handle submit
   const handleSubmit = async () => {
-    // Reset error
     setError("")
 
-    // Validate
     if (!email.trim()) {
       setError("Email is required")
       return
@@ -62,13 +63,11 @@ export default function ForgotPasswordScreen() {
         text2: "Check your email for the reset code",
       })
 
-      // Navigate to verify reset OTP screen
       router.push({
         pathname: "/(auth)/verify-reset-otp",
         params: { email: email.toLowerCase() },
       })
     } catch (err: any) {
-      // Don't reveal if email exists or not
       Toast.show({
         type: "success",
         text1: "Email Sent",
@@ -91,91 +90,181 @@ export default function ForgotPasswordScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: config.horizontalPadding + 8,
+              paddingTop: isTablet ? 24 : 16,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          <View
+            style={[
+              styles.formContainer,
+              {
+                maxWidth: formMaxWidth,
+                alignSelf: formMaxWidth ? "center" : undefined,
+                width: formMaxWidth ? "100%" : undefined,
+              },
+            ]}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={AppColors.text.primary}
-            />
-          </TouchableOpacity>
-
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={48}
-                color={AppColors.primary[600]}
-              />
-            </View>
-          </View>
-
-          {/* Title */}
-          <Text style={styles.title}>Forgot Password?</Text>
-          <Text style={styles.subtitle}>
-            No worries! Enter your email address and we'll send you a code to
-            reset your password.
-          </Text>
-
-          {/* Email Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Email Address</Text>
-            <View
-              style={[styles.inputWrapper, error ? styles.inputError : null]}
+            {/* Back Button */}
+            <TouchableOpacity
+              style={[
+                styles.backButton,
+                {
+                  width: backButtonSize,
+                  height: backButtonSize,
+                  borderRadius: backButtonSize / 2,
+                  marginBottom: isTablet ? 32 : 24,
+                },
+              ]}
+              onPress={() => router.back()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
-                name="mail-outline"
-                size={20}
-                color={error ? AppColors.error : AppColors.gray[400]}
+                name="arrow-back"
+                size={config.iconSizeLarge}
+                color={AppColors.text.primary}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your email"
-                placeholderTextColor={AppColors.gray[400]}
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text)
-                  setError("")
-                }}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
+            </TouchableOpacity>
+
+            {/* Icon */}
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: iconCircleSize,
+                    height: iconCircleSize,
+                    borderRadius: iconCircleSize / 2,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={iconSize}
+                  color={AppColors.primary[600]}
+                />
+              </View>
             </View>
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          </View>
 
-          {/* Submit Button */}
-          <Button
-            title={isLoading ? "Sending..." : "Send Reset Code"}
-            onPress={handleSubmit}
-            disabled={isLoading}
-            loading={isLoading}
-            containerStyles="w-full"
-          />
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: isTablet ? 32 : 28 }]}>
+              Forgot Password?
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  lineHeight: config.bodyFontSize * 1.5,
+                  marginBottom: isTablet ? 40 : 32,
+                },
+              ]}
+            >
+              No worries! Enter your email address and we'll send you a code to
+              reset your password.
+            </Text>
 
-          {/* Back to Login */}
-          <TouchableOpacity
-            style={styles.backToLogin}
-            onPress={() => router.replace("/(auth)/login")}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={16}
-              color={AppColors.primary[600]}
+            {/* Email Input */}
+            <View
+              style={[
+                styles.inputContainer,
+                { marginBottom: isTablet ? 28 : 24 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                Email Address
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  error ? styles.inputError : null,
+                  {
+                    paddingHorizontal: isTablet ? 16 : 14,
+                    borderRadius: config.cardBorderRadius,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="mail-outline"
+                  size={config.iconSize}
+                  color={error ? AppColors.error : AppColors.gray[400]}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      fontSize: config.bodyFontSize,
+                      paddingVertical: isTablet ? 16 : 14,
+                    },
+                  ]}
+                  placeholder="Enter your email"
+                  placeholderTextColor={AppColors.gray[400]}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    setError("")
+                  }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+              </View>
+              {error ? (
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {error}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* Submit Button */}
+            <Button
+              title={isLoading ? "Sending..." : "Send Reset Code"}
+              onPress={handleSubmit}
+              disabled={isLoading}
+              loading={isLoading}
             />
-            <Text style={styles.backToLoginText}>Back to Login</Text>
-          </TouchableOpacity>
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={[styles.backToLogin, { marginTop: isTablet ? 28 : 24 }]}
+              onPress={() => router.replace("/(auth)/login")}
+            >
+              <Ionicons
+                name="arrow-back"
+                size={config.iconSizeSmall}
+                color={AppColors.primary[600]}
+              />
+              <Text
+                style={[
+                  styles.backToLoginText,
+                  { fontSize: config.bodyFontSize },
+                ]}
+              >
+                Back to Login
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -192,63 +281,44 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
     paddingBottom: 24,
   },
+  formContainer: {},
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 24,
   },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 32,
   },
-  inputContainer: {
-    marginBottom: 24,
-  },
+  inputContainer: {},
   inputLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
     gap: 10,
   },
   inputError: {
@@ -257,13 +327,10 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
-    paddingVertical: 14,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 6,
   },
@@ -272,12 +339,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    marginTop: 24,
     paddingVertical: 12,
   },
   backToLoginText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
 })

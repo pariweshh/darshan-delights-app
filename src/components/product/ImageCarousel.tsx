@@ -1,87 +1,95 @@
-import AppColors from "@/src/constants/Colors"
-import { Ionicons } from "@expo/vector-icons"
-import { useRef, useState } from "react"
+// src/components/product/ImageCarousel.tsx
+
+import React, { useRef, useState } from "react"
 import {
-  Dimensions,
   FlatList,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   StyleSheet,
+  TouchableOpacity,
   View,
-  ViewToken,
 } from "react-native"
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window")
+import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface ImageCarouselProps {
-  images: { url: string; alternativeText?: string }[]
   coverImage?: { url: string }
+  images: { url: string }[]
 }
 
 const ImageCarousel: React.FC<ImageCarouselProps> = ({
-  images,
   coverImage,
+  images,
 }) => {
-  const [activeIndex, setActiveIndex] = useState(0)
+  const { width, isTablet, isLandscape } = useResponsive()
   const flatListRef = useRef<FlatList>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
 
-  // Combine cover image with additional images
+  // Calculate carousel width based on layout
+  const carouselWidth = isTablet && isLandscape ? width * 0.45 : width
+  const imageHeight = isTablet ? (isLandscape ? 400 : 350) : 300
+
+  // Combine cover image with other images
   const allImages = coverImage
-    ? [
-        coverImage,
-        ...(images || []).filter((img) => img.url !== coverImage.url),
-      ]
-    : images || []
+    ? [coverImage, ...images.filter((img) => img.url !== coverImage.url)]
+    : images
 
-  // If no images, show placeholder
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x
+    const index = Math.round(offsetX / carouselWidth)
+    setActiveIndex(index)
+  }
+
+  const handleThumbnailPress = (index: number) => {
+    flatListRef.current?.scrollToIndex({ index, animated: true })
+    setActiveIndex(index)
+  }
+
   if (allImages.length === 0) {
     return (
-      <View style={styles.container}>
-        <View style={styles.placeholderContainer}>
-          <Ionicons
-            name="image-outline"
-            size={64}
-            color={AppColors.gray[300]}
-          />
-        </View>
+      <View
+        style={[
+          styles.placeholder,
+          { width: carouselWidth, height: imageHeight },
+        ]}
+      >
+        <Image
+          source={require("@/assets/images/empty.png")}
+          style={styles.placeholderImage}
+          resizeMode="contain"
+        />
       </View>
     )
   }
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-        setActiveIndex(viewableItems[0].index)
-      }
-    }
-  ).current
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
-  }).current
-
-  const renderItem = ({ item }: { item: { url: string } }) => (
-    <View style={styles.imageContainer}>
-      <Image
-        source={{ uri: item.url }}
-        style={styles.image}
-        resizeMode="contain"
-      />
-    </View>
-  )
-
   return (
-    <View style={styles.container}>
+    <View style={{ width: carouselWidth }}>
+      {/* Main Image Carousel */}
       <FlatList
         ref={flatListRef}
         data={allImages}
-        renderItem={renderItem}
-        keyExtractor={(item, index) => `${item.url}-${index}`}
+        keyExtractor={(item, index) => `image-${index}`}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        bounces={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.imageContainer,
+              { width: carouselWidth, height: imageHeight },
+            ]}
+          >
+            <Image
+              source={{ uri: item.url }}
+              style={styles.image}
+              resizeMode="contain"
+            />
+          </View>
+        )}
       />
 
       {/* Pagination Dots */}
@@ -92,11 +100,46 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
               key={index}
               style={[
                 styles.dot,
-                index === activeIndex ? styles.activeDot : styles.inactiveDot,
+                {
+                  width: isTablet ? 10 : 8,
+                  height: isTablet ? 10 : 8,
+                  borderRadius: isTablet ? 5 : 4,
+                },
+                activeIndex === index && styles.activeDot,
               ]}
             />
           ))}
         </View>
+      )}
+
+      {/* Thumbnails (for tablets) */}
+      {isTablet && allImages.length > 1 && (
+        <FlatList
+          data={allImages}
+          keyExtractor={(item, index) => `thumb-${index}`}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.thumbnailContainer}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity
+              onPress={() => handleThumbnailPress(index)}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[
+                  styles.thumbnail,
+                  activeIndex === index && styles.activeThumbnail,
+                ]}
+              >
+                <Image
+                  source={{ uri: item.url }}
+                  style={styles.thumbnailImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       )}
     </View>
   )
@@ -105,20 +148,18 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
 export default ImageCarousel
 
 const styles = StyleSheet.create({
-  container: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.85,
-    backgroundColor: AppColors.background.primary,
-  },
-  imageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.85,
+  placeholder: {
+    backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    padding: 20,
   },
-  placeholderContainer: {
-    flex: 1,
+  placeholderImage: {
+    width: "60%",
+    height: "60%",
+    opacity: 0.5,
+  },
+  imageContainer: {
+    backgroundColor: AppColors.gray[50],
     alignItems: "center",
     justifyContent: "center",
   },
@@ -130,22 +171,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    position: "absolute",
-    bottom: 16,
-    left: 0,
-    right: 0,
-    gap: 8,
+    marginTop: 12,
+    gap: 6,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    backgroundColor: AppColors.gray[300],
   },
   activeDot: {
     backgroundColor: AppColors.primary[500],
-    width: 24,
   },
-  inactiveDot: {
-    backgroundColor: AppColors.gray[300],
+  thumbnailContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 8,
+  },
+  thumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: "transparent",
+    backgroundColor: AppColors.gray[50],
+    overflow: "hidden",
+  },
+  activeThumbnail: {
+    borderColor: AppColors.primary[500],
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
   },
 })

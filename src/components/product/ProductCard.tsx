@@ -14,6 +14,7 @@ import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useCartStore } from "@/src/store/cartStore"
 import { useFavoritesStore } from "@/src/store/favoritesStore"
@@ -33,6 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   saleCard = false,
 }) => {
   const router = useRouter()
+  const { config, isTablet } = useResponsive()
   const { addItem, error, getItemQuantityInCart } = useCartStore()
   const { user, token } = useAuthStore()
   const { toggleFavorite, isFavorite } = useFavoritesStore()
@@ -146,17 +148,34 @@ const ProductCard: React.FC<ProductCardProps> = ({
     ? Math.round(((product.rrp - product.sale_price) / product.rrp) * 100)
     : 0
 
+  // Responsive sizes
+  const imageHeight = config.imageHeight
+  const favButtonSize = isTablet ? 36 : 32
+  const favIconSize = isTablet ? 18 : 16
+
   return (
     <TouchableOpacity
       onPress={handleProductRoute}
-      style={[styles.card, compact && styles.compactCard, customStyle]}
+      style={[
+        styles.card,
+        compact && styles.compactCard,
+        { borderRadius: config.cardBorderRadius },
+        customStyle,
+      ]}
       activeOpacity={0.8}
     >
       {/* Sale Badge */}
       {saleCard && (
         <View style={styles.saleBadgeContainer}>
           <View style={styles.saleBadge}>
-            <Text style={styles.saleBadgeText}>SALE</Text>
+            <Text
+              style={[
+                styles.saleBadgeText,
+                { fontSize: config.smallFontSize - 2 },
+              ]}
+            >
+              SALE
+            </Text>
           </View>
         </View>
       )}
@@ -164,12 +183,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Discount Badge */}
       {discountPercentage > 0 && !saleCard && (
         <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>-{discountPercentage}%</Text>
+          <Text
+            style={[
+              styles.discountText,
+              { fontSize: config.smallFontSize - 2 },
+            ]}
+          >
+            -{discountPercentage}%
+          </Text>
         </View>
       )}
 
       {/* Image Container */}
-      <View style={styles.imageContainer}>
+      <View style={[styles.imageContainer, { height: imageHeight }]}>
         <Image
           source={{ uri: product?.cover?.url }}
           style={styles.image}
@@ -179,12 +205,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Favorite Button */}
         <TouchableOpacity
           onPress={() => handleToggleFavorite(product?.id)}
-          style={[styles.favoriteButton, isFav && styles.activeFavoriteButton]}
+          style={[
+            styles.favoriteButton,
+            isFav && styles.activeFavoriteButton,
+            {
+              width: favButtonSize,
+              height: favButtonSize,
+              borderRadius: favButtonSize / 2,
+            },
+          ]}
           activeOpacity={0.7}
         >
           <FontAwesome
             name={isFav ? "heart" : "heart-o"}
-            size={16}
+            size={favIconSize}
             color={isFav ? "white" : AppColors.gray[600]}
           />
         </TouchableOpacity>
@@ -192,22 +226,36 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {/* Out of Stock Overlay */}
         {isOutOfStock && (
           <View style={styles.outOfStockOverlay}>
-            <Text style={styles.outOfStockText}>Out of Stock</Text>
+            <Text
+              style={[
+                styles.outOfStockText,
+                { fontSize: config.smallFontSize },
+              ]}
+            >
+              Out of Stock
+            </Text>
           </View>
         )}
       </View>
 
       {/* Content */}
-      <View style={styles.content}>
+      <View style={[styles.content, { padding: isTablet ? 14 : 12 }]}>
         {/* Category */}
         {product?.categories?.[0]?.name && (
-          <Text style={styles.category} numberOfLines={1}>
+          <Text
+            style={[styles.category, { fontSize: config.smallFontSize - 1 }]}
+            numberOfLines={1}
+          >
             {product.categories[0].name}
           </Text>
         )}
 
         {/* Title */}
-        <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+        <Text
+          style={[styles.title, { fontSize: config.bodyFontSize }]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
           {product?.name}
         </Text>
 
@@ -215,15 +263,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <View style={styles.priceContainer}>
           {product?.sale_price ? (
             <>
-              <Text style={styles.salePrice}>
+              <Text
+                style={[
+                  styles.salePrice,
+                  { fontSize: config.subtitleFontSize + 2 },
+                ]}
+              >
                 ${product.sale_price.toFixed(2)}
               </Text>
-              <Text style={styles.originalPrice}>
+              <Text
+                style={[
+                  styles.originalPrice,
+                  { fontSize: config.smallFontSize },
+                ]}
+              >
                 ${product.rrp.toFixed(2)}
               </Text>
             </>
           ) : (
-            <Text style={styles.price}>${product?.rrp?.toFixed(2)}</Text>
+            <Text
+              style={[styles.price, { fontSize: config.subtitleFontSize + 2 }]}
+            >
+              ${product?.rrp?.toFixed(2)}
+            </Text>
           )}
         </View>
 
@@ -239,7 +301,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             containerStyles="mt-2"
             icon={
               canAddToCart ? (
-                <Ionicons name="cart-outline" size={16} color="white" />
+                <Ionicons
+                  name="cart-outline"
+                  size={config.iconSizeSmall}
+                  color="white"
+                />
               ) : undefined
             }
           />
@@ -254,14 +320,12 @@ export default ProductCard
 const styles = StyleSheet.create({
   card: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3,
     overflow: "hidden",
-    width: "48%",
     marginBottom: 16,
     borderWidth: 1,
     borderColor: AppColors.gray[100],
@@ -284,7 +348,6 @@ const styles = StyleSheet.create({
   },
   saleBadgeText: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 10,
     color: "white",
   },
   discountBadge: {
@@ -299,12 +362,10 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     color: "white",
   },
   imageContainer: {
     position: "relative",
-    height: 140,
     backgroundColor: AppColors.gray[50],
     padding: 8,
   },
@@ -317,9 +378,6 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
     backgroundColor: "white",
-    borderRadius: 20,
-    width: 32,
-    height: 32,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
@@ -339,26 +397,21 @@ const styles = StyleSheet.create({
   },
   outOfStockText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 12,
     color: "white",
     backgroundColor: AppColors.error,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 4,
   },
-  content: {
-    padding: 12,
-  },
+  content: {},
   category: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
     textTransform: "capitalize",
     marginBottom: 2,
   },
   title: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
     textTransform: "capitalize",
     marginBottom: 6,
@@ -371,17 +424,14 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.primary[600],
   },
   salePrice: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 16,
     color: AppColors.error,
   },
   originalPrice: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
     textDecorationLine: "line-through",
   },

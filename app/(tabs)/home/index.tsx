@@ -15,7 +15,6 @@ import { useProductsStore } from "@/src/store/productStore"
 
 // Components
 import { getProducts } from "@/src/api/products"
-import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import BrandPromoBanner from "@/src/components/home/banners/BrandPromoBanner"
@@ -26,7 +25,14 @@ import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
 import RecentlyViewed from "@/src/components/home/RecentlyViewed"
 import SectionHeader from "@/src/components/home/SectionHeader"
 import SignInPrompt from "@/src/components/home/SignInPrompt"
+import {
+  CategoryChipSkeleton,
+  ProductGridSkeleton,
+  ProductHorizontalListSkeleton,
+  SkeletonBase,
+} from "@/src/components/skeletons"
 import HomeHeader from "@/src/components/ui/HomeHeader"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
 
 // Color palette for category spotlight banners
@@ -49,6 +55,7 @@ interface SpotlightCategory {
 
 export default function HomeScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const [refreshing, setRefreshing] = useState(false)
   const { user, token } = useAuthStore()
 
@@ -190,6 +197,10 @@ export default function HomeScreen() {
     }
   }
 
+  // Calculate items to show based on device
+  const horizontalProductCount = isTablet ? (isLandscape ? 10 : 8) : 8
+  const gridProductCount = isTablet ? (isLandscape ? 6 : 6) : 4
+
   // Check if initial loading
   const isInitialLoading =
     categoriesLoading &&
@@ -200,7 +211,81 @@ export default function HomeScreen() {
     !newProducts.length
 
   if (isInitialLoading) {
-    return <Loader fullScreen text="Loading..." />
+    return (
+      <Wrapper style={styles.wrapper}>
+        <HomeHeader />
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: config.horizontalPadding,
+              paddingTop: config.horizontalPadding,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          scrollEnabled={false}
+        >
+          {/* Welcome skeleton */}
+          <View style={{ marginBottom: config.gap, paddingHorizontal: 4 }}>
+            <SkeletonBase width={200} height={config.titleFontSize + 4} />
+          </View>
+
+          {/* Categories Section Skeleton */}
+          <View style={{ marginBottom: config.sectionSpacing }}>
+            <View style={styles.sectionHeaderSkeleton}>
+              <SkeletonBase width={100} height={config.subtitleFontSize + 2} />
+              <SkeletonBase width={60} height={config.bodyFontSize} />
+            </View>
+            <CategoryChipSkeleton count={6} />
+          </View>
+
+          {/* Banner Skeleton */}
+          <SkeletonBase
+            width="100%"
+            height={isTablet ? 160 : 140}
+            borderRadius={config.cardBorderRadius + 4}
+            style={{ marginBottom: config.sectionSpacing }}
+          />
+
+          {/* New Arrivals Skeleton */}
+          <View style={{ marginBottom: config.sectionSpacing }}>
+            <View style={styles.sectionHeaderSkeleton}>
+              <SkeletonBase width={140} height={config.subtitleFontSize + 2} />
+              <SkeletonBase width={60} height={config.bodyFontSize} />
+            </View>
+            <ProductHorizontalListSkeleton />
+          </View>
+
+          {/* Brand Banner Skeleton */}
+          <SkeletonBase
+            width="100%"
+            height={isTablet ? 180 : 160}
+            borderRadius={config.cardBorderRadius + 4}
+            style={{ marginBottom: config.sectionSpacing }}
+          />
+
+          {/* Popular Products Skeleton */}
+          <View style={{ marginBottom: config.sectionSpacing }}>
+            <View style={styles.sectionHeaderSkeleton}>
+              <SkeletonBase width={160} height={config.subtitleFontSize + 2} />
+              <SkeletonBase width={60} height={config.bodyFontSize} />
+            </View>
+            <ProductHorizontalListSkeleton />
+          </View>
+
+          {/* Weekly Sale Skeleton */}
+          <View style={{ marginBottom: config.sectionSpacing }}>
+            <View style={styles.sectionHeaderSkeleton}>
+              <SkeletonBase width={140} height={config.subtitleFontSize + 2} />
+              <SkeletonBase width={60} height={config.bodyFontSize} />
+            </View>
+            <ProductGridSkeleton count={isTablet ? 6 : 4} />
+          </View>
+        </ScrollView>
+      </Wrapper>
+    )
   }
 
   // Error state
@@ -211,12 +296,19 @@ export default function HomeScreen() {
         <View style={styles.errorContainer}>
           <Ionicons
             name="cloud-offline-outline"
-            size={48}
+            size={config.iconSizeLarge * 2}
             color={AppColors.gray[400]}
           />
-          <Text style={styles.errorTitle}>Oops! Something went wrong</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.retryText} onPress={onRefresh}>
+          <Text style={[styles.errorTitle, { fontSize: config.titleFontSize }]}>
+            Oops! Something went wrong
+          </Text>
+          <Text style={[styles.errorTitle, { fontSize: config.titleFontSize }]}>
+            Oops! Something went wrong
+          </Text>
+          <Text
+            style={[styles.retryText, { fontSize: config.bodyFontSize }]}
+            onPress={onRefresh}
+          >
             Tap to retry
           </Text>
         </View>
@@ -230,7 +322,13 @@ export default function HomeScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: config.horizontalPadding,
+            paddingTop: config.horizontalPadding,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -243,22 +341,24 @@ export default function HomeScreen() {
       >
         {/* Sign In Prompt (for guests) */}
         {(!token || !user?.id) && (
-          <View style={styles.signInSection}>
+          <View style={{ marginBottom: config.gap }}>
             <SignInPrompt />
           </View>
         )}
 
         {/* Welcome Message (for logged in users) */}
         {token && user && (
-          <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeText}>
+          <View style={{ marginBottom: config.gap, paddingHorizontal: 4 }}>
+            <Text
+              style={[styles.welcomeText, { fontSize: config.titleFontSize }]}
+            >
               Welcome, {user.fName || user.username}! 👋
             </Text>
           </View>
         )}
 
         {/* Categories Section */}
-        <View style={styles.section}>
+        <View style={{ marginBottom: config.sectionSpacing }}>
           <SectionHeader
             title="Categories"
             onViewAll={navigateToAllProducts}
@@ -274,13 +374,13 @@ export default function HomeScreen() {
         <AppExclusiveBanner />
 
         {/* New Arrivals Section */}
-        <View style={styles.section}>
+        <View style={{ marginBottom: config.sectionSpacing }}>
           <SectionHeader
             title="✨ Newest Arrivals"
             onViewAll={navigateToAllProducts}
           />
           <ProductHorizontalList
-            products={newProducts.slice(0, 8)}
+            products={newProducts.slice(0, horizontalProductCount)}
             loading={newArrivalsLoading}
           />
         </View>
@@ -296,13 +396,13 @@ export default function HomeScreen() {
         />
 
         {/* Popular Products Section */}
-        <View style={styles.section}>
+        <View style={{ marginBottom: config.sectionSpacing }}>
           <SectionHeader
             title="⚡️ Popular Products"
             onViewAll={navigateToPopularProducts}
           />
           <ProductHorizontalList
-            products={popularProducts.slice(0, 6)}
+            products={popularProducts.slice(0, horizontalProductCount)}
             loading={popularLoading}
           />
         </View>
@@ -321,13 +421,13 @@ export default function HomeScreen() {
 
         {/* Weekly Sale Section */}
         {onSaleProducts.length > 0 && (
-          <View style={styles.section}>
+          <View style={{ marginBottom: config.sectionSpacing }}>
             <SectionHeader
               title="🔥 Weekly Specials"
               onViewAll={navigateToWeeklySale}
             />
             <ProductGrid
-              products={onSaleProducts.slice(0, 4)}
+              products={onSaleProducts.slice(0, gridProductCount)}
               loading={saleLoading}
               saleCard={true}
             />
@@ -349,7 +449,7 @@ export default function HomeScreen() {
         <RecentlyViewed />
 
         {/* Bottom Spacing */}
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: config.sectionSpacing }} />
       </ScrollView>
     </Wrapper>
   )
@@ -362,27 +462,10 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  signInSection: {
-    marginBottom: 16,
-  },
-  welcomeSection: {
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
+  scrollContent: {},
   welcomeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  bottomSpacer: {
-    height: 20,
   },
   errorContainer: {
     flex: 1,
@@ -392,22 +475,25 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
     marginTop: 16,
     marginBottom: 8,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     textAlign: "center",
     marginBottom: 16,
   },
   retryText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[500],
     textDecorationLine: "underline",
+  },
+  sectionHeaderSkeleton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
   },
 })

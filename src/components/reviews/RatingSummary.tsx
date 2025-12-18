@@ -1,7 +1,7 @@
-import React from "react"
 import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { ReviewStats } from "@/src/types/review"
 import Rating from "./Rating"
 
@@ -10,6 +10,7 @@ interface RatingSummaryProps {
 }
 
 const RatingSummary: React.FC<RatingSummaryProps> = ({ stats }) => {
+  const { config, isTablet } = useResponsive()
   const { averageRating, totalReviews, ratingDistribution } = stats
 
   const getPercentage = (count: number): number => {
@@ -18,22 +19,50 @@ const RatingSummary: React.FC<RatingSummaryProps> = ({ stats }) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 20 : 16,
+          gap: isTablet ? 24 : 20,
+          borderRadius: config.cardBorderRadius,
+        },
+      ]}
+    >
       {/* Average Rating */}
-      <View style={styles.averageSection}>
-        <Text style={styles.averageRating}>{averageRating.toFixed(1)}</Text>
-        <Rating rating={averageRating} size="medium" />
-        <Text style={styles.totalReviews}>
+      <View
+        style={[styles.averageSection, { paddingRight: isTablet ? 24 : 20 }]}
+      >
+        <Text style={[styles.averageRating, { fontSize: isTablet ? 48 : 40 }]}>
+          {averageRating.toFixed(1)}
+        </Text>
+        <Rating rating={averageRating} size={isTablet ? "large" : "medium"} />
+        <Text style={[styles.totalReviews, { fontSize: config.smallFontSize }]}>
           Based on {totalReviews} {totalReviews === 1 ? "review" : "reviews"}
         </Text>
       </View>
 
       {/* Rating Distribution */}
-      <View style={styles.distributionSection}>
+      <View style={[styles.distributionSection, { gap: isTablet ? 8 : 6 }]}>
         {[5, 4, 3, 2, 1].map((star) => (
-          <View key={star} style={styles.distributionRow}>
-            <Text style={styles.starLabel}>{star}</Text>
-            <View style={styles.barContainer}>
+          <View
+            key={star}
+            style={[styles.distributionRow, { gap: isTablet ? 10 : 8 }]}
+          >
+            <Text
+              style={[
+                styles.starLabel,
+                { fontSize: config.smallFontSize, width: isTablet ? 16 : 14 },
+              ]}
+            >
+              {star}
+            </Text>
+            <View
+              style={[
+                styles.barContainer,
+                { height: isTablet ? 10 : 8, borderRadius: isTablet ? 5 : 4 },
+              ]}
+            >
               <View
                 style={[
                   styles.barFill,
@@ -43,11 +72,20 @@ const RatingSummary: React.FC<RatingSummaryProps> = ({ stats }) => {
                         star as keyof typeof ratingDistribution
                       ]
                     )}%`,
+                    borderRadius: isTablet ? 5 : 4,
                   },
                 ]}
               />
             </View>
-            <Text style={styles.countLabel}>
+            <Text
+              style={[
+                styles.countLabel,
+                {
+                  fontSize: config.smallFontSize - 1,
+                  width: isTablet ? 28 : 24,
+                },
+              ]}
+            >
               {ratingDistribution[star as keyof typeof ratingDistribution]}
             </Text>
           </View>
@@ -63,67 +101,50 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
-    padding: 16,
-    gap: 20,
     marginBottom: 16,
   },
-  // Average Section
   averageSection: {
     alignItems: "center",
     justifyContent: "center",
-    paddingRight: 20,
     borderRightWidth: 1,
     borderRightColor: AppColors.gray[200],
   },
   averageRating: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 40,
     color: AppColors.text.primary,
-    lineHeight: 48,
+    lineHeight: 56,
   },
   totalReviews: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
     marginTop: 4,
     textAlign: "center",
   },
-  // Distribution Section
   distributionSection: {
     flex: 1,
     justifyContent: "center",
-    gap: 6,
   },
   distributionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   starLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.text.secondary,
-    width: 14,
     textAlign: "center",
   },
   barContainer: {
     flex: 1,
-    height: 8,
     backgroundColor: AppColors.gray[200],
-    borderRadius: 4,
     overflow: "hidden",
   },
   barFill: {
     height: "100%",
     backgroundColor: AppColors.star,
-    borderRadius: 4,
   },
   countLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
-    width: 24,
     textAlign: "right",
   },
 })

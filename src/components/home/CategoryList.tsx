@@ -1,4 +1,5 @@
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
 import {
@@ -51,6 +52,8 @@ const CategoryList: React.FC<CategoryListProps> = ({
   loading,
   onCategoryPress,
 }) => {
+  const { config, isTablet } = useResponsive()
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -63,47 +66,81 @@ const CategoryList: React.FC<CategoryListProps> = ({
     return null
   }
 
+  const iconContainerSize = config.categoryIconSize
+  const imageSize = isTablet ? 48 : 40
+  const iconSize = isTablet ? 24 : 20
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { gap: config.gapSmall }]}
     >
       {/* All Products Button */}
       <TouchableOpacity
-        style={[styles.categoryButton, styles.allButton]}
+        style={[styles.categoryButton, { width: config.categoryItemWidth }]}
         onPress={() => onCategoryPress(null)}
         activeOpacity={0.7}
       >
-        <View style={[styles.iconContainer, styles.allIconContainer]}>
-          <Ionicons name="grid-outline" size={20} color="white" />
+        <View
+          style={[
+            styles.iconContainer,
+            styles.allIconContainer,
+            {
+              width: iconContainerSize,
+              height: iconContainerSize,
+              borderRadius: iconContainerSize / 3.5,
+            },
+          ]}
+        >
+          <Ionicons name="grid-outline" size={iconSize} color="white" />
         </View>
-        <Text style={[styles.categoryText, styles.allText]}>All</Text>
+        <Text
+          style={[
+            styles.categoryText,
+            styles.allText,
+            { fontSize: config.smallFontSize },
+          ]}
+        >
+          All
+        </Text>
       </TouchableOpacity>
 
       {/* Category Buttons */}
       {categories.map((category) => (
         <TouchableOpacity
           key={category.id}
-          style={styles.categoryButton}
+          style={[styles.categoryButton, { width: config.categoryItemWidth }]}
           onPress={() => onCategoryPress(category.name)}
           activeOpacity={0.7}
         >
-          <View style={styles.iconContainer}>
+          <View
+            style={[
+              styles.iconContainer,
+              {
+                width: iconContainerSize,
+                height: iconContainerSize,
+                borderRadius: iconContainerSize / 3.5,
+              },
+            ]}
+          >
             {category?.cover?.url ? (
               <Image
                 source={{ uri: category?.cover?.url }}
-                style={styles.image}
+                style={{ width: imageSize, height: imageSize }}
               />
             ) : (
               <Ionicons
                 name={getCategoryIcon(category.name)}
-                size={20}
+                size={iconSize}
                 color={AppColors.primary[600]}
               />
             )}
           </View>
-          <Text style={styles.categoryText} numberOfLines={1}>
+          <Text
+            style={[styles.categoryText, { fontSize: config.smallFontSize }]}
+            numberOfLines={1}
+          >
             {category.name}
           </Text>
         </TouchableOpacity>
@@ -117,7 +154,6 @@ export default CategoryList
 const styles = StyleSheet.create({
   scrollContent: {
     paddingRight: 16,
-    gap: 10,
   },
   loadingContainer: {
     height: 80,
@@ -126,17 +162,8 @@ const styles = StyleSheet.create({
   },
   categoryButton: {
     alignItems: "center",
-    width: 75,
-  },
-  allButton: {},
-  image: {
-    width: 40,
-    height: 40,
   },
   iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
@@ -150,7 +177,6 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.text.primary,
     textAlign: "center",
     textTransform: "capitalize",

@@ -1,5 +1,5 @@
 import MaskedView from "@react-native-masked-view/masked-view"
-import { Platform, StyleSheet, View } from "react-native"
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native"
 import Animated, {
   SharedValue,
   useAnimatedProps,
@@ -11,9 +11,15 @@ import Animated, {
 import { Vector } from "react-native-redash"
 import Svg, { Path } from "react-native-svg"
 
-import { HEIGHT, MIN_LEDGE, Side, WIDTH } from "@/src/config/constants"
+import { MIN_LEDGE, Side } from "@/src/config/constants"
+import { LandingSlide } from "@/src/types"
 
 const AnimatedPath = Animated.createAnimatedComponent(Path)
+
+interface SlideChildProps {
+  slide: LandingSlide
+  [key: string]: any
+}
 
 interface WaveProps {
   side: Side
@@ -23,6 +29,10 @@ interface WaveProps {
 }
 
 const Wave = ({ side, children, position, isTransitioning }: WaveProps) => {
+  const { width: WIDTH, height: HEIGHT } = useWindowDimensions()
+
+  const slideColor = (children.props as SlideChildProps)?.slide?.color || "#fff"
+
   const R = useDerivedValue(() => {
     const value = Math.min(position.x.value - MIN_LEDGE, WIDTH / 2.5)
     return value > 0 ? value : MIN_LEDGE
@@ -82,14 +92,7 @@ const Wave = ({ side, children, position, isTransitioning }: WaveProps) => {
         },
       ]}
     >
-      <AnimatedPath
-        fill={
-          Platform.OS === "android"
-            ? children.props.slide.color
-            : children.props.slide.color
-        }
-        animatedProps={animatedProps}
-      />
+      <AnimatedPath fill={slideColor} animatedProps={animatedProps} />
     </Svg>
   )
 

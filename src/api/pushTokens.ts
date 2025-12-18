@@ -15,7 +15,11 @@ export async function registerPushToken(
     preferences?: Partial<NotificationPreferences>
   },
   token: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<{
+  success: boolean
+  message: string
+  preferences: NotificationPreferences
+}> {
   const response = await api.post("/push-tokens/register", payload, {
     headers: { Authorization: `Bearer ${token}` },
   })

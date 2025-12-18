@@ -1,3 +1,5 @@
+// src/components/home/banners/CategorySpotlightBanner.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import {
@@ -10,6 +12,7 @@ import {
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 interface CategorySpotlightBannerProps {
   categoryName: string
@@ -21,9 +24,6 @@ interface CategorySpotlightBannerProps {
   onPress?: () => void
 }
 
-/**
- * Small category spotlight banner
- */
 export default function CategorySpotlightBanner({
   categoryName,
   itemCount,
@@ -34,6 +34,7 @@ export default function CategorySpotlightBanner({
   onPress,
 }: CategorySpotlightBannerProps) {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
 
   const handlePress = () => {
     if (onPress) {
@@ -46,26 +47,81 @@ export default function CategorySpotlightBanner({
     }
   }
 
+  // Responsive sizing
+  const verticalPadding = isTablet ? 20 : 16
+  const horizontalPadding = isTablet ? 24 : 18
+  const labelSize = isTablet ? 12 : 10
+  const categoryNameSize = isTablet ? 24 : 20
+  const itemCountSize = isTablet ? 14 : 12
+  const imageWidth = isTablet ? 100 : 80
+  const imageHeight = isTablet ? 85 : 70
+  const arrowSize = isTablet ? 42 : 36
+  const arrowIconSize = isTablet ? 22 : 18
+
+  // For landscape on tablets, limit the banner width
+  const maxWidth = isTablet && isLandscape ? width * 0.6 : undefined
+
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor }]}
+      style={[
+        styles.container,
+        {
+          backgroundColor,
+          marginBottom: config.sectionSpacing,
+          borderRadius: config.cardBorderRadius + 4,
+          maxWidth,
+          alignSelf: maxWidth ? "center" : undefined,
+          width: maxWidth ? "100%" : undefined,
+        },
+      ]}
       onPress={handlePress}
       activeOpacity={0.9}
     >
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          {
+            paddingVertical: verticalPadding,
+            paddingHorizontal: horizontalPadding,
+          },
+        ]}
+      >
         <View style={styles.textSection}>
-          <Text style={[styles.label, { color: textColor }]}>EXPLORE</Text>
-          <Text style={[styles.categoryName, { color: textColor }]}>
+          <Text
+            style={[styles.label, { color: textColor, fontSize: labelSize }]}
+          >
+            EXPLORE
+          </Text>
+          <Text
+            style={[
+              styles.categoryName,
+              { color: textColor, fontSize: categoryNameSize },
+            ]}
+          >
             {categoryName}
           </Text>
           {itemCount && (
-            <Text style={[styles.itemCount, { color: textColor }]}>
+            <Text
+              style={[
+                styles.itemCount,
+                { color: textColor, fontSize: itemCountSize },
+              ]}
+            >
               {itemCount}+ products
             </Text>
           )}
         </View>
 
-        <View style={styles.imageSection}>
+        <View
+          style={[
+            styles.imageSection,
+            {
+              width: imageWidth,
+              height: imageHeight,
+              marginRight: isTablet ? 16 : 10,
+            },
+          ]}
+        >
           {(imageUrl || localImage) && (
             <Image
               source={localImage || { uri: imageUrl }}
@@ -75,8 +131,18 @@ export default function CategorySpotlightBanner({
           )}
         </View>
 
-        <View style={[styles.arrowContainer, { backgroundColor: textColor }]}>
-          <Ionicons name="arrow-forward" size={18} color="#fff" />
+        <View
+          style={[
+            styles.arrowContainer,
+            {
+              backgroundColor: textColor,
+              width: arrowSize,
+              height: arrowSize,
+              borderRadius: arrowSize / 2,
+            },
+          ]}
+        >
+          <Ionicons name="arrow-forward" size={arrowIconSize} color="#fff" />
         </View>
       </View>
     </TouchableOpacity>
@@ -87,50 +153,36 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 2,
     marginTop: -8,
-    marginBottom: 24,
-    borderRadius: 16,
     overflow: "hidden",
   },
   content: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
   },
   textSection: {
     flex: 1,
   },
   label: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     letterSpacing: 1,
     marginBottom: 2,
     opacity: 0.7,
   },
   categoryName: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 20,
     marginBottom: 2,
     textTransform: "capitalize",
   },
   itemCount: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     opacity: 0.8,
   },
-  imageSection: {
-    width: 80,
-    height: 70,
-    marginRight: 10,
-  },
+  imageSection: {},
   image: {
     width: "100%",
     height: "100%",
   },
   arrowContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
   },

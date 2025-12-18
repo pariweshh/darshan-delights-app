@@ -1,3 +1,5 @@
+// app/(auth)/verify-reset-otp.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import * as Linking from "expo-linking"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -17,22 +19,27 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
 import { forgotPassword, verifyResetOTP } from "@/src/api/auth"
-
 import OTPInput from "@/src/components/auth/otpInput"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 export default function VerifyResetOTPScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { email } = useLocalSearchParams<{ email: string }>()
 
   const [otp, setOtp] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
-  const [resendCooldown, setResendCooldown] = useState(60) // Start with cooldown
+  const [resendCooldown, setResendCooldown] = useState(60)
   const [error, setError] = useState(false)
 
-  // Resend cooldown timer
+  const formMaxWidth = isTablet ? (isLandscape ? 450 : 400) : undefined
+  const iconCircleSize = isTablet ? 112 : 96
+  const iconSize = isTablet ? 56 : 48
+  const backButtonSize = isTablet ? 48 : 40
+
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(
@@ -43,7 +50,6 @@ export default function VerifyResetOTPScreen() {
     }
   }, [resendCooldown])
 
-  // Verify OTP
   const handleVerify = async (code?: string) => {
     const otpCode = code || otp
 
@@ -70,7 +76,6 @@ export default function VerifyResetOTPScreen() {
           text2: "Now set your new password",
         })
 
-        // Navigate to reset password screen with token
         router.push({
           pathname: "/(auth)/reset-password",
           params: { token: response.resetToken },
@@ -85,14 +90,12 @@ export default function VerifyResetOTPScreen() {
         text1: "Verification Failed",
         text2: message,
       })
-
       setOtp("")
     } finally {
       setIsVerifying(false)
     }
   }
 
-  // Resend OTP
   const handleResend = async () => {
     if (resendCooldown > 0) return
 
@@ -121,7 +124,6 @@ export default function VerifyResetOTPScreen() {
     }
   }
 
-  // Open email app
   const handleOpenEmail = () => {
     if (Platform.OS === "ios") {
       Linking.openURL("message://")
@@ -130,7 +132,6 @@ export default function VerifyResetOTPScreen() {
     }
   }
 
-  // Mask email
   const maskEmail = (email: string): string => {
     const [localPart, domain] = email.split("@")
     if (localPart.length <= 2) return email
@@ -146,92 +147,182 @@ export default function VerifyResetOTPScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: config.horizontalPadding + 8,
+              paddingTop: isTablet ? 24 : 16,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Back Button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          <View
+            style={[
+              styles.formContainer,
+              {
+                maxWidth: formMaxWidth,
+                alignSelf: formMaxWidth ? "center" : undefined,
+                width: formMaxWidth ? "100%" : undefined,
+              },
+            ]}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color={AppColors.text.primary}
-            />
-          </TouchableOpacity>
-
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={[
+                styles.backButton,
+                {
+                  width: backButtonSize,
+                  height: backButtonSize,
+                  borderRadius: backButtonSize / 2,
+                  marginBottom: isTablet ? 32 : 24,
+                },
+              ]}
+              onPress={() => router.back()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <Ionicons
-                name="shield-checkmark-outline"
-                size={48}
-                color={AppColors.primary[600]}
+                name="arrow-back"
+                size={config.iconSizeLarge}
+                color={AppColors.text.primary}
+              />
+            </TouchableOpacity>
+
+            {/* Icon */}
+            <View
+              style={[
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: iconCircleSize,
+                    height: iconCircleSize,
+                    borderRadius: iconCircleSize / 2,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={iconSize}
+                  color={AppColors.primary[600]}
+                />
+              </View>
+            </View>
+
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: isTablet ? 32 : 28 }]}>
+              Enter Reset Code
+            </Text>
+            <Text style={[styles.subtitle, { fontSize: config.bodyFontSize }]}>
+              We've sent a 6-digit code to
+            </Text>
+            <Text
+              style={[
+                styles.email,
+                {
+                  fontSize: config.bodyFontSize,
+                  marginBottom: isTablet ? 40 : 32,
+                },
+              ]}
+            >
+              {maskEmail(email)}
+            </Text>
+
+            {/* OTP Input */}
+            <View
+              style={[styles.otpSection, { marginBottom: isTablet ? 40 : 32 }]}
+            >
+              <OTPInput
+                value={otp}
+                onChange={setOtp}
+                onComplete={handleVerify}
+                disabled={isVerifying}
+                error={error}
               />
             </View>
-          </View>
 
-          {/* Title */}
-          <Text style={styles.title}>Enter Reset Code</Text>
-          <Text style={styles.subtitle}>We've sent a 6-digit code to</Text>
-          <Text style={styles.email}>{maskEmail(email)}</Text>
-
-          {/* OTP Input */}
-          <View style={styles.otpSection}>
-            <OTPInput
-              value={otp}
-              onChange={setOtp}
-              onComplete={handleVerify}
-              disabled={isVerifying}
-              error={error}
+            {/* Verify Button */}
+            <Button
+              title={isVerifying ? "Verifying..." : "Verify Code"}
+              onPress={() => handleVerify()}
+              disabled={isVerifying || otp.length !== 6}
+              loading={isVerifying}
             />
-          </View>
 
-          {/* Verify Button */}
-          <Button
-            title={isVerifying ? "Verifying..." : "Verify Code"}
-            onPress={() => handleVerify()}
-            disabled={isVerifying || otp.length !== 6}
-            loading={isVerifying}
-            containerStyles="w-full"
-          />
-
-          {/* Resend */}
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Didn't receive the code? </Text>
-            {resendCooldown > 0 ? (
-              <Text style={styles.cooldownText}>
-                Resend in {resendCooldown}s
+            {/* Resend */}
+            <View
+              style={[
+                styles.resendContainer,
+                { marginTop: isTablet ? 28 : 24 },
+              ]}
+            >
+              <Text
+                style={[styles.resendText, { fontSize: config.bodyFontSize }]}
+              >
+                Didn't receive the code?{" "}
               </Text>
-            ) : (
-              <TouchableOpacity onPress={handleResend} disabled={isResending}>
-                {isResending ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={AppColors.primary[600]}
-                  />
-                ) : (
-                  <Text style={styles.resendLink}>Resend Code</Text>
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
+              {resendCooldown > 0 ? (
+                <Text
+                  style={[
+                    styles.cooldownText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  Resend in {resendCooldown}s
+                </Text>
+              ) : (
+                <TouchableOpacity onPress={handleResend} disabled={isResending}>
+                  {isResending ? (
+                    <ActivityIndicator
+                      size="small"
+                      color={AppColors.primary[600]}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.resendLink,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
+                      Resend Code
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
 
-          {/* Open Email App */}
-          <TouchableOpacity
-            style={styles.openEmailButton}
-            onPress={handleOpenEmail}
-          >
-            <Ionicons
-              name="open-outline"
-              size={18}
-              color={AppColors.primary[600]}
-            />
-            <Text style={styles.openEmailText}>Open Email App</Text>
-          </TouchableOpacity>
+            {/* Open Email App */}
+            <TouchableOpacity
+              style={[
+                styles.openEmailButton,
+                {
+                  marginTop: isTablet ? 28 : 24,
+                  paddingVertical: isTablet ? 16 : 14,
+                  paddingHorizontal: isTablet ? 28 : 24,
+                  borderRadius: config.cardBorderRadius,
+                },
+              ]}
+              onPress={handleOpenEmail}
+            >
+              <Ionicons
+                name="open-outline"
+                size={config.iconSize}
+                color={AppColors.primary[600]}
+              />
+              <Text
+                style={[
+                  styles.openEmailText,
+                  { fontSize: config.bodyFontSize },
+                ]}
+              >
+                Open Email App
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -248,73 +339,54 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
     paddingBottom: 24,
   },
+  formContainer: {},
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
   },
   iconContainer: {
     alignItems: "center",
-    marginBottom: 24,
   },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
   },
   email: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.primary[600],
     textAlign: "center",
-    marginBottom: 32,
   },
-  otpSection: {
-    marginBottom: 32,
-  },
+  otpSection: {},
   resendContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 24,
   },
   resendText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   resendLink: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   cooldownText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.gray[400],
   },
   openEmailButton: {
@@ -322,16 +394,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginTop: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
     backgroundColor: AppColors.primary[50],
     alignSelf: "center",
   },
   openEmailText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
 })

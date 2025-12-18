@@ -1,3 +1,5 @@
+// app/(auth)/reset-password.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
 import { useState } from "react"
@@ -18,9 +20,11 @@ import Toast from "react-native-toast-message"
 import { resetPassword } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 export default function ResetPasswordScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { token } = useLocalSearchParams<{ token: string }>()
 
   const [password, setPassword] = useState("")
@@ -33,7 +37,10 @@ export default function ResetPasswordScreen() {
     confirmPassword?: string
   }>({})
 
-  // Validate form
+  const formMaxWidth = isTablet ? (isLandscape ? 500 : 450) : undefined
+  const iconCircleSize = isTablet ? 112 : 96
+  const iconSize = isTablet ? 56 : 48
+
   const validateForm = (): boolean => {
     const newErrors: { password?: string; confirmPassword?: string } = {}
 
@@ -53,7 +60,6 @@ export default function ResetPasswordScreen() {
     return Object.keys(newErrors).length === 0
   }
 
-  // Handle submit
   const handleSubmit = async () => {
     if (!validateForm()) return
 
@@ -79,7 +85,6 @@ export default function ResetPasswordScreen() {
         text2: "You can now log in with your new password",
       })
 
-      // Navigate to login
       router.replace("/(auth)/login")
     } catch (err: any) {
       const message =
@@ -94,7 +99,6 @@ export default function ResetPasswordScreen() {
     }
   }
 
-  // Password strength indicator
   const getPasswordStrength = (): {
     level: number
     label: string
@@ -125,227 +129,356 @@ export default function ResetPasswordScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: config.horizontalPadding + 8,
+              paddingTop: isTablet ? 48 : 40,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons
-                name="key-outline"
-                size={48}
-                color={AppColors.primary[600]}
-              />
-            </View>
-          </View>
-
-          {/* Title */}
-          <Text style={styles.title}>Create New Password</Text>
-          <Text style={styles.subtitle}>
-            Your new password must be different from previously used passwords.
-          </Text>
-
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>New Password</Text>
+          <View
+            style={[
+              styles.formContainer,
+              {
+                maxWidth: formMaxWidth,
+                alignSelf: formMaxWidth ? "center" : undefined,
+                width: formMaxWidth ? "100%" : undefined,
+              },
+            ]}
+          >
+            {/* Icon */}
             <View
               style={[
-                styles.inputWrapper,
-                errors.password ? styles.inputError : null,
+                styles.iconContainer,
+                { marginBottom: isTablet ? 32 : 24 },
               ]}
             >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={errors.password ? AppColors.error : AppColors.gray[400]}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter new password"
-                placeholderTextColor={AppColors.gray[400]}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text)
-                  setErrors((prev) => ({ ...prev, password: undefined }))
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              <View
+                style={[
+                  styles.iconCircle,
+                  {
+                    width: iconCircleSize,
+                    height: iconCircleSize,
+                    borderRadius: iconCircleSize / 2,
+                  },
+                ]}
               >
                 <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color={AppColors.gray[400]}
+                  name="key-outline"
+                  size={iconSize}
+                  color={AppColors.primary[600]}
                 />
-              </TouchableOpacity>
+              </View>
             </View>
-            {errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
 
-            {/* Password Strength */}
-            {password.length > 0 && (
-              <View style={styles.strengthContainer}>
-                <View style={styles.strengthBars}>
-                  {[1, 2, 3].map((level) => (
-                    <View
-                      key={level}
-                      style={[
-                        styles.strengthBar,
-                        {
-                          backgroundColor:
-                            passwordStrength.level >= level
-                              ? passwordStrength.color
-                              : AppColors.gray[200],
-                        },
-                      ]}
-                    />
-                  ))}
-                </View>
-                <Text
+            {/* Title */}
+            <Text style={[styles.title, { fontSize: isTablet ? 32 : 28 }]}>
+              Create New Password
+            </Text>
+            <Text
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  lineHeight: config.bodyFontSize * 1.5,
+                  marginBottom: isTablet ? 40 : 32,
+                },
+              ]}
+            >
+              Your new password must be different from previously used
+              passwords.
+            </Text>
+
+            {/* Password Input */}
+            <View
+              style={[
+                styles.inputContainer,
+                { marginBottom: isTablet ? 24 : 20 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                New Password
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.password ? styles.inputError : null,
+                  {
+                    paddingHorizontal: isTablet ? 16 : 14,
+                    borderRadius: config.cardBorderRadius,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={config.iconSize}
+                  color={
+                    errors.password ? AppColors.error : AppColors.gray[400]
+                  }
+                />
+                <TextInput
                   style={[
-                    styles.strengthLabel,
-                    { color: passwordStrength.color },
+                    styles.input,
+                    {
+                      fontSize: config.bodyFontSize,
+                      paddingVertical: isTablet ? 16 : 14,
+                    },
+                  ]}
+                  placeholder="Enter new password"
+                  placeholderTextColor={AppColors.gray[400]}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text)
+                    setErrors((prev) => ({ ...prev, password: undefined }))
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off-outline" : "eye-outline"}
+                    size={config.iconSize}
+                    color={AppColors.gray[400]}
+                  />
+                </TouchableOpacity>
+              </View>
+              {errors.password && (
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.password}
+                </Text>
+              )}
+
+              {/* Password Strength */}
+              {password.length > 0 && (
+                <View
+                  style={[
+                    styles.strengthContainer,
+                    { marginTop: isTablet ? 10 : 8 },
                   ]}
                 >
-                  {passwordStrength.label}
-                </Text>
-              </View>
-            )}
-          </View>
+                  <View
+                    style={[styles.strengthBars, { gap: isTablet ? 6 : 4 }]}
+                  >
+                    {[1, 2, 3].map((level) => (
+                      <View
+                        key={level}
+                        style={[
+                          styles.strengthBar,
+                          {
+                            width: isTablet ? 48 : 40,
+                            height: isTablet ? 5 : 4,
+                            borderRadius: isTablet ? 3 : 2,
+                            backgroundColor:
+                              passwordStrength.level >= level
+                                ? passwordStrength.color
+                                : AppColors.gray[200],
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
+                  <Text
+                    style={[
+                      styles.strengthLabel,
+                      {
+                        color: passwordStrength.color,
+                        fontSize: config.smallFontSize,
+                      },
+                    ]}
+                  >
+                    {passwordStrength.label}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-          {/* Confirm Password Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Confirm Password</Text>
+            {/* Confirm Password Input */}
             <View
               style={[
-                styles.inputWrapper,
-                errors.confirmPassword ? styles.inputError : null,
+                styles.inputContainer,
+                { marginBottom: isTablet ? 24 : 20 },
               ]}
             >
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={
-                  errors.confirmPassword ? AppColors.error : AppColors.gray[400]
-                }
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm new password"
-                placeholderTextColor={AppColors.gray[400]}
-                value={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text)
-                  setErrors((prev) => ({ ...prev, confirmPassword: undefined }))
-                }}
-                secureTextEntry={!showConfirmPassword}
-                autoCapitalize="none"
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                Confirm Password
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  errors.confirmPassword ? styles.inputError : null,
+                  {
+                    paddingHorizontal: isTablet ? 16 : 14,
+                    borderRadius: config.cardBorderRadius,
+                  },
+                ]}
               >
                 <Ionicons
-                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                  size={20}
-                  color={AppColors.gray[400]}
+                  name="lock-closed-outline"
+                  size={config.iconSize}
+                  color={
+                    errors.confirmPassword
+                      ? AppColors.error
+                      : AppColors.gray[400]
+                  }
                 />
-              </TouchableOpacity>
-            </View>
-            {errors.confirmPassword && (
-              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-            )}
-
-            {/* Match indicator */}
-            {confirmPassword.length > 0 && password === confirmPassword && (
-              <View style={styles.matchContainer}>
-                <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
-                <Text style={styles.matchText}>Passwords match</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      fontSize: config.bodyFontSize,
+                      paddingVertical: isTablet ? 16 : 14,
+                    },
+                  ]}
+                  placeholder="Confirm new password"
+                  placeholderTextColor={AppColors.gray[400]}
+                  value={confirmPassword}
+                  onChangeText={(text) => {
+                    setConfirmPassword(text)
+                    setErrors((prev) => ({
+                      ...prev,
+                      confirmPassword: undefined,
+                    }))
+                  }}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={
+                      showConfirmPassword ? "eye-off-outline" : "eye-outline"
+                    }
+                    size={config.iconSize}
+                    color={AppColors.gray[400]}
+                  />
+                </TouchableOpacity>
               </View>
-            )}
-          </View>
+              {errors.confirmPassword && (
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.confirmPassword}
+                </Text>
+              )}
 
-          {/* Password Requirements */}
-          <View style={styles.requirementsContainer}>
-            <Text style={styles.requirementsTitle}>Password must contain:</Text>
-            <View style={styles.requirement}>
-              <Ionicons
-                name={
-                  password.length >= 8 ? "checkmark-circle" : "ellipse-outline"
-                }
-                size={16}
-                color={password.length >= 8 ? "#22C55E" : AppColors.gray[400]}
-              />
-              <Text
-                style={[
-                  styles.requirementText,
-                  password.length >= 8 && styles.requirementMet,
-                ]}
-              >
-                At least 8 characters
-              </Text>
+              {/* Match indicator */}
+              {confirmPassword.length > 0 && password === confirmPassword && (
+                <View
+                  style={[
+                    styles.matchContainer,
+                    { marginTop: isTablet ? 10 : 8 },
+                  ]}
+                >
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={config.iconSizeSmall}
+                    color="#22C55E"
+                  />
+                  <Text
+                    style={[
+                      styles.matchText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    Passwords match
+                  </Text>
+                </View>
+              )}
             </View>
-            <View style={styles.requirement}>
-              <Ionicons
-                name={
-                  /[A-Z]/.test(password) && /[a-z]/.test(password)
-                    ? "checkmark-circle"
-                    : "ellipse-outline"
-                }
-                size={16}
-                color={
-                  /[A-Z]/.test(password) && /[a-z]/.test(password)
-                    ? "#22C55E"
-                    : AppColors.gray[400]
-                }
-              />
+
+            {/* Password Requirements */}
+            <View
+              style={[
+                styles.requirementsContainer,
+                {
+                  padding: isTablet ? 18 : 16,
+                  borderRadius: config.cardBorderRadius,
+                  marginBottom: isTablet ? 12 : 8,
+                },
+              ]}
+            >
               <Text
                 style={[
-                  styles.requirementText,
-                  /[A-Z]/.test(password) &&
-                    /[a-z]/.test(password) &&
-                    styles.requirementMet,
+                  styles.requirementsTitle,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 14 : 12,
+                  },
                 ]}
               >
-                Upper & lowercase letters
+                Password must contain:
               </Text>
+              {[
+                { check: password.length >= 8, text: "At least 8 characters" },
+                {
+                  check: /[A-Z]/.test(password) && /[a-z]/.test(password),
+                  text: "Upper & lowercase letters",
+                },
+                { check: /[0-9]/.test(password), text: "At least one number" },
+              ].map((req, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.requirement,
+                    { marginBottom: isTablet ? 10 : 8 },
+                  ]}
+                >
+                  <Ionicons
+                    name={req.check ? "checkmark-circle" : "ellipse-outline"}
+                    size={config.iconSizeSmall}
+                    color={req.check ? "#22C55E" : AppColors.gray[400]}
+                  />
+                  <Text
+                    style={[
+                      styles.requirementText,
+                      req.check && styles.requirementMet,
+                      { fontSize: config.bodyFontSize - 1 },
+                    ]}
+                  >
+                    {req.text}
+                  </Text>
+                </View>
+              ))}
             </View>
-            <View style={styles.requirement}>
-              <Ionicons
-                name={
-                  /[0-9]/.test(password)
-                    ? "checkmark-circle"
-                    : "ellipse-outline"
-                }
-                size={16}
-                color={/[0-9]/.test(password) ? "#22C55E" : AppColors.gray[400]}
+
+            {/* Submit Button */}
+            <View style={{ marginTop: isTablet ? 8 : 4 }}>
+              <Button
+                title={isLoading ? "Resetting..." : "Reset Password"}
+                onPress={handleSubmit}
+                disabled={isLoading}
+                loading={isLoading}
               />
-              <Text
-                style={[
-                  styles.requirementText,
-                  /[0-9]/.test(password) && styles.requirementMet,
-                ]}
-              >
-                At least one number
-              </Text>
             </View>
           </View>
-
-          {/* Submit Button */}
-          <Button
-            title={isLoading ? "Resetting..." : "Reset Password"}
-            onPress={handleSubmit}
-            disabled={isLoading}
-            loading={isLoading}
-            containerStyles="w-full mt-4"
-          />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -362,54 +495,39 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
     paddingBottom: 24,
   },
+  formContainer: {},
   iconContainer: {
     alignItems: "center",
-    marginBottom: 24,
   },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
   },
   title: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: AppColors.text.primary,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: 32,
   },
-  inputContainer: {
-    marginBottom: 20,
-  },
+  inputContainer: {},
   inputLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
     gap: 10,
   },
   inputError: {
@@ -418,67 +536,48 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
-    paddingVertical: 14,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 6,
   },
   strengthContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
     gap: 10,
   },
   strengthBars: {
     flexDirection: "row",
-    gap: 4,
   },
-  strengthBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
+  strengthBar: {},
   strengthLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
   },
   matchContainer: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 8,
   },
   matchText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: "#22C55E",
   },
   requirementsContainer: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
   },
   requirementsTitle: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 12,
   },
   requirement: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 8,
   },
   requirementText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.gray[500],
   },
   requirementMet: {

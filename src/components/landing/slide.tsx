@@ -1,22 +1,15 @@
-import { HEIGHT, WIDTH } from "@/src/config/constants"
-import {
-  fontSizes,
-  IsIPAD,
-  SCREEN_WIDTH,
-  windowHeight,
-  windowWidth,
-} from "@/src/themes/app.constants"
+import { fontSizes, IsIPAD } from "@/src/themes/app.constants"
 import { LandingSlide } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useState } from "react"
 import {
   Modal,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native"
 import { moderateScale, scale, verticalScale } from "react-native-size-matters"
@@ -31,6 +24,7 @@ interface SlideProps {
 }
 
 const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
+  const { width: WIDTH, height: HEIGHT } = useWindowDimensions()
   const [modalVisible, setModalVisible] = useState(false)
 
   const handlePress = (index: number, setIndex: (index: number) => void) => {
@@ -40,6 +34,17 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
       setIndex(index + 1)
     }
   }
+
+  // Calculate responsive values
+  const isLandscape = WIDTH > HEIGHT
+  const contentPaddingTop = IsIPAD
+    ? isLandscape
+      ? verticalScale(20)
+      : verticalScale(60)
+    : verticalScale(100)
+
+  // Arrow button position - centered vertically on the wave
+  const arrowButtonTop = HEIGHT / 2
 
   return (
     <>
@@ -53,33 +58,38 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
         <Rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="url(#gradient)" />
       </Svg>
 
-      <View style={styles.container}>
-        <View>{slide.image}</View>
-        <View>
+      <View style={[styles.container, { paddingTop: contentPaddingTop }]}>
+        <View style={styles.imageContainer}>{slide.image}</View>
+        <View style={styles.textContainer}>
           <View
-            style={{
-              width: SCREEN_WIDTH * 1,
-              paddingHorizontal: IsIPAD ? verticalScale(20) : verticalScale(25),
-            }}
+            style={[
+              styles.textWrapper,
+              {
+                width: IsIPAD ? WIDTH * 0.7 : WIDTH * 0.9,
+                paddingHorizontal: IsIPAD
+                  ? moderateScale(40)
+                  : verticalScale(25),
+              },
+            ]}
           >
             <Text
-              style={{
-                fontSize: IsIPAD ? fontSizes.FONT20 : fontSizes.FONT30,
-                fontWeight: "600",
-                color: "#05030d",
-                fontFamily: "Poppins_600SemiBold",
-              }}
+              style={[
+                styles.title,
+                {
+                  fontSize: IsIPAD ? moderateScale(24, 0.3) : fontSizes.FONT30,
+                },
+              ]}
             >
               {slide.title}
             </Text>
 
             <Text
-              style={{
-                paddingVertical: verticalScale(4),
-                fontSize: IsIPAD ? fontSizes.FONT12 : fontSizes.FONT18,
-                color: "#3e3b54",
-                fontFamily: "Poppins_300Light",
-              }}
+              style={[
+                styles.subtitle,
+                {
+                  fontSize: IsIPAD ? moderateScale(14, 0.3) : fontSizes.FONT18,
+                },
+              ]}
             >
               {slide.subTitle}
             </Text>
@@ -87,11 +97,25 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
         </View>
       </View>
 
-      <View style={styles.indicatorContainer}>
+      {/* Page Indicators */}
+      <View
+        style={[
+          styles.indicatorContainer,
+          {
+            bottom: IsIPAD ? verticalScale(40) : verticalScale(55),
+            left: IsIPAD ? moderateScale(20) : scale(10),
+          },
+        ]}
+      >
         {Array.from({ length: totalSlides }).map((_, i) => (
           <TouchableOpacity
             key={i}
-            style={[styles.indicator, i === index && styles.activeIndicator]}
+            style={[
+              styles.indicator,
+              i === index && styles.activeIndicator,
+              IsIPAD && styles.indicatorTablet,
+              i === index && IsIPAD && styles.activeIndicatorTablet,
+            ]}
           />
         ))}
       </View>
@@ -99,37 +123,74 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
       {index <= totalSlides - 1 && (
         <LinearGradient
           colors={["#FF9001", "#FF8E01"]}
-          style={styles.nextButton}
+          style={[
+            styles.nextButton,
+            {
+              right: IsIPAD ? moderateScale(20) : moderateScale(25),
+              bottom: IsIPAD ? verticalScale(20) : verticalScale(50),
+              width: IsIPAD ? moderateScale(140, 0.3) : moderateScale(120),
+              height: IsIPAD ? verticalScale(45) : verticalScale(40),
+              borderRadius: IsIPAD ? moderateScale(10) : moderateScale(12),
+            },
+          ]}
         >
           <Pressable
-            style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              width: "100%",
-              height: "100%",
-            }}
+            style={styles.nextButtonPressable}
             onPress={() => handlePress(index, setIndex)}
           >
             {index === totalSlides - 1 ? (
-              <Text className="text-lg font-semibold text-white">
+              <Text
+                style={[
+                  styles.nextButtonText,
+                  {
+                    fontSize: IsIPAD
+                      ? moderateScale(14, 0.3)
+                      : fontSizes.FONT18,
+                  },
+                ]}
+              >
                 Get Started
               </Text>
             ) : (
-              <Text style={styles.nextButtonText}>Next</Text>
+              <Text
+                style={[
+                  styles.nextButtonText,
+                  {
+                    fontSize: IsIPAD
+                      ? moderateScale(14, 0.3)
+                      : fontSizes.FONT18,
+                  },
+                ]}
+              >
+                Next
+              </Text>
             )}
           </Pressable>
         </LinearGradient>
       )}
 
+      {/* Arrow Button on Wave - Centered Vertically */}
       {index < totalSlides - 1 && (
         <TouchableOpacity
-          style={styles.arrowButton}
+          style={[
+            styles.arrowButton,
+            {
+              width: IsIPAD ? moderateScale(45, 0.3) : scale(30),
+              height: IsIPAD ? moderateScale(45, 0.3) : scale(30),
+              borderRadius: IsIPAD ? moderateScale(22, 0.3) : scale(15),
+              right: IsIPAD ? moderateScale(8) : moderateScale(5),
+              top: arrowButtonTop,
+              transform: [
+                { translateY: IsIPAD ? -moderateScale(22, 0.3) : -15 },
+              ],
+            },
+          ]}
           onPress={() => handlePress(index, setIndex)}
+          activeOpacity={0.7}
         >
           <Ionicons
             name="chevron-forward-outline"
-            size={scale(18)}
+            size={IsIPAD ? moderateScale(20, 0.3) : scale(18)}
             color="black"
           />
         </TouchableOpacity>
@@ -152,16 +213,34 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    padding: scale(60),
-    paddingTop: IsIPAD ? verticalScale(0) : verticalScale(100),
+    padding: IsIPAD ? moderateScale(60) : moderateScale(100),
     alignItems: "center",
+  },
+  imageContainer: {
+    flex: 0.9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  textContainer: {
+    width: "100%",
+    alignItems: "center",
+  },
+  textWrapper: {
+    alignItems: "flex-start",
+  },
+  title: {
+    fontWeight: "600",
+    color: "#05030d",
+    fontFamily: "Poppins_600SemiBold",
+  },
+  subtitle: {
+    paddingVertical: verticalScale(4),
+    color: "#3e3b54",
+    fontFamily: "Poppins_300Light",
   },
   indicatorContainer: {
     flexDirection: "row",
-    marginTop: verticalScale(35),
     position: "absolute",
-    bottom: verticalScale(55),
-    left: scale(10),
   },
   indicator: {
     height: verticalScale(7),
@@ -175,36 +254,40 @@ const styles = StyleSheet.create({
     width: scale(40),
     backgroundColor: "white",
   },
+  indicatorTablet: {
+    height: verticalScale(5),
+    width: moderateScale(20, 0.3),
+    marginHorizontal: moderateScale(4),
+    borderRadius: moderateScale(4),
+  },
+  activeIndicatorTablet: {
+    height: verticalScale(6),
+    width: moderateScale(45, 0.3),
+  },
   nextButton: {
     position: "absolute",
-    zIndex: 999999999,
-    right: windowWidth(25),
-    bottom: windowHeight(50),
-    marginTop: windowHeight(30),
+    zIndex: 999,
     alignItems: "center",
     justifyContent: "center",
-    width: IsIPAD ? windowWidth(100) : windowWidth(140),
-    height: IsIPAD ? windowHeight(70) : windowHeight(37),
-    borderRadius: IsIPAD ? windowWidth(8) : windowWidth(12),
+  },
+  nextButtonPressable: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
   },
   nextButtonText: {
     color: "white",
-    fontSize: IsIPAD ? fontSizes.FONT16 : fontSizes.FONT22,
     fontWeight: "bold",
+    fontFamily: "Poppins_600SemiBold",
   },
   arrowButton: {
     position: "absolute",
-    width: IsIPAD ? scale(50) : scale(30),
-    height: IsIPAD ? scale(50) : scale(30),
-    borderRadius: IsIPAD ? scale(25) : scale(20),
     backgroundColor: "rgba(255, 255, 255, 0.3)",
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
-    right: moderateScale(5),
-    top:
-      Platform.OS === "ios" && IsIPAD ? verticalScale(235) : verticalScale(345),
-    transform: [{ translateY: -22 }, { translateX: IsIPAD ? -12 : 1.5 }],
   },
 })
 

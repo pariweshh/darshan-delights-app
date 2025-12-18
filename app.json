@@ -4,7 +4,7 @@
     "slug": "darshan-delights-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/logo_square.png",
     "scheme": "darshandelights",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -25,7 +25,8 @@
         "applinks:www.darshandelights.com.au"
       ],
       "entitlements": {
-        "aps-environment": "development"
+        "aps-environment": "development",
+        "com.apple.developer.in-app-payments": ["merchant.com.darshandelights"]
       },
       "splash": {
         "image": "./assets/images/splash.png",
@@ -34,11 +35,12 @@
       }
     },
     "android": {
+      "package": "com.darshandelights.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo_square.png",
         "backgroundColor": "#ff9300"
       },
-      "package": "com.darshandelights.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "USE_FINGERPRINT",
         "USE_BIOMETRIC",
@@ -49,6 +51,7 @@
         "com.android.launcher.permission.INSTALL_SHORTCUT",
         "POST_NOTIFICATIONS"
       ],
+
       "intentFilters": [
         {
           "action": "VIEW",
@@ -124,8 +127,7 @@
         "backgroundColor": "#ff9300"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "useNextNotificationsApi": true
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "bundler": "metro",
@@ -146,7 +148,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/logo.png",
+          "icon": "./assets/images/logo_square.png",
           "color": "#F97316",
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": true
@@ -159,26 +161,14 @@
             "deplymentTarget": "15.1"
           },
           "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
             "minSdkVersion": 24
           }
         }
-      ],
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.darshandelights",
-          "enableGooglePay": true
-        }
       ]
     ],
-    "notifications": {
-      "icon": "./assets/images/logo.png",
-      "color": "#F97316",
-      "androidMode": "default",
-      "androidCollapsedTitle": "Darshan Delights"
-    },
+
     "experiments": {
       "typedRoutes": true
     },

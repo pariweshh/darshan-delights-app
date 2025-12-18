@@ -29,7 +29,7 @@ export default function AddAddressScreen() {
     setIsLoading(true)
 
     try {
-      await createAddress(data, user.id, token)
+      await createAddress(data, token)
 
       Toast.show({
         type: "success",

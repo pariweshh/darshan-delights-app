@@ -232,7 +232,7 @@ export default function RootLayout() {
   }
 
   // Show custom splash screen while loading
-  if (showCustomSplash || isLoading) {
+  if (showCustomSplash) {
     return (
       <>
         <StatusBar hidden style="dark" />

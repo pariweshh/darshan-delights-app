@@ -11,6 +11,7 @@ import {
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useRecentlyViewedStore } from "@/src/store/recentlyViewedStore"
 import { RecentlyViewedProduct } from "@/src/types/recentlyViewed"
 
@@ -28,14 +29,13 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
   showHeader = true,
 }) => {
   const router = useRouter()
+  const { config, isTablet } = useResponsive()
   const { products, clearAll } = useRecentlyViewedStore()
 
-  // Filter out the excluded product
   const displayProducts = products
     .filter((p) => p.id !== excludeProductId)
     .slice(0, maxDisplay)
 
-  // Don't render if no products
   if (products.length === 0) {
     return null
   }
@@ -47,28 +47,31 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
     })
   }
 
-  //   const handleSeeAll = () => {
-  //     router.push("/(tabs)/more/recently-viewed")
-  //   }
-
-  const handleClear = () => {
-    clearAll()
-  }
-
   const formatPrice = (price: number) => {
     return `$${price.toFixed(2)}`
   }
+
+  const cardWidth = isTablet ? 160 : 140
+  const imageHeight = isTablet ? 140 : 120
 
   const renderProduct = ({ item }: { item: RecentlyViewedProduct }) => {
     const hasDiscount = item.sale_price && item.sale_price < item.rrp
 
     return (
       <TouchableOpacity
-        style={styles.productCard}
+        style={[
+          styles.productCard,
+          { width: cardWidth, borderRadius: config.cardBorderRadius },
+        ]}
         onPress={() => handleProductPress(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.imageContainer}>
+        <View
+          style={[
+            styles.imageContainer,
+            { height: imageHeight, borderRadius: config.cardBorderRadius },
+          ]}
+        >
           <Image
             source={{ uri: item.cover }}
             style={styles.productImage}
@@ -76,26 +79,45 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
           />
           {hasDiscount && (
             <View style={styles.saleBadge}>
-              <Text style={styles.saleBadgeText}>Sale</Text>
+              <Text
+                style={[
+                  styles.saleBadgeText,
+                  { fontSize: config.smallFontSize - 2 },
+                ]}
+              >
+                Sale
+              </Text>
             </View>
           )}
         </View>
-        <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={2}>
+        <View style={[styles.productInfo, { padding: isTablet ? 12 : 10 }]}>
+          <Text
+            style={[styles.productName, { fontSize: config.smallFontSize }]}
+            numberOfLines={2}
+          >
             {item.name}
           </Text>
           <View style={styles.priceContainer}>
             {hasDiscount ? (
               <>
-                <Text style={styles.salePrice}>
+                <Text
+                  style={[styles.salePrice, { fontSize: config.bodyFontSize }]}
+                >
                   {formatPrice(item.sale_price!)}
                 </Text>
-                <Text style={styles.originalPrice}>
+                <Text
+                  style={[
+                    styles.originalPrice,
+                    { fontSize: config.smallFontSize - 1 },
+                  ]}
+                >
                   {formatPrice(item.rrp)}
                 </Text>
               </>
             ) : (
-              <Text style={styles.price}>{formatPrice(item.rrp)}</Text>
+              <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
+                {formatPrice(item.rrp)}
+              </Text>
             )}
           </View>
         </View>
@@ -115,14 +137,22 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
         <View style={styles.headerLeft}>
           <Ionicons
             name="time-outline"
-            size={20}
+            size={config.iconSize}
             color={AppColors.primary[600]}
           />
-          <Text style={styles.headerTitle}>Recently Viewed</Text>
+          <Text
+            style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
+          >
+            Recently Viewed
+          </Text>
         </View>
         {!excludeProductId && (
           <TouchableOpacity onPress={clearAll} activeOpacity={0.7}>
-            <Text style={styles.seeAllText}>Clear All</Text>
+            <Text
+              style={[styles.seeAllText, { fontSize: config.subtitleFontSize }]}
+            >
+              Clear All
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -134,8 +164,11 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
         renderItem={renderProduct}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: excludeProductId ? 16 : 0 }}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        contentContainerStyle={{
+          paddingHorizontal: excludeProductId ? 16 : 0,
+          paddingBottom: 10,
+        }}
+        ItemSeparatorComponent={() => <View style={{ width: config.gap }} />}
       />
     </View>
   )
@@ -147,7 +180,6 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
   },
-  // Header
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -162,26 +194,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   seeAllText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
-  // List
-  listContent: {
-    // paddingHorizontal : 0,
-  },
-  separator: {
-    width: 12,
-  },
-  // Product Card
   productCard: {
-    width: 140,
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -191,7 +211,6 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: 120,
     backgroundColor: AppColors.gray[50],
     alignItems: "center",
     justifyContent: "center",
@@ -212,15 +231,11 @@ const styles = StyleSheet.create({
   },
   saleBadgeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     color: "white",
   },
-  productInfo: {
-    padding: 10,
-  },
+  productInfo: {},
   productName: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     color: AppColors.text.primary,
     textTransform: "capitalize",
     height: 34,
@@ -234,17 +249,14 @@ const styles = StyleSheet.create({
   },
   price: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   salePrice: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.error,
   },
   originalPrice: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
     textDecorationLine: "line-through",
   },

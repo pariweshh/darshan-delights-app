@@ -76,8 +76,8 @@ const AddressCard: React.FC<Props> = ({
 
   const formatAddress = (): string => {
     const parts = [
-      address.street_address,
-      address.apartment,
+      address.line1,
+      address.line2,
       address.city,
       `${address.state} ${address.postal_code}`,
     ].filter(Boolean)

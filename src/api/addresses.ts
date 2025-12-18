@@ -1,27 +1,6 @@
 import { Address, AddressFormData } from "@/src/types/address"
 import api from "./client"
 
-const transformAddress = (item: any): Address => {
-  const { id, attributes } = item
-  return {
-    id,
-    user: attributes.user?.data?.id || null,
-    label: attributes.label || "",
-    type: attributes.type || "both",
-    is_default: attributes.is_default || false,
-    full_name: attributes.full_name || "",
-    phone: attributes.phone || "",
-    email: attributes.email || "",
-    line1: attributes.line1 || "",
-    line2: attributes.line2 || "",
-    city: attributes.city || "",
-    state: attributes.state || "",
-    postal_code: attributes.postal_code || "",
-    country: attributes.country || "Australia",
-    createdAt: attributes.createdAt,
-    updatedAt: attributes.updatedAt,
-  }
-}
 export const getUserAddresses = async (token: string): Promise<Address[]> => {
   try {
     const { data } = await api.get("/addresses", {

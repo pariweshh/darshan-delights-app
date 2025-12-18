@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
-import { IsIPAD } from "@/src/themes/app.constants"
+import { useResponsive } from "@/src/hooks/useResponsive"
 
 type EmptyStateType =
   | "cart"
@@ -31,31 +31,35 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   onAction,
   icon,
 }) => {
+  const { config, isTablet } = useResponsive()
+
+  const iconSize = isTablet ? 80 : 64
+  const searchIconSize = isTablet ? 120 : 80
+
   const getIcon = () => {
-    const size = 64
     const color = AppColors.gray[400]
 
     if (icon) {
-      return <Ionicons name={icon} size={size} color={color} />
+      return <Ionicons name={icon} size={iconSize} color={color} />
     }
 
     switch (type) {
       case "cart":
-        return <AntDesign name="shopping-cart" size={size} color={color} />
+        return <AntDesign name="shopping-cart" size={iconSize} color={color} />
       case "favorites":
         return (
-          <FontAwesome name="heart-o" size={size} color={AppColors.error} />
+          <FontAwesome name="heart-o" size={iconSize} color={AppColors.error} />
         )
       case "search":
-        return <EvilIcons name="search" size={size} color={color} />
+        return <EvilIcons name="search" size={iconSize} color={color} />
       case "orders":
-        return <Ionicons name="receipt-outline" size={size} color={color} />
+        return <Ionicons name="receipt-outline" size={iconSize} color={color} />
       case "products":
-        return <Ionicons name="cube-outline" size={size} color={color} />
+        return <Ionicons name="cube-outline" size={iconSize} color={color} />
       case "initialSearch":
         return null
       default:
-        return <Ionicons name="albums-outline" size={size} color={color} />
+        return <Ionicons name="albums-outline" size={iconSize} color={color} />
     }
   }
 
@@ -96,13 +100,26 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          padding: config.sectionSpacing,
+          minHeight: isTablet ? 400 : 300,
+        },
+      ]}
+    >
       {/* Image for initial search */}
       {type === "initialSearch" && (
-        <View style={styles.imageContainer}>
+        <View
+          style={[
+            styles.imageContainer,
+            { marginBottom: config.sectionSpacing },
+          ]}
+        >
           <Ionicons
             name="search"
-            size={IsIPAD ? 120 : 80}
+            size={searchIconSize}
             color={AppColors.gray[300]}
           />
         </View>
@@ -110,15 +127,29 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 
       {/* Icon */}
       {type !== "initialSearch" && (
-        <View style={styles.iconContainer}>{getIcon()}</View>
+        <View style={[styles.iconContainer, { marginBottom: config.gap }]}>
+          {getIcon()}
+        </View>
       )}
 
       {/* Message */}
-      <Text style={styles.message}>{message || getDefaultMessage()}</Text>
+      <Text style={[styles.message, { fontSize: config.titleFontSize }]}>
+        {message || getDefaultMessage()}
+      </Text>
 
       {/* Sub Message */}
       {(subMessage || getDefaultSubMessage()) && (
-        <Text style={styles.subMessage}>
+        <Text
+          style={[
+            styles.subMessage,
+            {
+              fontSize: config.bodyFontSize,
+              marginTop: config.gapSmall,
+              paddingHorizontal: isTablet ? 40 : 20,
+              lineHeight: config.bodyFontSize * 1.5,
+            },
+          ]}
+        >
           {subMessage || getDefaultSubMessage()}
         </Text>
       )}
@@ -143,31 +174,21 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
-    minHeight: 300,
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
   imageContainer: {
-    marginBottom: 24,
     opacity: 0.8,
   },
-  iconContainer: {
-    marginBottom: 16,
-  },
+  iconContainer: {},
   message: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
     textAlign: "center",
   },
   subMessage: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     textAlign: "center",
-    marginTop: 8,
-    paddingHorizontal: 20,
-    lineHeight: 20,
   },
 })

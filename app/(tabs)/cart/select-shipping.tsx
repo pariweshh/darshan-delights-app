@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native"
+import Toast from "react-native-toast-message"
 
 import { getUserAddresses } from "@/src/api/addresses"
 import { calculateShippingCosts } from "@/src/api/shipping"
@@ -23,9 +25,9 @@ import {
   qualifiesForFreeShipping,
   SHIPPING_CONFIG,
 } from "@/src/constants/shipping"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Address, AUSTRALIAN_STATES } from "@/src/types/address"
-import Toast from "react-native-toast-message"
 
 interface ShippingOption {
   serviceCode: string
@@ -34,16 +36,16 @@ interface ShippingOption {
   deliveryTime: string
 }
 
-// Helper to normalize country to AU ISO code
 const normalizeCountry = (country?: string): string => {
   if (!country) return "AU"
   const normalized = country.toLowerCase().trim()
   if (normalized === "australia" || normalized === "au") return "AU"
-  return "AU" // Default to AU for Australian-only shipping
+  return "AU"
 }
 
 export default function SelectShippingScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width, height } = useResponsive()
   const { orderData } = useLocalSearchParams()
   const parsedOrderData = useMemo(
     () => JSON.parse(orderData as string),
@@ -59,6 +61,10 @@ export default function SelectShippingScreen() {
   const freeShippingOptions = useMemo(() => getFreeShippingOptions(), [])
   const coupon = parsedOrderData?.coupon
   const discountAmount = coupon?.discountAmount || 0
+
+  // Layout configuration
+  const useHorizontalLayout = isTablet && isLandscape
+  const formMaxWidth = isTablet && !isLandscape ? 600 : undefined
 
   // Delivery option
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">(
@@ -145,17 +151,14 @@ export default function SelectShippingScreen() {
   const subtotalAfterDiscount = parsedOrderData?.subtotal - discountAmount
   const total = +(subtotalAfterDiscount + shippingCost).toFixed(2)
 
-  // Update useEffect to auto-set shipping options when free shipping is unlocked:
   useEffect(() => {
     if (hasFreeShipping && deliveryOption === "delivery") {
-      // Auto-populate shipping options and select standard (free) by default
       setShippingOptions(freeShippingOptions)
-      setSelectedShipping(freeShippingOptions[0]) // Select standard (free) by default
+      setSelectedShipping(freeShippingOptions[0])
       setShippingCalculated(true)
     }
   }, [hasFreeShipping, deliveryOption, freeShippingOptions])
 
-  // fetch saved addresses
   useEffect(() => {
     const fetchSavedAddresses = async () => {
       if (!token) {
@@ -167,7 +170,6 @@ export default function SelectShippingScreen() {
         const addresses = await getUserAddresses(token)
         setSavedAddresses(addresses)
 
-        // auto apply default address if available and no address is set
         const defaultAddress = await addresses.find((a) => a.is_default)
         if (defaultAddress && !shippingDetails.address.line1) {
           applyAddressToShipping(defaultAddress)
@@ -293,7 +295,6 @@ export default function SelectShippingScreen() {
           address: { ...prev.address, [addressField]: value, country: "AU" },
         }))
 
-        // Reset shipping calculation when postal code changes
         if (addressField === "postal_code") {
           setPostcode(value)
           if (!hasFreeShipping) {
@@ -325,7 +326,6 @@ export default function SelectShippingScreen() {
     []
   )
 
-  // Calculate shipping
   const calculateShipping = async () => {
     if (!postcode || !/^\d{4}$/.test(postcode)) {
       Alert.alert(
@@ -354,7 +354,6 @@ export default function SelectShippingScreen() {
     }
   }
 
-  // Validation
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
@@ -376,7 +375,6 @@ export default function SelectShippingScreen() {
         newErrors.shipping = "Please select a shipping option"
       }
 
-      // Billing address validation (only if not same as shipping)
       if (!sameAsShipping) {
         if (!billingDetails.name.trim()) {
           newErrors.billing_name = "Billing name is required"
@@ -399,7 +397,6 @@ export default function SelectShippingScreen() {
       }
     }
 
-    // For pickup, require billing info
     if (deliveryOption === "pickup") {
       if (!billingDetails.name.trim()) {
         newErrors.billing_name = "Billing name is required"
@@ -425,14 +422,12 @@ export default function SelectShippingScreen() {
     return Object.keys(newErrors).length === 0
   }
 
-  // Proceed to payment
   const proceedToPayment = () => {
     if (!validateForm()) {
       Alert.alert("Validation Error", "Please fill in all required fields")
       return
     }
 
-    // Normalize shipping details with AU country
     const normalizedShippingDetails =
       deliveryOption === "delivery"
         ? {
@@ -444,7 +439,6 @@ export default function SelectShippingScreen() {
           }
         : null
 
-    // Normalize billing details with AU country
     const normalizedBillingDetails =
       deliveryOption === "delivery" && sameAsShipping
         ? normalizedShippingDetails
@@ -477,7 +471,6 @@ export default function SelectShippingScreen() {
     })
   }
 
-  // State modal
   const handleStateSelect = (stateValue: string) => {
     if (stateFieldType === "shipping") {
       handleShippingFieldChange("address.state", stateValue)
@@ -517,38 +510,78 @@ export default function SelectShippingScreen() {
     )
   }
 
-  // ===========================================
-  // REUSABLE BILLING FORM COMPONENT
-  // ===========================================
+  // Modal sizing for tablet
+  const modalMaxWidth = isTablet ? (isLandscape ? 500 : 450) : undefined
+  const modalMaxHeight = isTablet ? height * 0.7 : undefined
 
+  // Reusable input style
+  const getInputStyle = (hasError?: boolean) => [
+    styles.input,
+    {
+      paddingHorizontal: isTablet ? 16 : 14,
+      paddingVertical: isTablet ? 16 : 14,
+      borderRadius: config.cardBorderRadius,
+      fontSize: config.bodyFontSize,
+      marginBottom: isTablet ? 14 : 12,
+    },
+    hasError && styles.inputError,
+  ]
+
+  // Render billing form
   const renderBillingForm = () => (
     <>
-      {/* Saved Address Button for Billing */}
       {savedAddresses.length > 0 && (
         <TouchableOpacity
-          style={styles.savedAddressButton}
+          style={[
+            styles.savedAddressButton,
+            {
+              padding: isTablet ? 16 : 14,
+              borderRadius: config.cardBorderRadius,
+              marginBottom: isTablet ? 18 : 16,
+            },
+          ]}
           onPress={() => openAddressSelector("billing")}
           activeOpacity={0.7}
         >
           <View style={styles.savedAddressLeft}>
-            <View style={styles.savedAddressIcon}>
+            <View
+              style={[
+                styles.savedAddressIcon,
+                {
+                  width: isTablet ? 44 : 40,
+                  height: isTablet ? 44 : 40,
+                  borderRadius: isTablet ? 12 : 10,
+                },
+              ]}
+            >
               <Ionicons
                 name={
                   selectedBillingAddress
                     ? getLabelIcon(selectedBillingAddress.label)
                     : "bookmark-outline"
                 }
-                size={20}
+                size={config.iconSize}
                 color={AppColors.primary[600]}
               />
             </View>
             <View style={styles.savedAddressTextContainer}>
-              <Text style={styles.savedAddressTitle}>
+              <Text
+                style={[
+                  styles.savedAddressTitle,
+                  { fontSize: config.bodyFontSize },
+                ]}
+              >
                 {selectedBillingAddress
                   ? `${selectedBillingAddress.label || "Saved Address"}`
                   : "Use Saved Address"}
               </Text>
-              <Text style={styles.savedAddressSubtitle} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.savedAddressSubtitle,
+                  { fontSize: config.smallFontSize },
+                ]}
+                numberOfLines={1}
+              >
                 {selectedBillingAddress
                   ? formatAddressDisplay(selectedBillingAddress)
                   : "Select from your saved addresses"}
@@ -557,25 +590,27 @@ export default function SelectShippingScreen() {
           </View>
           <Ionicons
             name="chevron-forward"
-            size={20}
+            size={config.iconSize}
             color={AppColors.gray[400]}
           />
         </TouchableOpacity>
       )}
 
       <TextInput
-        style={[styles.input, errors.billing_name && styles.inputError]}
+        style={getInputStyle(!!errors.billing_name)}
         placeholder="Full Name *"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.name}
         onChangeText={(text) => handleBillingFieldChange("name", text)}
       />
       {errors.billing_name && (
-        <Text style={styles.errorText}>{errors.billing_name}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_name}
+        </Text>
       )}
 
       <TextInput
-        style={[styles.input, errors.billing_email && styles.inputError]}
+        style={getInputStyle(!!errors.billing_email)}
         placeholder="Email *"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.email}
@@ -584,11 +619,13 @@ export default function SelectShippingScreen() {
         autoCapitalize="none"
       />
       {errors.billing_email && (
-        <Text style={styles.errorText}>{errors.billing_email}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_email}
+        </Text>
       )}
 
       <TextInput
-        style={[styles.input, errors.billing_phone && styles.inputError]}
+        style={getInputStyle(!!errors.billing_phone)}
         placeholder="Phone *"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.phone}
@@ -596,35 +633,35 @@ export default function SelectShippingScreen() {
         keyboardType="phone-pad"
       />
       {errors.billing_phone && (
-        <Text style={styles.errorText}>{errors.billing_phone}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_phone}
+        </Text>
       )}
 
       <TextInput
-        style={[styles.input, errors.billing_address && styles.inputError]}
+        style={getInputStyle(!!errors.billing_address)}
         placeholder="Street Address *"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.address.line1}
         onChangeText={(text) => handleBillingFieldChange("address.line1", text)}
       />
       {errors.billing_address && (
-        <Text style={styles.errorText}>{errors.billing_address}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_address}
+        </Text>
       )}
 
       <TextInput
-        style={styles.input}
+        style={getInputStyle()}
         placeholder="Apartment, suite, etc. (optional)"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.address.line2}
         onChangeText={(text) => handleBillingFieldChange("address.line2", text)}
       />
 
-      <View style={styles.row}>
+      <View style={[styles.row, { gap: isTablet ? 14 : 12 }]}>
         <TextInput
-          style={[
-            styles.input,
-            styles.halfInput,
-            errors.billing_city && styles.inputError,
-          ]}
+          style={[getInputStyle(!!errors.billing_city), styles.halfInput]}
           placeholder="City *"
           placeholderTextColor={AppColors.gray[400]}
           value={billingDetails.address.city}
@@ -633,26 +670,33 @@ export default function SelectShippingScreen() {
           }
         />
         <TouchableOpacity
-          style={[styles.input, styles.halfInput, styles.selectInput]}
+          style={[getInputStyle(), styles.halfInput, styles.selectInput]}
           onPress={() => openStateModal("billing")}
         >
           <Text
             style={[
               styles.selectText,
+              { fontSize: config.bodyFontSize },
               !billingDetails.address.state && styles.selectPlaceholder,
             ]}
           >
             {billingDetails.address.state || "State"}
           </Text>
-          <Ionicons name="chevron-down" size={20} color={AppColors.gray[400]} />
+          <Ionicons
+            name="chevron-down"
+            size={config.iconSize}
+            color={AppColors.gray[400]}
+          />
         </TouchableOpacity>
       </View>
       {errors.billing_city && (
-        <Text style={styles.errorText}>{errors.billing_city}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_city}
+        </Text>
       )}
 
       <TextInput
-        style={[styles.input, errors.billing_postal_code && styles.inputError]}
+        style={getInputStyle(!!errors.billing_postal_code)}
         placeholder="Postal Code *"
         placeholderTextColor={AppColors.gray[400]}
         value={billingDetails.address.postal_code}
@@ -663,521 +707,933 @@ export default function SelectShippingScreen() {
         maxLength={4}
       />
       {errors.billing_postal_code && (
-        <Text style={styles.errorText}>{errors.billing_postal_code}</Text>
+        <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+          {errors.billing_postal_code}
+        </Text>
       )}
     </>
   )
 
-  return (
-    <Wrapper style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+  // Render order summary
+  const renderOrderSummary = () => (
+    <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+      <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>
+        Order Summary
+      </Text>
+      <View
+        style={[
+          styles.summaryCard,
+          {
+            padding: isTablet ? 20 : 16,
+            borderRadius: config.cardBorderRadius,
+          },
+        ]}
       >
-        {/* Delivery Options */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Method</Text>
-
-          {/* Home Delivery */}
-          <TouchableOpacity
-            style={[
-              styles.optionCard,
-              deliveryOption === "delivery" && styles.optionCardSelected,
-            ]}
-            onPress={() => setDeliveryOption("delivery")}
-            activeOpacity={0.7}
+        <View style={[styles.summaryRow, { marginBottom: isTablet ? 10 : 8 }]}>
+          <Text
+            style={[styles.summaryLabel, { fontSize: config.bodyFontSize }]}
           >
-            <View style={styles.optionContent}>
-              <Ionicons
-                name="car-outline"
-                size={24}
-                color={AppColors.primary[500]}
-              />
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>Home Delivery</Text>
-                <Text style={styles.optionSubtitle}>1-5 business days</Text>
-              </View>
-            </View>
-            <View
-              style={[
-                styles.radio,
-                deliveryOption === "delivery" && styles.radioSelected,
-              ]}
-            >
-              {deliveryOption === "delivery" && (
-                <View style={styles.radioInner} />
-              )}
-            </View>
-          </TouchableOpacity>
-
-          {/* Local Pickup */}
-          <TouchableOpacity
-            style={[
-              styles.optionCard,
-              deliveryOption === "pickup" && styles.optionCardSelected,
-            ]}
-            onPress={() => setDeliveryOption("pickup")}
-            activeOpacity={0.7}
+            Subtotal ({parsedOrderData?.cart?.length} items)
+          </Text>
+          <Text
+            style={[styles.summaryValue, { fontSize: config.bodyFontSize }]}
           >
-            <View style={styles.optionContent}>
-              <Ionicons
-                name="storefront-outline"
-                size={24}
-                color={AppColors.primary[500]}
-              />
-              <View style={styles.optionText}>
-                <Text style={styles.optionTitle}>Local Pickup</Text>
-                <Text style={styles.optionSubtitle}>
-                  8 Lethbridge Road, Austral, NSW 2179
-                </Text>
-              </View>
-            </View>
-            <View
-              style={[
-                styles.radio,
-                deliveryOption === "pickup" && styles.radioSelected,
-              ]}
-            >
-              {deliveryOption === "pickup" && (
-                <View style={styles.radioInner} />
-              )}
-            </View>
-          </TouchableOpacity>
+            ${parsedOrderData?.subtotal?.toFixed(2)}
+          </Text>
         </View>
 
-        {/* Heavy items warning */}
-        {includesHeavyItems && (
-          <View style={styles.warningContainer}>
-            <Ionicons
-              name="warning-outline"
-              size={20}
-              color={AppColors.error}
-            />
-            <Text style={styles.warningText}>
-              You have item(s) in your basket that are not available for
-              delivery!
+        {coupon && discountAmount > 0 && (
+          <View
+            style={[styles.summaryRow, { marginBottom: isTablet ? 10 : 8 }]}
+          >
+            <View style={styles.discountLabelRow}>
+              <Ionicons
+                name="pricetag"
+                size={config.iconSizeSmall}
+                color="#16A34A"
+              />
+              <Text
+                style={[
+                  styles.discountLabel,
+                  { fontSize: config.bodyFontSize },
+                ]}
+              >
+                Discount ({coupon.code})
+              </Text>
+            </View>
+            <Text
+              style={[styles.discountValue, { fontSize: config.bodyFontSize }]}
+            >
+              -${discountAmount.toFixed(2)}
             </Text>
           </View>
         )}
 
-        {/* Shipping Calculator (only for delivery) */}
-        {deliveryOption === "delivery" && !includesHeavyItems && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shipping</Text>
+        {shippingCalculated &&
+          selectedShipping &&
+          deliveryOption !== "pickup" && (
+            <View
+              style={[styles.summaryRow, { marginBottom: isTablet ? 10 : 8 }]}
+            >
+              <Text
+                style={[styles.summaryLabel, { fontSize: config.bodyFontSize }]}
+              >
+                Shipping
+              </Text>
+              <Text
+                style={[styles.summaryValue, { fontSize: config.bodyFontSize }]}
+              >
+                {selectedShipping?.cost > 0
+                  ? `$${selectedShipping.cost.toFixed(2)}`
+                  : "FREE"}
+              </Text>
+            </View>
+          )}
 
-            {hasFreeShipping ? (
-              /* Free Shipping Unlocked - Show fixed options */
-              <View style={styles.freeShippingCard}>
-                <View style={styles.freeShippingHeader}>
-                  <View style={styles.freeShippingIconContainer}>
-                    <Ionicons name="gift" size={24} color="#16A34A" />
-                  </View>
-                  <View style={styles.freeShippingTextContainer}>
-                    <Text style={styles.freeShippingTitle}>
-                      🎉 Free Standard Shipping Unlocked!
-                    </Text>
-                    <Text style={styles.freeShippingSubtitle}>
-                      Orders over ${SHIPPING_CONFIG.FREE_SHIPPING_THRESHOLD}{" "}
-                      qualify for free standard shipping
-                    </Text>
-                  </View>
+        <View
+          style={[styles.divider, { marginVertical: isTablet ? 16 : 12 }]}
+        />
+
+        <View style={styles.summaryRow}>
+          <Text style={[styles.totalLabel, { fontSize: isTablet ? 18 : 16 }]}>
+            Total
+          </Text>
+          <Text style={[styles.totalValue, { fontSize: isTablet ? 24 : 20 }]}>
+            ${total.toFixed(2)}
+          </Text>
+        </View>
+      </View>
+    </View>
+  )
+
+  // Main form content
+  const renderFormContent = () => (
+    <>
+      {/* Delivery Options */}
+      <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+        <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>
+          Delivery Method
+        </Text>
+
+        {/* Home Delivery */}
+        <TouchableOpacity
+          style={[
+            styles.optionCard,
+            {
+              padding: isTablet ? 18 : 16,
+              borderRadius: config.cardBorderRadius,
+              marginBottom: isTablet ? 12 : 10,
+            },
+            deliveryOption === "delivery" && styles.optionCardSelected,
+          ]}
+          onPress={() => setDeliveryOption("delivery")}
+          activeOpacity={0.7}
+        >
+          <View style={styles.optionContent}>
+            <Ionicons
+              name="car-outline"
+              size={config.iconSizeLarge}
+              color={AppColors.primary[500]}
+            />
+            <View
+              style={[styles.optionText, { marginLeft: isTablet ? 14 : 12 }]}
+            >
+              <Text
+                style={[styles.optionTitle, { fontSize: config.bodyFontSize }]}
+              >
+                Home Delivery
+              </Text>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
+                1-5 business days
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.radio,
+              { width: isTablet ? 24 : 22, height: isTablet ? 24 : 22 },
+              deliveryOption === "delivery" && styles.radioSelected,
+            ]}
+          >
+            {deliveryOption === "delivery" && (
+              <View
+                style={[
+                  styles.radioInner,
+                  { width: isTablet ? 14 : 12, height: isTablet ? 14 : 12 },
+                ]}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* Local Pickup */}
+        <TouchableOpacity
+          style={[
+            styles.optionCard,
+            {
+              padding: isTablet ? 18 : 16,
+              borderRadius: config.cardBorderRadius,
+            },
+            deliveryOption === "pickup" && styles.optionCardSelected,
+          ]}
+          onPress={() => setDeliveryOption("pickup")}
+          activeOpacity={0.7}
+        >
+          <View style={styles.optionContent}>
+            <Ionicons
+              name="storefront-outline"
+              size={config.iconSizeLarge}
+              color={AppColors.primary[500]}
+            />
+            <View
+              style={[styles.optionText, { marginLeft: isTablet ? 14 : 12 }]}
+            >
+              <Text
+                style={[styles.optionTitle, { fontSize: config.bodyFontSize }]}
+              >
+                Local Pickup
+              </Text>
+              <Text
+                style={[
+                  styles.optionSubtitle,
+                  { fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
+                8 Lethbridge Road, Austral, NSW 2179
+              </Text>
+            </View>
+          </View>
+          <View
+            style={[
+              styles.radio,
+              { width: isTablet ? 24 : 22, height: isTablet ? 24 : 22 },
+              deliveryOption === "pickup" && styles.radioSelected,
+            ]}
+          >
+            {deliveryOption === "pickup" && (
+              <View
+                style={[
+                  styles.radioInner,
+                  { width: isTablet ? 14 : 12, height: isTablet ? 14 : 12 },
+                ]}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Heavy items warning */}
+      {includesHeavyItems && (
+        <View
+          style={[
+            styles.warningContainer,
+            {
+              padding: isTablet ? 14 : 12,
+              borderRadius: isTablet ? 10 : 8,
+              marginBottom: isTablet ? 20 : 16,
+            },
+          ]}
+        >
+          <Ionicons
+            name="warning-outline"
+            size={config.iconSize}
+            color={AppColors.error}
+          />
+          <Text
+            style={[styles.warningText, { fontSize: config.bodyFontSize - 1 }]}
+          >
+            You have item(s) in your basket that are not available for delivery!
+          </Text>
+        </View>
+      )}
+
+      {/* Shipping Calculator */}
+      {deliveryOption === "delivery" && !includesHeavyItems && (
+        <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
+          >
+            Shipping
+          </Text>
+
+          {hasFreeShipping ? (
+            <View
+              style={[
+                styles.freeShippingCard,
+                {
+                  padding: isTablet ? 18 : 16,
+                  borderRadius: config.cardBorderRadius,
+                },
+              ]}
+            >
+              <View style={styles.freeShippingHeader}>
+                <View
+                  style={[
+                    styles.freeShippingIconContainer,
+                    {
+                      width: isTablet ? 56 : 48,
+                      height: isTablet ? 56 : 48,
+                      borderRadius: isTablet ? 28 : 24,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="gift"
+                    size={config.iconSizeLarge}
+                    color="#16A34A"
+                  />
                 </View>
+                <View style={styles.freeShippingTextContainer}>
+                  <Text
+                    style={[
+                      styles.freeShippingTitle,
+                      { fontSize: isTablet ? 18 : 16 },
+                    ]}
+                  >
+                    🎉 Free Standard Shipping Unlocked!
+                  </Text>
+                  <Text
+                    style={[
+                      styles.freeShippingSubtitle,
+                      { fontSize: config.bodyFontSize - 1 },
+                    ]}
+                  >
+                    Orders over ${SHIPPING_CONFIG.FREE_SHIPPING_THRESHOLD}{" "}
+                    qualify for free standard shipping
+                  </Text>
+                </View>
+              </View>
 
-                {/* Shipping Options */}
-                <View style={styles.shippingOptionsContainer}>
-                  {freeShippingOptions.map((option) => (
+              <View
+                style={[
+                  styles.shippingOptionsContainer,
+                  { marginTop: isTablet ? 18 : 16, gap: isTablet ? 12 : 10 },
+                ]}
+              >
+                {freeShippingOptions.map((option) => (
+                  <TouchableOpacity
+                    key={option.serviceCode}
+                    style={[
+                      styles.shippingOption,
+                      {
+                        padding: isTablet ? 16 : 14,
+                        borderRadius: isTablet ? 12 : 10,
+                      },
+                      selectedShipping?.serviceCode === option.serviceCode &&
+                        styles.shippingOptionSelected,
+                      option.cost === 0 && styles.shippingOptionFree,
+                    ]}
+                    onPress={() => setSelectedShipping(option)}
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.shippingOptionLeft,
+                        { gap: isTablet ? 14 : 12 },
+                      ]}
+                    >
+                      <View
+                        style={[
+                          styles.radio,
+                          {
+                            width: isTablet ? 24 : 22,
+                            height: isTablet ? 24 : 22,
+                          },
+                          selectedShipping?.serviceCode ===
+                            option.serviceCode && styles.radioSelected,
+                        ]}
+                      >
+                        {selectedShipping?.serviceCode ===
+                          option.serviceCode && (
+                          <View
+                            style={[
+                              styles.radioInner,
+                              {
+                                width: isTablet ? 14 : 12,
+                                height: isTablet ? 14 : 12,
+                              },
+                            ]}
+                          />
+                        )}
+                      </View>
+                      <View style={styles.shippingOptionInfo}>
+                        <View
+                          style={[
+                            styles.shippingOptionNameRow,
+                            { gap: isTablet ? 10 : 8 },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.shippingOptionName,
+                              { fontSize: config.bodyFontSize },
+                            ]}
+                          >
+                            {option.serviceName}
+                          </Text>
+                          {option.cost === 0 && (
+                            <View style={styles.freeBadge}>
+                              <Text
+                                style={[
+                                  styles.freeBadgeText,
+                                  { fontSize: isTablet ? 11 : 10 },
+                                ]}
+                              >
+                                FREE
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.shippingOptionDelivery,
+                            { fontSize: config.smallFontSize },
+                          ]}
+                        >
+                          {option.deliveryTime}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text
+                      style={[
+                        styles.shippingOptionPrice,
+                        { fontSize: isTablet ? 18 : 16 },
+                        option.cost === 0 && styles.shippingOptionPriceFree,
+                      ]}
+                    >
+                      {option.cost === 0
+                        ? "FREE"
+                        : `$${option.cost.toFixed(2)}`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          ) : (
+            <View
+              style={[
+                styles.calculatorCard,
+                {
+                  padding: isTablet ? 18 : 16,
+                  borderRadius: config.cardBorderRadius,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.calculatorDescription,
+                  { fontSize: config.bodyFontSize },
+                ]}
+              >
+                Enter your postcode to see available delivery options
+              </Text>
+              <View style={styles.calculatorRow}>
+                <TextInput
+                  style={[
+                    styles.postcodeInput,
+                    {
+                      paddingHorizontal: isTablet ? 16 : 14,
+                      paddingVertical: isTablet ? 14 : 12,
+                      borderRadius: isTablet ? 10 : 8,
+                      fontSize: config.bodyFontSize,
+                    },
+                  ]}
+                  placeholder="Enter Postcode"
+                  placeholderTextColor={AppColors.gray[400]}
+                  value={postcode}
+                  onChangeText={(text) => {
+                    setPostcode(text)
+                    setShippingCalculated(false)
+                    setSelectedShipping(null)
+                  }}
+                  keyboardType="numeric"
+                  maxLength={4}
+                />
+                <Button
+                  title={loadingShipping ? "..." : "Calculate"}
+                  onPress={calculateShipping}
+                  disabled={loadingShipping}
+                  size="small"
+                  containerStyles="ml-2"
+                />
+              </View>
+
+              {loadingShipping && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color={AppColors.primary[500]} />
+                  <Text
+                    style={[
+                      styles.loadingText,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Calculating...
+                  </Text>
+                </View>
+              )}
+
+              {shippingCalculated && shippingOptions.length > 0 && (
+                <View
+                  style={[
+                    styles.shippingOptionsContainer,
+                    { marginTop: isTablet ? 18 : 16, gap: isTablet ? 12 : 10 },
+                  ]}
+                >
+                  {shippingOptions.map((option) => (
                     <TouchableOpacity
                       key={option.serviceCode}
                       style={[
                         styles.shippingOption,
+                        {
+                          padding: isTablet ? 16 : 14,
+                          borderRadius: isTablet ? 12 : 10,
+                        },
                         selectedShipping?.serviceCode === option.serviceCode &&
                           styles.shippingOptionSelected,
-                        option.cost === 0 && styles.shippingOptionFree,
                       ]}
                       onPress={() => setSelectedShipping(option)}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.shippingOptionLeft}>
+                      <View style={styles.shippingOptionInfo}>
+                        <Text
+                          style={[
+                            styles.shippingOptionName,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
+                          {option.serviceName}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.shippingOptionDelivery,
+                            { fontSize: config.smallFontSize },
+                          ]}
+                        >
+                          {option.deliveryTime}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.shippingOptionRight,
+                          { gap: isTablet ? 10 : 8 },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.shippingOptionPrice,
+                            { fontSize: isTablet ? 18 : 16 },
+                          ]}
+                        >
+                          ${option.cost.toFixed(2)}
+                        </Text>
                         <View
                           style={[
                             styles.radio,
+                            {
+                              width: isTablet ? 24 : 22,
+                              height: isTablet ? 24 : 22,
+                            },
                             selectedShipping?.serviceCode ===
                               option.serviceCode && styles.radioSelected,
                           ]}
                         >
                           {selectedShipping?.serviceCode ===
                             option.serviceCode && (
-                            <View style={styles.radioInner} />
+                            <View
+                              style={[
+                                styles.radioInner,
+                                {
+                                  width: isTablet ? 14 : 12,
+                                  height: isTablet ? 14 : 12,
+                                },
+                              ]}
+                            />
                           )}
                         </View>
-                        <View style={styles.shippingOptionInfo}>
-                          <View style={styles.shippingOptionNameRow}>
-                            <Text style={styles.shippingOptionName}>
-                              {option.serviceName}
-                            </Text>
-                            {option.cost === 0 && (
-                              <View style={styles.freeBadge}>
-                                <Text style={styles.freeBadgeText}>FREE</Text>
-                              </View>
-                            )}
-                          </View>
-                          <Text style={styles.shippingOptionDelivery}>
-                            {option.deliveryTime}
-                          </Text>
-                        </View>
                       </View>
-                      <Text
-                        style={[
-                          styles.shippingOptionPrice,
-                          option.cost === 0 && styles.shippingOptionPriceFree,
-                        ]}
-                      >
-                        {option.cost === 0
-                          ? "FREE"
-                          : `$${option.cost.toFixed(2)}`}
-                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-              </View>
-            ) : (
-              <View style={styles.calculatorCard}>
-                <Text style={styles.calculatorDescription}>
-                  Enter your postcode to see available delivery options
-                </Text>
-                <View style={styles.calculatorRow}>
-                  <TextInput
-                    className="placeholder:text-gray-400"
-                    style={styles.postcodeInput}
-                    placeholder="Enter Postcode"
-                    value={postcode}
-                    onChangeText={(text) => {
-                      setPostcode(text)
-                      setShippingCalculated(false)
-                      setSelectedShipping(null)
-                    }}
-                    keyboardType="numeric"
-                    maxLength={4}
-                  />
-                  <Button
-                    title={loadingShipping ? "..." : "Calculate"}
-                    onPress={calculateShipping}
-                    disabled={loadingShipping}
-                    size="small"
-                    containerStyles="ml-2"
-                  />
-                </View>
-
-                {loadingShipping && (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator color={AppColors.primary[500]} />
-                    <Text style={styles.loadingText}>Calculating...</Text>
-                  </View>
-                )}
-
-                {shippingCalculated && shippingOptions.length > 0 && (
-                  <View style={styles.shippingOptionsContainer}>
-                    {shippingOptions.map((option) => (
-                      <TouchableOpacity
-                        key={option.serviceCode}
-                        style={[
-                          styles.shippingOption,
-                          selectedShipping?.serviceCode ===
-                            option.serviceCode && styles.shippingOptionSelected,
-                        ]}
-                        onPress={() => setSelectedShipping(option)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.shippingOptionInfo}>
-                          <Text style={styles.shippingOptionName}>
-                            {option.serviceName}
-                          </Text>
-                          <Text style={styles.shippingOptionDelivery}>
-                            {option.deliveryTime}
-                          </Text>
-                        </View>
-                        <View style={styles.shippingOptionRight}>
-                          <Text style={styles.shippingOptionPrice}>
-                            ${option.cost.toFixed(2)}
-                          </Text>
-                          <View
-                            style={[
-                              styles.radio,
-                              selectedShipping?.serviceCode ===
-                                option.serviceCode && styles.radioSelected,
-                            ]}
-                          >
-                            {selectedShipping?.serviceCode ===
-                              option.serviceCode && (
-                              <View style={styles.radioInner} />
-                            )}
-                          </View>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-                {errors.shipping && (
-                  <Text style={styles.errorText} className="!mt-2">
-                    {errors.shipping}
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* Contact Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contact Information</Text>
-          <TextInput
-            style={[styles.input, errors.name && styles.inputError]}
-            placeholder="Full Name *"
-            placeholderTextColor={AppColors.gray[400]}
-            value={shippingDetails.name}
-            onChangeText={(text) => handleShippingFieldChange("name", text)}
-          />
-          {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
-
-          <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-            placeholder="Email *"
-            placeholderTextColor={AppColors.gray[400]}
-            value={shippingDetails.email}
-            onChangeText={(text) => handleShippingFieldChange("email", text)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
-          <TextInput
-            style={[styles.input, errors.phone && styles.inputError]}
-            className="placeholder:text-gray-400"
-            placeholder="Phone *"
-            placeholderTextColor={AppColors.gray[400]}
-            value={shippingDetails.phone}
-            onChangeText={(text) => handleShippingFieldChange("phone", text)}
-            keyboardType="phone-pad"
-          />
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
-        </View>
-
-        {/* Billing Address for Pickup */}
-        {deliveryOption === "pickup" && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Billing Information</Text>
-            {renderBillingForm()}
-          </View>
-        )}
-
-        {/* Shipping Address (only for delivery) */}
-        {deliveryOption === "delivery" && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Shipping Address</Text>
-
-            {/* Saved Address Button for Shipping */}
-            {savedAddresses.length > 0 && (
-              <TouchableOpacity
-                style={styles.savedAddressButton}
-                onPress={() => openAddressSelector("shipping")}
-                activeOpacity={0.7}
-              >
-                <View style={styles.savedAddressLeft}>
-                  <View style={styles.savedAddressIcon}>
-                    <Ionicons
-                      name={
-                        selectedShippingAddress
-                          ? getLabelIcon(selectedShippingAddress.label)
-                          : "bookmark-outline"
-                      }
-                      size={20}
-                      color={AppColors.primary[600]}
-                    />
-                  </View>
-                  <View style={styles.savedAddressTextContainer}>
-                    <Text style={styles.savedAddressTitle}>
-                      {selectedShippingAddress
-                        ? `${selectedShippingAddress.label || "Saved Address"}`
-                        : "Use Saved Address"}
-                    </Text>
-                    <Text style={styles.savedAddressSubtitle} numberOfLines={1}>
-                      {selectedShippingAddress
-                        ? formatAddressDisplay(selectedShippingAddress)
-                        : "Select from your saved addresses"}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={AppColors.gray[400]}
-                />
-              </TouchableOpacity>
-            )}
-
-            <TextInput
-              style={[styles.input, errors.address_line1 && styles.inputError]}
-              className="placeholder:text-gray-400"
-              placeholder="Street Address *"
-              value={shippingDetails.address.line1}
-              onChangeText={(text) =>
-                handleShippingFieldChange("address.line1", text)
-              }
-            />
-            {errors.address_line1 && (
-              <Text style={styles.errorText}>{errors.address_line1}</Text>
-            )}
-
-            <TextInput
-              style={styles.input}
-              className="placeholder:text-gray-400"
-              placeholder="Apartment, suite, etc. (optional)"
-              value={shippingDetails.address.line2}
-              onChangeText={(text) =>
-                handleShippingFieldChange("address.line2", text)
-              }
-            />
-
-            <View style={styles.row}>
-              <TextInput
-                className="placeholder:text-gray-400"
-                style={[
-                  styles.input,
-                  styles.halfInput,
-                  errors.city && styles.inputError,
-                ]}
-                placeholder="City *"
-                value={shippingDetails.address.city}
-                onChangeText={(text) =>
-                  handleShippingFieldChange("address.city", text)
-                }
-              />
-              <TouchableOpacity
-                style={[styles.input, styles.halfInput, styles.selectInput]}
-                onPress={() => openStateModal("shipping")}
-              >
+              )}
+              {errors.shipping && (
                 <Text
                   style={[
-                    styles.selectText,
-                    !shippingDetails.address.state && styles.selectPlaceholder,
+                    styles.errorText,
+                    { fontSize: config.smallFontSize, marginTop: 8 },
                   ]}
                 >
-                  {shippingDetails.address.state || "State"}
+                  {errors.shipping}
                 </Text>
-                <Ionicons
-                  name="chevron-down"
-                  size={20}
-                  color={AppColors.gray[400]}
-                />
-              </TouchableOpacity>
+              )}
             </View>
+          )}
+        </View>
+      )}
 
-            <TextInput
-              className="placeholder:text-gray-400"
-              style={[styles.input, errors.postal_code && styles.inputError]}
-              placeholder="Postal Code *"
-              value={shippingDetails.address.postal_code}
-              onChangeText={(text) =>
-                handleShippingFieldChange("address.postal_code", text)
-              }
-              keyboardType="numeric"
-            />
-          </View>
+      {/* Contact Information */}
+      <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+        <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>
+          Contact Information
+        </Text>
+        <TextInput
+          style={getInputStyle(!!errors.name)}
+          placeholder="Full Name *"
+          placeholderTextColor={AppColors.gray[400]}
+          value={shippingDetails.name}
+          onChangeText={(text) => handleShippingFieldChange("name", text)}
+        />
+        {errors.name && (
+          <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+            {errors.name}
+          </Text>
         )}
 
-        {/* Same as shipping checkbox */}
-        {deliveryOption === "delivery" && (
-          <TouchableOpacity
-            style={styles.checkboxRow}
-            onPress={() => setSameAsShipping(!sameAsShipping)}
-            activeOpacity={0.7}
+        <TextInput
+          style={getInputStyle(!!errors.email)}
+          placeholder="Email *"
+          placeholderTextColor={AppColors.gray[400]}
+          value={shippingDetails.email}
+          onChangeText={(text) => handleShippingFieldChange("email", text)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        {errors.email && (
+          <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+            {errors.email}
+          </Text>
+        )}
+
+        <TextInput
+          style={getInputStyle(!!errors.phone)}
+          placeholder="Phone *"
+          placeholderTextColor={AppColors.gray[400]}
+          value={shippingDetails.phone}
+          onChangeText={(text) => handleShippingFieldChange("phone", text)}
+          keyboardType="phone-pad"
+        />
+        {errors.phone && (
+          <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
+            {errors.phone}
+          </Text>
+        )}
+      </View>
+
+      {/* Billing Address for Pickup */}
+      {deliveryOption === "pickup" && (
+        <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
           >
+            Billing Information
+          </Text>
+          {renderBillingForm()}
+        </View>
+      )}
+
+      {/* Shipping Address */}
+      {deliveryOption === "delivery" && (
+        <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
+          >
+            Shipping Address
+          </Text>
+
+          {savedAddresses.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.savedAddressButton,
+                {
+                  padding: isTablet ? 16 : 14,
+                  borderRadius: config.cardBorderRadius,
+                  marginBottom: isTablet ? 18 : 16,
+                },
+              ]}
+              onPress={() => openAddressSelector("shipping")}
+              activeOpacity={0.7}
+            >
+              <View style={styles.savedAddressLeft}>
+                <View
+                  style={[
+                    styles.savedAddressIcon,
+                    {
+                      width: isTablet ? 44 : 40,
+                      height: isTablet ? 44 : 40,
+                      borderRadius: isTablet ? 12 : 10,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      selectedShippingAddress
+                        ? getLabelIcon(selectedShippingAddress.label)
+                        : "bookmark-outline"
+                    }
+                    size={config.iconSize}
+                    color={AppColors.primary[600]}
+                  />
+                </View>
+                <View style={styles.savedAddressTextContainer}>
+                  <Text
+                    style={[
+                      styles.savedAddressTitle,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    {selectedShippingAddress
+                      ? `${selectedShippingAddress.label || "Saved Address"}`
+                      : "Use Saved Address"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.savedAddressSubtitle,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {selectedShippingAddress
+                      ? formatAddressDisplay(selectedShippingAddress)
+                      : "Select from your saved addresses"}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={config.iconSize}
+                color={AppColors.gray[400]}
+              />
+            </TouchableOpacity>
+          )}
+
+          <TextInput
+            style={getInputStyle(!!errors.address_line1)}
+            placeholder="Street Address *"
+            placeholderTextColor={AppColors.gray[400]}
+            value={shippingDetails.address.line1}
+            onChangeText={(text) =>
+              handleShippingFieldChange("address.line1", text)
+            }
+          />
+          {errors.address_line1 && (
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.address_line1}
+            </Text>
+          )}
+
+          <TextInput
+            style={getInputStyle()}
+            placeholder="Apartment, suite, etc. (optional)"
+            placeholderTextColor={AppColors.gray[400]}
+            value={shippingDetails.address.line2}
+            onChangeText={(text) =>
+              handleShippingFieldChange("address.line2", text)
+            }
+          />
+
+          <View style={[styles.row, { gap: isTablet ? 14 : 12 }]}>
+            <TextInput
+              style={[getInputStyle(!!errors.city), styles.halfInput]}
+              placeholder="City *"
+              placeholderTextColor={AppColors.gray[400]}
+              value={shippingDetails.address.city}
+              onChangeText={(text) =>
+                handleShippingFieldChange("address.city", text)
+              }
+            />
+            <TouchableOpacity
+              style={[getInputStyle(), styles.halfInput, styles.selectInput]}
+              onPress={() => openStateModal("shipping")}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  { fontSize: config.bodyFontSize },
+                  !shippingDetails.address.state && styles.selectPlaceholder,
+                ]}
+              >
+                {shippingDetails.address.state || "State"}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={config.iconSize}
+                color={AppColors.gray[400]}
+              />
+            </TouchableOpacity>
+          </View>
+
+          <TextInput
+            style={getInputStyle(!!errors.postal_code)}
+            placeholder="Postal Code *"
+            placeholderTextColor={AppColors.gray[400]}
+            value={shippingDetails.address.postal_code}
+            onChangeText={(text) =>
+              handleShippingFieldChange("address.postal_code", text)
+            }
+            keyboardType="numeric"
+          />
+        </View>
+      )}
+
+      {/* Same as shipping checkbox */}
+      {deliveryOption === "delivery" && (
+        <TouchableOpacity
+          style={[styles.checkboxRow, { marginBottom: isTablet ? 28 : 24 }]}
+          onPress={() => setSameAsShipping(!sameAsShipping)}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              {
+                width: isTablet ? 24 : 22,
+                height: isTablet ? 24 : 22,
+                borderRadius: isTablet ? 7 : 6,
+              },
+              sameAsShipping && styles.checkboxChecked,
+            ]}
+          >
+            {sameAsShipping && (
+              <Ionicons
+                name="checkmark"
+                size={isTablet ? 16 : 14}
+                color="white"
+              />
+            )}
+          </View>
+          <Text
+            style={[styles.checkboxLabel, { fontSize: config.bodyFontSize }]}
+          >
+            Billing address same as shipping
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Billing Address Form */}
+      {deliveryOption === "delivery" && !sameAsShipping && (
+        <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
+          >
+            Billing Address
+          </Text>
+          {renderBillingForm()}
+        </View>
+      )}
+
+      {/* Order Summary - Only in vertical layout */}
+      {!useHorizontalLayout && renderOrderSummary()}
+    </>
+  )
+
+  return (
+    <Wrapper style={styles.container}>
+      {useHorizontalLayout ? (
+        // Tablet Landscape: Side-by-side layout
+        <View style={styles.horizontalContainer}>
+          <ScrollView
+            style={styles.formColumn}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { padding: config.horizontalPadding + 4 },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {renderFormContent()}
+          </ScrollView>
+
+          <View style={styles.summaryColumn}>
+            <ScrollView
+              contentContainerStyle={{
+                padding: config.horizontalPadding,
+              }}
+              showsVerticalScrollIndicator={false}
+            >
+              {renderOrderSummary()}
+            </ScrollView>
+
             <View
               style={[
-                styles.checkbox,
-                sameAsShipping && styles.checkboxChecked,
+                styles.footer,
+                {
+                  padding: config.horizontalPadding,
+                  paddingBottom: Platform.OS === "ios" ? 24 : 20,
+                },
               ]}
             >
-              {sameAsShipping && (
-                <Ionicons name="checkmark" size={14} color="white" />
-              )}
-            </View>
-            <Text style={styles.checkboxLabel}>
-              Billing address same as shipping
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Billing Address Form (only when not same as shipping) */}
-        {deliveryOption === "delivery" && !sameAsShipping && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Billing Address</Text>
-
-            {renderBillingForm()}
-          </View>
-        )}
-
-        {/* Order Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Summary</Text>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Subtotal ({parsedOrderData?.cart?.length} items)
-              </Text>
-              <Text style={styles.summaryValue}>
-                ${parsedOrderData?.subtotal?.toFixed(2)}
-              </Text>
-            </View>
-
-            {/* Discount Row */}
-            {coupon && discountAmount > 0 && (
-              <View style={styles.summaryRow}>
-                <View style={styles.discountLabelRow}>
-                  <Ionicons name="pricetag" size={14} color="#16A34A" />
-                  <Text style={styles.discountLabel}>
-                    Discount ({coupon.code})
-                  </Text>
-                </View>
-                <Text style={styles.discountValue}>
-                  -${discountAmount.toFixed(2)}
-                </Text>
-              </View>
-            )}
-
-            {shippingCalculated &&
-              selectedShipping &&
-              deliveryOption !== "pickup" && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Shipping</Text>
-
-                  <Text style={styles.summaryValue}>
-                    {selectedShipping?.cost > 0
-                      ? `$${selectedShipping.cost.toFixed(2)}`
-                      : "FREE"}
-                  </Text>
-                </View>
-              )}
-            <View style={styles.divider} />
-            <View style={styles.summaryRow}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>${total.toFixed(2)}</Text>
+              <Button
+                disabled={deliveryOption === "delivery" && includesHeavyItems}
+                title="Continue to Payment"
+                onPress={proceedToPayment}
+                icon={
+                  <Ionicons
+                    name="arrow-forward"
+                    size={config.iconSize}
+                    color="white"
+                  />
+                }
+              />
             </View>
           </View>
         </View>
-      </ScrollView>
+      ) : (
+        // Phone & Tablet Portrait: Vertical layout
+        <>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                padding: config.horizontalPadding + 4,
+                maxWidth: formMaxWidth,
+                alignSelf: formMaxWidth ? "center" : undefined,
+                width: formMaxWidth ? "100%" : undefined,
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {renderFormContent()}
+          </ScrollView>
 
-      {/* Continue Button */}
-      <View style={styles.footer}>
-        <Button
-          disabled={deliveryOption === "delivery" && includesHeavyItems}
-          title="Continue to Payment"
-          onPress={proceedToPayment}
-          icon={<Ionicons name="arrow-forward" size={20} color="white" />}
-        />
-      </View>
+          <View
+            style={[
+              styles.footer,
+              {
+                padding: config.horizontalPadding + 4,
+                paddingBottom:
+                  Platform.OS === "ios"
+                    ? isTablet
+                      ? 20
+                      : 24
+                    : isTablet
+                    ? 20
+                    : 16,
+              },
+            ]}
+          >
+            <Button
+              disabled={deliveryOption === "delivery" && includesHeavyItems}
+              title="Continue to Payment"
+              onPress={proceedToPayment}
+              icon={
+                <Ionicons
+                  name="arrow-forward"
+                  size={config.iconSize}
+                  color="white"
+                />
+              }
+            />
+          </View>
+        </>
+      )}
 
       {/* State Modal */}
       <Modal
@@ -1187,13 +1643,38 @@ export default function SelectShippingScreen() {
         onRequestClose={() => setShowStateModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: modalMaxWidth,
+                alignSelf: modalMaxWidth ? "center" : undefined,
+                width: modalMaxWidth ? "100%" : undefined,
+                maxHeight: isTablet ? "60%" : "60%",
+                borderRadius: isTablet ? 20 : 20,
+                ...(isTablet && {
+                  borderBottomLeftRadius: 20,
+                  borderBottomRightRadius: 20,
+                  marginBottom: 40,
+                }),
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { padding: config.horizontalPadding },
+              ]}
+            >
+              <Text
+                style={[styles.modalTitle, { fontSize: config.titleFontSize }]}
+              >
+                Select State
+              </Text>
               <TouchableOpacity onPress={() => setShowStateModal(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
               </TouchableOpacity>
@@ -1202,11 +1683,25 @@ export default function SelectShippingScreen() {
               {AUSTRALIAN_STATES.map((state) => (
                 <TouchableOpacity
                   key={state.value}
-                  style={styles.stateOption}
+                  style={[styles.stateOption, { padding: isTablet ? 18 : 16 }]}
                   onPress={() => handleStateSelect(state.value)}
                 >
-                  <Text style={styles.stateLabel}>{state.label}</Text>
-                  <Text style={styles.stateValue}>{state.value}</Text>
+                  <Text
+                    style={[
+                      styles.stateLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    {state.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.stateValue,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    {state.value}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -1222,9 +1717,32 @@ export default function SelectShippingScreen() {
         onRequestClose={() => setShowAddressSelector(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.addressModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+          <View
+            style={[
+              styles.addressModalContent,
+              {
+                maxWidth: modalMaxWidth,
+                alignSelf: modalMaxWidth ? "center" : undefined,
+                width: modalMaxWidth ? "100%" : undefined,
+                maxHeight: isTablet ? "80%" : "80%",
+                borderRadius: isTablet ? 20 : 20,
+                ...(isTablet && {
+                  borderBottomLeftRadius: 20,
+                  borderBottomRightRadius: 20,
+                  marginBottom: 40,
+                }),
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.modalHeader,
+                { padding: config.horizontalPadding },
+              ]}
+            >
+              <Text
+                style={[styles.modalTitle, { fontSize: config.titleFontSize }]}
+              >
                 Select{" "}
                 {addressSelectorType === "shipping" ? "Shipping" : "Billing"}{" "}
                 Address
@@ -1232,7 +1750,7 @@ export default function SelectShippingScreen() {
               <TouchableOpacity onPress={() => setShowAddressSelector(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
               </TouchableOpacity>
@@ -1244,15 +1762,30 @@ export default function SelectShippingScreen() {
                   size="large"
                   color={AppColors.primary[500]}
                 />
-                <Text style={styles.loadingText}>Loading addresses...</Text>
+                <Text
+                  style={[
+                    styles.loadingText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  Loading addresses...
+                </Text>
               </View>
             ) : (
-              <ScrollView style={styles.addressList}>
+              <ScrollView
+                style={styles.addressList}
+                contentContainerStyle={{ padding: config.horizontalPadding }}
+              >
                 {getFilteredAddresses(addressSelectorType).map((address) => (
                   <TouchableOpacity
                     key={address.id}
                     style={[
                       styles.addressCard,
+                      {
+                        padding: isTablet ? 16 : 14,
+                        borderRadius: config.cardBorderRadius,
+                        marginBottom: isTablet ? 14 : 12,
+                      },
                       (addressSelectorType === "shipping"
                         ? selectedShippingAddress?.id === address.id
                         : selectedBillingAddress?.id === address.id) &&
@@ -1262,44 +1795,104 @@ export default function SelectShippingScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={styles.addressCardHeader}>
-                      <View style={styles.addressLabelContainer}>
+                      <View
+                        style={[
+                          styles.addressLabelContainer,
+                          { gap: isTablet ? 8 : 6 },
+                        ]}
+                      >
                         <Ionicons
                           name={getLabelIcon(address.label)}
-                          size={16}
+                          size={config.iconSizeSmall}
                           color={AppColors.primary[600]}
                         />
-                        <Text style={styles.addressLabel}>
+                        <Text
+                          style={[
+                            styles.addressLabel,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
                           {address.label || "Address"}
                         </Text>
                         {address.is_default && (
                           <View style={styles.defaultBadge}>
-                            <Text style={styles.defaultBadgeText}>Default</Text>
+                            <Text
+                              style={[
+                                styles.defaultBadgeText,
+                                { fontSize: isTablet ? 11 : 10 },
+                              ]}
+                            >
+                              Default
+                            </Text>
                           </View>
                         )}
                       </View>
                     </View>
-                    <Text style={styles.addressName}>{address.full_name}</Text>
-                    <Text style={styles.addressPhone}>{address.phone}</Text>
-                    <Text style={styles.addressText}>
+                    <Text
+                      style={[
+                        styles.addressName,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
+                      {address.full_name}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.addressPhone,
+                        { fontSize: config.bodyFontSize - 1 },
+                      ]}
+                    >
+                      {address.phone}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.addressText,
+                        {
+                          fontSize: config.bodyFontSize - 1,
+                          lineHeight: (config.bodyFontSize - 1) * 1.4,
+                        },
+                      ]}
+                    >
                       {formatAddressDisplay(address)}
                     </Text>
                   </TouchableOpacity>
                 ))}
 
-                {/* Add New Address Button */}
                 <TouchableOpacity
-                  style={styles.addNewAddressCard}
+                  style={[
+                    styles.addNewAddressCard,
+                    {
+                      padding: isTablet ? 16 : 14,
+                      borderRadius: config.cardBorderRadius,
+                    },
+                  ]}
                   onPress={handleAddNewAddress}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.addNewAddressIcon}>
+                  <View
+                    style={[
+                      styles.addNewAddressIcon,
+                      {
+                        width: isTablet ? 44 : 40,
+                        height: isTablet ? 44 : 40,
+                        borderRadius: isTablet ? 22 : 20,
+                      },
+                    ]}
+                  >
                     <Ionicons
                       name="add"
-                      size={24}
+                      size={config.iconSizeLarge}
                       color={AppColors.primary[600]}
                     />
                   </View>
-                  <Text style={styles.addNewAddressText}>Add New Address</Text>
+                  <Text
+                    style={[
+                      styles.addNewAddressText,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Add New Address
+                  </Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -1320,15 +1913,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
     paddingBottom: 20,
   },
-  section: {
-    marginBottom: 16,
+  horizontalContainer: {
+    flex: 1,
+    flexDirection: "row",
   },
+  formColumn: {
+    flex: 1,
+  },
+  summaryColumn: {
+    width: "40%",
+    backgroundColor: AppColors.background.secondary,
+    borderLeftWidth: 1,
+    borderLeftColor: AppColors.gray[200],
+  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
     marginBottom: 12,
   },
@@ -1337,9 +1939,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: AppColors.primary[50],
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: AppColors.primary[200],
   },
@@ -1349,9 +1948,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   savedAddressIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
     backgroundColor: AppColors.background.primary,
     alignItems: "center",
     justifyContent: "center",
@@ -1362,16 +1958,13 @@ const styles = StyleSheet.create({
   },
   savedAddressTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.primary[700],
   },
   savedAddressSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.primary[600],
     marginTop: 2,
   },
-
   optionCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -1379,9 +1972,6 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.background.primary,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
   },
   optionCardSelected: {
     borderColor: AppColors.primary[500],
@@ -1393,23 +1983,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionText: {
-    marginLeft: 12,
     flex: 1,
   },
   optionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   optionSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   radio: {
-    width: 22,
-    height: 22,
     borderRadius: 11,
     borderWidth: 2,
     borderColor: AppColors.gray[300],
@@ -1420,21 +2005,16 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primary[500],
   },
   radioInner: {
-    width: 12,
-    height: 12,
     borderRadius: 6,
     backgroundColor: AppColors.primary[500],
   },
   calculatorCard: {
     backgroundColor: AppColors.primary[50],
-    borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: AppColors.primary[100],
   },
   calculatorDescription: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 14,
+    fontFamily: "Poppins_400Regular",
     color: AppColors.text.secondary,
     marginBottom: 12,
   },
@@ -1446,44 +2026,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEE2E2",
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
     gap: 8,
     borderWidth: 1,
     borderColor: "#FECACA",
   },
   warningText: {
     flex: 1,
-    fontFamily: "Poppins-Regular",
-    fontSize: 13,
+    fontFamily: "Poppins_400Regular",
     color: AppColors.error,
-  },
-  recalculateWarning: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
-  },
-  recalculateText: {
-    flex: 1,
-    fontFamily: "Poppins-Regular",
-    fontSize: 13,
-    color: "#92400E",
   },
   postcodeInput: {
     flex: 1,
     backgroundColor: "white",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -1496,20 +2051,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
-  shippingOptionsContainer: {
-    marginTop: 16,
-    gap: 10,
-  },
+  shippingOptionsContainer: {},
   shippingOption: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     backgroundColor: "white",
-    borderRadius: 10,
-    padding: 14,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -1522,29 +2071,22 @@ const styles = StyleSheet.create({
   },
   shippingOptionName: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   shippingOptionDelivery: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   shippingOptionRight: {
     alignItems: "flex-end",
-    gap: 8,
   },
   shippingOptionPrice: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 16,
     color: AppColors.primary[600],
   },
-  // Free Shipping Card Styles
   freeShippingCard: {
     backgroundColor: "#F0FDF4",
-    borderRadius: 12,
-    padding: 16,
     borderWidth: 1,
     borderColor: "#BBF7D0",
   },
@@ -1554,9 +2096,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   freeShippingIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     backgroundColor: "#DCFCE7",
     alignItems: "center",
     justifyContent: "center",
@@ -1567,29 +2106,12 @@ const styles = StyleSheet.create({
   },
   freeShippingTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: "#166534",
   },
   freeShippingSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: "#15803D",
     marginTop: 2,
-  },
-  freeShippingHint: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: AppColors.primary[100],
-  },
-  freeShippingHintText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 13,
-    color: AppColors.primary[700],
-    flex: 1,
   },
   shippingOptionFree: {
     borderColor: "#BBF7D0",
@@ -1598,12 +2120,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    gap: 12,
   },
   shippingOptionNameRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   shippingOptionPriceFree: {
     color: "#16A34A",
@@ -1616,18 +2136,12 @@ const styles = StyleSheet.create({
   },
   freeBadgeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     color: "#16A34A",
   },
   input: {
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -1636,14 +2150,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: -6,
     marginBottom: 8,
   },
   row: {
     flexDirection: "row",
-    gap: 12,
   },
   halfInput: {
     flex: 1,
@@ -1655,7 +2167,6 @@ const styles = StyleSheet.create({
   },
   selectText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   selectPlaceholder: {
@@ -1664,12 +2175,8 @@ const styles = StyleSheet.create({
   checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
     borderWidth: 2,
     borderColor: AppColors.gray[300],
     alignItems: "center",
@@ -1682,47 +2189,36 @@ const styles = StyleSheet.create({
   },
   checkboxLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   summaryCard: {
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
-    padding: 16,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
   },
   summaryLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   summaryValue: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   divider: {
     height: 1,
     backgroundColor: AppColors.gray[300],
-    marginVertical: 12,
   },
   totalLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   totalValue: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 20,
     color: AppColors.primary[600],
   },
   footer: {
-    padding: 20,
-    paddingBottom: 24,
     backgroundColor: AppColors.background.primary,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[200],
@@ -1736,56 +2232,44 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "60%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   stateOption: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
   },
   stateLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   stateValue: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   addressModalContent: {
     backgroundColor: "white",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: "80%",
   },
   addressLoadingContainer: {
     padding: 40,
     alignItems: "center",
   },
-  addressList: {
-    padding: 16,
-  },
+  addressList: {},
   addressCard: {
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
     borderWidth: 2,
     borderColor: "transparent",
   },
@@ -1802,11 +2286,9 @@ const styles = StyleSheet.create({
   addressLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
   },
   addressLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   defaultBadge: {
@@ -1818,42 +2300,32 @@ const styles = StyleSheet.create({
   },
   defaultBadgeText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 10,
     color: "white",
     textTransform: "uppercase",
   },
   addressName: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   addressPhone: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 2,
   },
   addressText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     marginTop: 4,
-    lineHeight: 18,
   },
   addNewAddressCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
-    padding: 14,
     borderWidth: 2,
     borderColor: AppColors.gray[200],
     borderStyle: "dashed",
   },
   addNewAddressIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
@@ -1861,7 +2333,6 @@ const styles = StyleSheet.create({
   },
   addNewAddressText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.primary[600],
   },
   discountLabelRow: {
@@ -1871,12 +2342,10 @@ const styles = StyleSheet.create({
   },
   discountLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: "#16A34A",
   },
   discountValue: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#16A34A",
   },
 })

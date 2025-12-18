@@ -72,27 +72,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const responseListener = useRef<Notifications.EventSubscription | null>(null)
 
   /**
-   * Fetch preferences from backend
-   */
-  async function fetchPreferences(): Promise<NotificationPreferences> {
-    if (!authToken) return DEFAULT_PREFERENCES
-
-    try {
-      const prefs = await getNotificationPreferences(authToken)
-      setPreferences(prefs)
-      return prefs
-    } catch (error) {
-      console.error("Error fetching notification preferences:", error)
-      return DEFAULT_PREFERENCES
-    }
-  }
-
-  /**
-   * Register for push notifications
+   * Register for push notifications (device-level)
+   * This should ALWAYS be attempted first, regardless of backend preferences
    */
   async function registerForPushNotifications(): Promise<string | null> {
-    let token: string | null = null
-
     // Must be a physical device
     if (!Device.isDevice) {
       setError("Push notifications require a physical device")
@@ -138,43 +121,132 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         projectId,
       })
 
-      token = pushToken.data
       if (__DEV__) {
-        console.log("Expo Push Token:", token)
+        console.log("Expo Push Token:", pushToken.data)
+        console.log("Platform:", Platform.OS)
       }
+
+      // Android-specific channel setup
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "Default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#F97316",
+        })
+
+        await Notifications.setNotificationChannelAsync("orders", {
+          name: "Order Updates",
+          description: "Notifications about your orders",
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#F97316",
+        })
+
+        await Notifications.setNotificationChannelAsync("promos", {
+          name: "Promotions",
+          description: "Special offers and discounts",
+          importance: Notifications.AndroidImportance.DEFAULT,
+        })
+      }
+
+      return pushToken.data
     } catch (e: any) {
       setError(e.message || "Failed to get push token")
       console.error("Error getting push token:", e)
       return null
     }
+  }
 
-    // Android-specific channel setup
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#F97316",
-      })
+  /**
+   * Register token with backend - this creates or updates the push token record
+   */
+  async function registerTokenWithBackend(
+    pushToken: string,
+    prefs: NotificationPreferences
+  ) {
+    if (!authToken) return
 
-      // Order updates channel
-      await Notifications.setNotificationChannelAsync("orders", {
-        name: "Order Updates",
-        description: "Notifications about your orders",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#F97316",
-      })
+    try {
+      const response = await registerPushToken(
+        {
+          token: pushToken,
+          platform: Platform.OS as "ios" | "android",
+          deviceName: Device.deviceName || undefined,
+          preferences: {
+            pushEnabled: true,
+            orderUpdates: prefs.orderUpdates,
+            promotions: prefs.promotions,
+            reminders: prefs.reminders,
+          },
+        },
+        authToken
+      )
+      setIsRegistered(true)
+      if (__DEV__) {
+        console.log("Push token registered with backend")
+      }
 
-      // Promotions channel
-      await Notifications.setNotificationChannelAsync("promos", {
-        name: "Promotions",
-        description: "Special offers and discounts",
-        importance: Notifications.AndroidImportance.DEFAULT,
-      })
+      if (response?.preferences) {
+        return {
+          pushEnabled: response.preferences.pushEnabled ?? true,
+          orderUpdates: response.preferences.orderUpdates ?? true,
+          promotions: response.preferences.promotions ?? true,
+          reminders: response.preferences.reminders ?? true,
+        }
+      }
+
+      return { ...prefs, pushEnabled: true }
+    } catch (e: any) {
+      console.error("Failed to register push token with backend:", e)
+      setError("Failed to register push token")
+      return prefs
     }
+  }
 
-    return token
+  /**
+   * Fetch preferences from backend
+   * Returns DEFAULT_PREFERENCES if no token exists yet
+
+   */
+  async function fetchPreferences(): Promise<NotificationPreferences> {
+    if (!authToken) return DEFAULT_PREFERENCES
+
+    try {
+      const prefs = await getNotificationPreferences(authToken)
+      setPreferences(prefs)
+      return prefs
+    } catch (error: any) {
+      // If 404 or no token found, return defaults (this is expected for new users)
+      if (
+        error?.response?.status === 404 ||
+        error?.message?.includes("not found")
+      ) {
+        if (__DEV__) {
+          console.log("No existing push token found, will create one")
+        }
+        return DEFAULT_PREFERENCES
+      }
+      console.error("Error fetching notification preferences:", error)
+      return DEFAULT_PREFERENCES
+    }
+  }
+
+  /**
+   * Fetch unread count
+   */
+  async function fetchUnreadCount() {
+    if (!authToken) return
+
+    try {
+      const count = await getUnreadCount(authToken)
+      setUnreadCount(count)
+
+      // Update badge
+      await Notifications.setBadgeCountAsync(count)
+    } catch (e) {
+      console.error("Failed to fetch unread count:", e)
+    }
   }
 
   /**
@@ -255,56 +327,6 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   }
 
   /**
-   * Register token with backend
-   */
-  async function registerTokenWithBackend(
-    pushToken: string,
-    prefs: NotificationPreferences
-  ) {
-    if (!authToken) return
-
-    try {
-      await registerPushToken(
-        {
-          token: pushToken,
-          platform: Platform.OS as "ios" | "android",
-          deviceName: Device.deviceName || undefined,
-          preferences: {
-            orderUpdates: prefs.orderUpdates,
-            promotions: prefs.promotions,
-            reminders: prefs.reminders,
-          },
-        },
-        authToken
-      )
-      setIsRegistered(true)
-      if (__DEV__) {
-        console.log("Push token registered with backend")
-      }
-    } catch (e: any) {
-      console.error("Failed to register push token with backend:", e)
-      setError("Failed to register push token")
-    }
-  }
-
-  /**
-   * Fetch unread count
-   */
-  async function fetchUnreadCount() {
-    if (!authToken) return
-
-    try {
-      const count = await getUnreadCount(authToken)
-      setUnreadCount(count)
-
-      // Update badge
-      await Notifications.setBadgeCountAsync(count)
-    } catch (e) {
-      console.error("Failed to fetch unread count:", e)
-    }
-  }
-
-  /**
    * Refresh preferences (can be called from outside)
    */
   async function refreshPreferences() {
@@ -324,28 +346,48 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     let isMounted = true
 
     async function init() {
-      // Check if user has disabled push notifications in preferences
-      const prefs = await fetchPreferences()
+      if (__DEV__) {
+        console.log("=== PUSH NOTIFICATION INIT ===")
+        console.log("Platform:", Platform.OS)
+        console.log("Is Device:", Device.isDevice)
+      }
 
-      if (!prefs.pushEnabled) {
+      // STEP 1: Always try to get the device push token first
+      // This is independent of backend preferences
+      const token = await registerForPushNotifications()
+
+      if (!token) {
         if (__DEV__) {
-          console.log("Push notifications disabled in user preferences")
+          console.log("Failed to get push token, skipping backend registration")
         }
         // Still fetch unread count for in-app display
         await fetchUnreadCount()
         return
       }
 
-      // Register for push notifications
-      const token = await registerForPushNotifications()
+      if (!isMounted) return
 
-      if (token && isMounted) {
-        setExpoPushToken(token)
-        await registerTokenWithBackend(token, prefs)
+      setExpoPushToken(token)
+
+      // STEP 2: Fetch existing preferences (or get defaults if none exist)
+      const existingPrefs = await fetchPreferences()
+
+      // STEP 3: Register/update token with backend
+      // This will CREATE the push token record if it doesn't exist
+      const updatedPrefs = await registerTokenWithBackend(token, existingPrefs)
+
+      if (isMounted) {
+        setPreferences(updatedPrefs ?? existingPrefs)
       }
 
-      // Fetch initial unread count
+      // STEP 4: Fetch initial unread count
       await fetchUnreadCount()
+
+      if (__DEV__) {
+        console.log("=== PUSH NOTIFICATION INIT COMPLETE ===")
+        console.log("Token:", token)
+        console.log("Preferences:", updatedPrefs)
+      }
     }
 
     init()
