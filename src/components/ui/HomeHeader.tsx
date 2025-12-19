@@ -1,7 +1,7 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect } from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
@@ -11,6 +11,7 @@ import { useCartStore } from "@/src/store/cartStore"
 import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 import Logo from "../common/Logo"
+import DebouncedTouchable from "./DebouncedTouchable"
 
 const HomeHeader = () => {
   const router = useRouter()
@@ -43,7 +44,7 @@ const HomeHeader = () => {
 
         <View style={[styles.iconContainer, { gap: isTablet ? 12 : 8 }]}>
           {/* Search Button */}
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.iconButton,
               { width: iconButtonSize, height: iconButtonSize },
@@ -56,12 +57,12 @@ const HomeHeader = () => {
               size={iconSize}
               color={AppColors.primary[700]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
 
           {token && (
             <>
               {/* Favorites Button */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.iconButton,
                   { width: iconButtonSize, height: iconButtonSize },
@@ -95,10 +96,10 @@ const HomeHeader = () => {
                     </Text>
                   </View>
                 )}
-              </TouchableOpacity>
+              </DebouncedTouchable>
 
               {/* Notifications Button */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.iconButton,
                   { width: iconButtonSize, height: iconButtonSize },
@@ -132,10 +133,10 @@ const HomeHeader = () => {
                     </Text>
                   </View>
                 )}
-              </TouchableOpacity>
+              </DebouncedTouchable>
 
               {/* Cart Button */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.iconButton,
                   { width: iconButtonSize, height: iconButtonSize },
@@ -169,7 +170,7 @@ const HomeHeader = () => {
                     </Text>
                   </View>
                 )}
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </>
           )}
         </View>

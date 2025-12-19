@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { formatDistanceToNow } from "date-fns"
 import React from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
@@ -10,6 +10,7 @@ import {
   NOTIFICATION_COLORS,
   NOTIFICATION_ICONS,
 } from "@/src/types/notifications"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface NotificationCardProps {
   notification: Notification
@@ -40,7 +41,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   const deleteIconSize = isTablet ? 20 : 18
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.container,
         {
@@ -143,7 +144,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
 
       {/* Delete button */}
       {onDelete && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[styles.deleteButton, { marginLeft: isTablet ? 10 : 8 }]}
           onPress={(e) => {
             e.stopPropagation()
@@ -156,9 +157,9 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
             size={deleteIconSize}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

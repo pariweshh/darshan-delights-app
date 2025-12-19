@@ -1,9 +1,10 @@
 import { FontAwesome } from "@expo/vector-icons"
 import React from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface RatingProps {
   rating: number
@@ -78,14 +79,14 @@ const Rating: React.FC<RatingProps> = ({
 
       if (interactive) {
         stars.push(
-          <TouchableOpacity
+          <DebouncedTouchable
             key={i}
             onPress={() => handleStarPress(i)}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
             {starElement}
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )
       } else {
         stars.push(starElement)

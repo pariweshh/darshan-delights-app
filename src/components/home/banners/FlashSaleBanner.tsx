@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface FlashSaleBannerProps {
   endTime?: Date
@@ -55,7 +56,7 @@ export default function FlashSaleBanner({
   const formatNumber = (num: number) => num.toString().padStart(2, "0")
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={styles.container}
       onPress={handlePress}
       activeOpacity={0.95}
@@ -117,7 +118,7 @@ export default function FlashSaleBanner({
           <Ionicons name="arrow-forward" size={16} color="#fff" />
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

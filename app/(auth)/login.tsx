@@ -8,12 +8,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -180,7 +180,7 @@ export default function LoginScreen() {
                     value={password}
                     onChangeText={setPassword}
                   />
-                  <TouchableOpacity
+                  <DebouncedTouchable
                     style={[
                       styles.showPasswordButton,
                       { top: isTablet ? 18 : 16, right: isTablet ? 18 : 16 },
@@ -195,12 +195,12 @@ export default function LoginScreen() {
                     >
                       {showPassword ? "Hide" : "Show"}
                     </Text>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 </View>
               </View>
 
               {/* Forgot Password */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.forgotPassword}
                 onPress={() => router.push("/(auth)/forgot-password")}
               >
@@ -212,7 +212,7 @@ export default function LoginScreen() {
                 >
                   Forgot Password?
                 </Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
 
               {/* Login Button */}
               <View style={{ marginTop: isTablet ? 12 : 8 }}>
@@ -236,7 +236,7 @@ export default function LoginScreen() {
                   Don't have an account?{" "}
                 </Text>
                 <Link href="/(auth)/signup" asChild>
-                  <TouchableOpacity>
+                  <DebouncedTouchable>
                     <Text
                       style={[
                         styles.linkHighlight,
@@ -245,12 +245,12 @@ export default function LoginScreen() {
                     >
                       Sign Up
                     </Text>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 </Link>
               </View>
 
               {/* Browse as Guest */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[styles.guestButton, { marginTop: isTablet ? 20 : 16 }]}
                 onPress={() => router.replace("/(tabs)/home")}
               >
@@ -259,7 +259,7 @@ export default function LoginScreen() {
                 >
                   Browse as Guest
                 </Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
           </View>
         </ScrollView>

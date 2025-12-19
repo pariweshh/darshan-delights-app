@@ -8,12 +8,12 @@ import {
   ImageSourcePropType,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface BrandPromoBannerProps {
   brandName: string
@@ -65,7 +65,7 @@ export default function BrandPromoBanner({
   const maxWidth = isTablet && isLandscape ? width * 0.7 : undefined
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.container,
         {
@@ -223,7 +223,7 @@ export default function BrandPromoBanner({
           </View>
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

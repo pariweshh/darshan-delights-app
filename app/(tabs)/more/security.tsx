@@ -9,7 +9,6 @@ import {
   Switch,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -17,6 +16,7 @@ import Toast from "react-native-toast-message"
 
 import { updatePassword } from "@/src/api/auth"
 import Loader from "@/src/components/common/Loader"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useBiometricAuth } from "@/src/hooks/useBiometricAuth"
 import { useAuthStore } from "@/src/store/authStore"
@@ -367,7 +367,7 @@ export default function SecurityScreen() {
 
             {/* Test Button */}
             {isBiometricAvailable && biometricAuthEnabled && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.testButton}
                 onPress={handleTestBiometrics}
                 activeOpacity={0.7}
@@ -375,7 +375,7 @@ export default function SecurityScreen() {
               >
                 <Ionicons name={biometricIcon as any} size={20} color="white" />
                 <Text style={styles.testButtonText}>Test {biometricType}</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
           </View>
         </View>
@@ -385,7 +385,7 @@ export default function SecurityScreen() {
           <Text style={styles.sectionTitle}>Password</Text>
 
           <View style={styles.card}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.menuItem}
               onPress={() => setShowPasswordModal(true)}
               activeOpacity={0.7}
@@ -410,7 +410,7 @@ export default function SecurityScreen() {
                 size={20}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
 
@@ -444,11 +444,11 @@ export default function SecurityScreen() {
         <SafeAreaView style={styles.modalContainer}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={handleClosePasswordModal}>
+            <DebouncedTouchable onPress={handleClosePasswordModal}>
               <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
             <Text style={styles.modalTitle}>Change Password</Text>
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={handlePasswordChange}
               disabled={isSavingPassword}
             >
@@ -460,7 +460,7 @@ export default function SecurityScreen() {
               >
                 {isSavingPassword ? "Saving..." : "Save"}
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           {/* Modal Content */}
@@ -496,7 +496,7 @@ export default function SecurityScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={styles.eyeButton}
                   onPress={() =>
                     setShowPasswords({
@@ -512,7 +512,7 @@ export default function SecurityScreen() {
                     size={20}
                     color={AppColors.gray[500]}
                   />
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
               {passwordErrors.currentPassword && (
                 <Text style={styles.errorText}>
@@ -545,7 +545,7 @@ export default function SecurityScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={styles.eyeButton}
                   onPress={() =>
                     setShowPasswords({
@@ -559,7 +559,7 @@ export default function SecurityScreen() {
                     size={20}
                     color={AppColors.gray[500]}
                   />
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
               {passwordErrors.newPassword && (
                 <Text style={styles.errorText}>
@@ -625,7 +625,7 @@ export default function SecurityScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={styles.eyeButton}
                   onPress={() =>
                     setShowPasswords({
@@ -641,7 +641,7 @@ export default function SecurityScreen() {
                     size={20}
                     color={AppColors.gray[500]}
                   />
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
               {passwordErrors.confirmPassword && (
                 <Text style={styles.errorText}>

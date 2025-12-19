@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -13,6 +12,7 @@ import Toast from "react-native-toast-message"
 import { ValidatedCoupon, validateCoupon } from "@/src/api/coupon"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CouponInputProps {
   subtotal: number
@@ -129,7 +129,7 @@ export default function CouponInput({
             </Text>
           </View>
         </View>
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={handleRemove}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.removeButton}
@@ -139,7 +139,7 @@ export default function CouponInput({
             size={isTablet ? 24 : 22}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
     )
   }
@@ -147,7 +147,7 @@ export default function CouponInput({
   // Collapsed state
   if (!isExpanded) {
     return (
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.addCouponButton,
           {
@@ -174,7 +174,7 @@ export default function CouponInput({
           size={config.iconSize}
           color={AppColors.gray[400]}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
     )
   }
 
@@ -196,7 +196,7 @@ export default function CouponInput({
         <Text style={[styles.label, { fontSize: config.bodyFontSize }]}>
           Promo Code
         </Text>
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={() => {
             setIsExpanded(false)
             setError(null)
@@ -209,7 +209,7 @@ export default function CouponInput({
             size={config.iconSize}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       <View style={[styles.inputRow, { gap: isTablet ? 12 : 10 }]}>
@@ -249,7 +249,7 @@ export default function CouponInput({
             autoFocus
           />
           {code.length > 0 && !isValidating && (
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={() => setCode("")}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
@@ -258,10 +258,10 @@ export default function CouponInput({
                 size={config.iconSize}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
         </View>
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.applyButton,
             (!code.trim() || isValidating) && styles.applyButtonDisabled,
@@ -287,7 +287,7 @@ export default function CouponInput({
               Apply
             </Text>
           )}
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       {error && (

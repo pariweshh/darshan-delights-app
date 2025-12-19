@@ -7,7 +7,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -27,6 +26,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import RatingSummary from "@/src/components/reviews/RatingSummary"
 import ReviewCard from "@/src/components/reviews/ReviewCard"
 import WriteReviewModal from "@/src/components/reviews/WriteReviewModal"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 type SortOption = "newest" | "oldest" | "highest" | "lowest"
 
@@ -201,7 +201,7 @@ export default function ProductReviewsScreen() {
 
       {/* Write Review Button */}
       {token && (canReview || userReview) && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.writeReviewButton}
           onPress={() => setShowWriteReviewModal(true)}
           activeOpacity={0.7}
@@ -214,7 +214,7 @@ export default function ProductReviewsScreen() {
           <Text style={styles.writeReviewText}>
             {userReview ? "Edit Your Review" : "Write a Review"}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* User's Review */}
@@ -235,7 +235,7 @@ export default function ProductReviewsScreen() {
           <Text style={styles.reviewCountText}>
             {reviewStats?.totalReviews || 0} Reviews
           </Text>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.sortButton}
             onPress={() => setShowSortPicker(!showSortPicker)}
             activeOpacity={0.7}
@@ -248,7 +248,7 @@ export default function ProductReviewsScreen() {
               size={16}
               color={AppColors.text.secondary}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       )}
 
@@ -256,7 +256,7 @@ export default function ProductReviewsScreen() {
       {showSortPicker && (
         <View style={styles.sortPicker}>
           {SORT_OPTIONS.map((option) => (
-            <TouchableOpacity
+            <DebouncedTouchable
               key={option.value}
               style={[
                 styles.sortOption,
@@ -280,7 +280,7 @@ export default function ProductReviewsScreen() {
                   color={AppColors.primary[600]}
                 />
               )}
-            </TouchableOpacity>
+            </DebouncedTouchable>
           ))}
         </View>
       )}

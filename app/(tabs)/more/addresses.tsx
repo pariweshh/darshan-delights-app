@@ -7,20 +7,14 @@ import AddressCard from "@/src/components/addresses/AddressCard"
 import EmptyState from "@/src/components/common/EmptyState"
 import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { Address } from "@/src/types/address"
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
 import React, { useCallback, useState } from "react"
-import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native"
 import Toast from "react-native-toast-message"
 
 export default function AddressesScreen() {
@@ -241,13 +235,13 @@ export default function AddressesScreen() {
       />
 
       {/* Floating Add Button */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={styles.fab}
         onPress={handleAddAddress}
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
+      </DebouncedTouchable>
     </Wrapper>
   )
 }

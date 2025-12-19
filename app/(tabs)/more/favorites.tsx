@@ -9,7 +9,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -19,6 +18,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import ProductCard from "@/src/components/product/ProductCard"
 import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -137,7 +137,7 @@ export default function FavoritesScreenTab() {
         {favoriteCount} {favoriteCount === 1 ? "item" : "items"}
       </Text>
       {favoriteCount > 0 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={handleClearAll}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -147,7 +147,7 @@ export default function FavoritesScreenTab() {
           >
             Clear All
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
     </View>
   )
@@ -238,7 +238,7 @@ export default function FavoritesScreenTab() {
             onPress={navigateToLogin}
             containerStyles="mt-6 px-12"
           />
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.browseButton,
               { paddingVertical: isTablet ? 14 : 12 },
@@ -251,7 +251,7 @@ export default function FavoritesScreenTab() {
             >
               Browse Products
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       </Wrapper>
     )

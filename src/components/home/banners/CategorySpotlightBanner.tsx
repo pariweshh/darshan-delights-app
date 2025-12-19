@@ -7,12 +7,12 @@ import {
   ImageSourcePropType,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface CategorySpotlightBannerProps {
   categoryName: string
@@ -62,7 +62,7 @@ export default function CategorySpotlightBanner({
   const maxWidth = isTablet && isLandscape ? width * 0.6 : undefined
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.container,
         {
@@ -145,7 +145,7 @@ export default function CategorySpotlightBanner({
           <Ionicons name="arrow-forward" size={arrowIconSize} color="#fff" />
         </View>
       </View>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

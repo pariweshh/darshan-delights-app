@@ -2,14 +2,8 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Brand } from "@/src/types"
 import { AntDesign } from "@expo/vector-icons"
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface FilterModalProps {
   visible: boolean
@@ -94,13 +88,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
             <Text style={[styles.title, { fontSize: config.titleFontSize }]}>
               Filter & Sort
             </Text>
-            <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+            <DebouncedTouchable onPress={onClose} activeOpacity={0.7}>
               <AntDesign
                 name="close"
                 size={config.iconSizeLarge}
                 color={AppColors.text.primary}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -132,7 +126,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   ]}
                 >
                   {brands.map((brand) => (
-                    <TouchableOpacity
+                    <DebouncedTouchable
                       key={brand.id}
                       style={[
                         styles.brandChip,
@@ -161,7 +155,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       >
                         {brand.name}
                       </Text>
-                    </TouchableOpacity>
+                    </DebouncedTouchable>
                   ))}
                 </ScrollView>
               </View>
@@ -183,7 +177,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 Sort By
               </Text>
               {SORT_OPTIONS.map((option) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={option.value}
                   style={[
                     styles.sortOption,
@@ -214,7 +208,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   >
                     {option.label}
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </View>
 
@@ -259,7 +253,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                       >
                         {brand.name}
                       </Text>
-                      <TouchableOpacity
+                      <DebouncedTouchable
                         onPress={() => onBrandToggle(brand)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
@@ -268,7 +262,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           size={config.iconSizeSmall - 2}
                           color={AppColors.text.secondary}
                         />
-                      </TouchableOpacity>
+                      </DebouncedTouchable>
                     </View>
                   ))}
                   {activeSortOption && (
@@ -292,7 +286,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                         {SORT_OPTIONS.find((o) => o.value === activeSortOption)
                           ?.label || "Sorted"}
                       </Text>
-                      <TouchableOpacity
+                      <DebouncedTouchable
                         onPress={() => onSortChange("")}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
@@ -301,7 +295,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
                           size={config.iconSizeSmall - 2}
                           color={AppColors.text.secondary}
                         />
-                      </TouchableOpacity>
+                      </DebouncedTouchable>
                     </View>
                   )}
                 </View>
@@ -310,7 +304,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
             {/* Reset Button */}
             {isFilterActive && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.resetButton,
                   {
@@ -330,12 +324,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
                 >
                   Reset All Filters
                 </Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
           </ScrollView>
 
           {/* Apply Button */}
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.applyButton,
               {
@@ -356,7 +350,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
               Apply Filters
               {productCount > 0 ? ` (${productCount} products)` : ""}
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       </View>
     </Modal>

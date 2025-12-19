@@ -1,15 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import * as Updates from "expo-updates"
 import React, { Component, ErrorInfo, ReactNode } from "react"
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
   children: ReactNode
@@ -105,16 +100,16 @@ class ErrorBoundary extends Component<Props, State> {
 
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.primaryButton}
                 onPress={this.handleRetry}
                 activeOpacity={0.8}
               >
                 <Ionicons name="refresh" size={20} color="white" />
                 <Text style={styles.primaryButtonText}>Try Again</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
 
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.secondaryButton}
                 onPress={this.handleRestart}
                 activeOpacity={0.8}
@@ -125,7 +120,7 @@ class ErrorBoundary extends Component<Props, State> {
                   color={AppColors.primary[600]}
                 />
                 <Text style={styles.secondaryButtonText}>Restart App</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
 
             {/* Error Details (Development Only) */}

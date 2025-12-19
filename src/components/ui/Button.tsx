@@ -6,10 +6,10 @@ import {
   StyleSheet,
   Text,
   TextStyle,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
+import DebouncedTouchable from "./DebouncedTouchable"
 
 interface ButtonProps {
   title: string | JSX.Element
@@ -50,7 +50,7 @@ const Button: React.FC<ButtonProps> = ({
   const textStyles = [styles.text, styles[`${variant}Text`], textStyle]
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={buttonStyle}
       onPress={onPress}
       disabled={disabled || loading}
@@ -71,7 +71,7 @@ const Button: React.FC<ButtonProps> = ({
           </Text>
         </View>
       )}
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

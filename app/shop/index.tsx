@@ -6,7 +6,6 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -23,6 +22,7 @@ import ActiveFilters from "@/src/components/shop/ActiveFilters"
 import CategoryChips from "@/src/components/shop/CategoryChips"
 import FilterModal from "@/src/components/shop/FilterModal"
 import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 const ITEMS_PER_PAGE = 12
 
@@ -263,7 +263,7 @@ export default function ShopScreen() {
         { paddingHorizontal: config.horizontalPadding },
       ]}
     >
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.backButton,
           {
@@ -280,7 +280,7 @@ export default function ShopScreen() {
           size={config.iconSizeLarge}
           color={AppColors.text.primary}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       <Text
         style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
@@ -291,7 +291,7 @@ export default function ShopScreen() {
           : "Shop"}
       </Text>
 
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.headerCartButton,
           {
@@ -326,7 +326,7 @@ export default function ShopScreen() {
             </Text>
           </View>
         )}
-      </TouchableOpacity>
+      </DebouncedTouchable>
     </View>
   )
 
@@ -342,7 +342,7 @@ export default function ShopScreen() {
           },
         ]}
       >
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.searchContainer}
           onPress={() => router.push("/(tabs)/search")}
           activeOpacity={0.7}
@@ -371,9 +371,9 @@ export default function ShopScreen() {
               Search products...
             </Text>
           </View>
-        </TouchableOpacity>
+        </DebouncedTouchable>
 
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.filterButton,
             isFilterActive && styles.filterButtonActive,
@@ -393,7 +393,7 @@ export default function ShopScreen() {
               isFilterActive ? AppColors.primary[500] : AppColors.text.primary
             }
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       {/* Category Chips */}

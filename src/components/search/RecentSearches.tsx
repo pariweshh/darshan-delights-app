@@ -1,14 +1,9 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface RecentSearchesProps {
   searches: string[]
@@ -57,13 +52,13 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
             Recent Searches
           </Text>
         </View>
-        <TouchableOpacity onPress={onClearAll} activeOpacity={0.7}>
+        <DebouncedTouchable onPress={onClearAll} activeOpacity={0.7}>
           <Text
             style={[styles.clearAllText, { fontSize: config.bodyFontSize - 1 }]}
           >
             Clear All
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       {/* Search Items */}
@@ -80,7 +75,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
       >
         {searches.map((search, index) => (
           <View key={`${search}-${index}`} style={styles.chipContainer}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.chip,
                 {
@@ -94,8 +89,8 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
               <Text style={[styles.chipText, { fontSize: chipFontSize }]}>
                 {search}
               </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </DebouncedTouchable>
+            <DebouncedTouchable
               style={[
                 styles.removeButton,
                 {
@@ -111,7 +106,7 @@ const RecentSearches: React.FC<RecentSearchesProps> = ({
                 size={removeIconSize}
                 color={AppColors.gray[500]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         ))}
       </ScrollView>

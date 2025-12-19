@@ -6,7 +6,6 @@ import {
   StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
@@ -23,6 +22,7 @@ import {
   windowWidth,
 } from "@/src/themes/app.constants"
 import { Product } from "@/src/types"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface BigProductCardProps {
   product: Product
@@ -153,7 +153,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
 
   return (
     <View style={[styles.wrapper, linkStyle]}>
-      <TouchableOpacity
+      <DebouncedTouchable
         onPress={handlePress}
         style={styles.container}
         activeOpacity={0.8}
@@ -177,7 +177,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
             </View>
 
             {/* Favorite Button */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.favoriteButton,
                 isFav && styles.favoriteButtonActive,
@@ -190,7 +190,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
                 size={18}
                 color={isFav ? "white" : AppColors.gray[500]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           {/* Details Section */}
@@ -234,7 +234,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
             />
           </View>
         </View>
-      </TouchableOpacity>
+      </DebouncedTouchable>
     </View>
   )
 }

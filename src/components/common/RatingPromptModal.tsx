@@ -1,13 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import React, { useEffect, useState } from "react"
-import {
-  Animated,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Animated, Modal, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import {
@@ -16,6 +9,7 @@ import {
   openAppStorePage,
   requestInAppReview,
 } from "@/src/services/appRating"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface RatingPromptModalProps {
   visible: boolean
@@ -95,7 +89,7 @@ export default function RatingPromptModal({
     return (
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
+          <DebouncedTouchable
             key={star}
             onPress={() => handleStarPress(star)}
             activeOpacity={0.7}
@@ -106,7 +100,7 @@ export default function RatingPromptModal({
               size={40}
               color={selectedRating >= star ? "#FBBF24" : AppColors.gray[300]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         ))}
       </View>
     )
@@ -127,7 +121,7 @@ export default function RatingPromptModal({
             </Text>
             {renderStars()}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.primaryButton,
                   !selectedRating && styles.buttonDisabled,
@@ -137,16 +131,16 @@ export default function RatingPromptModal({
                 activeOpacity={0.8}
               >
                 <Text style={styles.primaryButtonText}>Submit</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
               <View style={styles.secondaryButtons}>
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={styles.textButton}
                   onPress={handleDismiss}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.textButtonText}>Maybe Later</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+                </DebouncedTouchable>
+                <DebouncedTouchable
                   style={styles.textButton}
                   onPress={handleNeverAsk}
                   activeOpacity={0.7}
@@ -154,7 +148,7 @@ export default function RatingPromptModal({
                   <Text style={[styles.textButtonText, styles.neverAskText]}>
                     Don't Ask Again
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
             </View>
           </>
@@ -172,7 +166,7 @@ export default function RatingPromptModal({
               improve?
             </Text>
             <View style={styles.buttonContainer}>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.primaryButton}
                 onPress={handleSendFeedback}
                 activeOpacity={0.8}
@@ -184,8 +178,8 @@ export default function RatingPromptModal({
                   style={{ marginRight: 8 }}
                 />
                 <Text style={styles.primaryButtonText}>Send Feedback</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
+              </DebouncedTouchable>
+              <DebouncedTouchable
                 style={styles.secondaryButton}
                 onPress={() => {
                   markAsRated()
@@ -194,7 +188,7 @@ export default function RatingPromptModal({
                 activeOpacity={0.8}
               >
                 <Text style={styles.secondaryButtonText}>No Thanks</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
           </>
         )
@@ -233,13 +227,13 @@ export default function RatingPromptModal({
         >
           {/* Close Button */}
           {step !== "thanks" && (
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.closeButton}
               onPress={handleDismiss}
               activeOpacity={0.7}
             >
               <Ionicons name="close" size={24} color={AppColors.gray[400]} />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
 
           {renderContent()}

@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 
@@ -23,6 +22,7 @@ import {
   NotificationPreferences,
   updateNotificationPreferences,
 } from "@/src/api/pushTokens"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { usePushNotifications } from "@/src/hooks/usePushNotifications"
 import { useAuthStore } from "@/src/store/authStore"
@@ -253,7 +253,7 @@ export default function NotificationSettingsScreen() {
       >
         {/* System Permission Warning */}
         {systemPermission === false && (
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.warningCard}
             onPress={openSystemSettings}
             activeOpacity={0.7}
@@ -278,7 +278,7 @@ export default function NotificationSettingsScreen() {
               size={20}
               color={AppColors.gray[400]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
 
         {/* Master Toggle */}

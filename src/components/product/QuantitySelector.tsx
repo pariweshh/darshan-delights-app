@@ -1,6 +1,7 @@
 import AppColors from "@/src/constants/Colors"
 import { AntDesign } from "@expo/vector-icons"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface QuantitySelectorProps {
   quantity: number
@@ -24,7 +25,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <DebouncedTouchable
         onPress={onDecrease}
         style={[styles.button, !canDecrease && styles.buttonDisabled]}
         disabled={!canDecrease}
@@ -35,13 +36,13 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           size={18}
           color={canDecrease ? AppColors.primary[600] : AppColors.gray[400]}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       <View style={styles.quantityContainer}>
         <Text style={styles.quantity}>{quantity}</Text>
       </View>
 
-      <TouchableOpacity
+      <DebouncedTouchable
         onPress={onIncrease}
         style={[styles.button, !canIncrease && styles.buttonDisabled]}
         disabled={!canIncrease}
@@ -52,7 +53,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
           size={18}
           color={canIncrease ? AppColors.primary[600] : AppColors.gray[400]}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
     </View>
   )
 }

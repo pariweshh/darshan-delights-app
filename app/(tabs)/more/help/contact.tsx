@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"
@@ -17,6 +16,7 @@ import Toast from "react-native-toast-message"
 import { sendMessage } from "@/src/api/contact"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 
@@ -190,13 +190,13 @@ export default function ContactScreen() {
                   {method.description}
                 </Text>
               </View>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.contactAction}
                 onPress={method.onPress}
                 activeOpacity={0.7}
               >
                 <Text style={styles.contactActionText}>{method.action}</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
           ))}
         </View>
@@ -246,7 +246,7 @@ export default function ContactScreen() {
             {/* Subject */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Subject *</Text>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[styles.selector, errors.subject && styles.inputError]}
                 onPress={() => setShowSubjectModal(true)}
                 activeOpacity={0.7}
@@ -264,7 +264,7 @@ export default function ContactScreen() {
                   size={20}
                   color={AppColors.gray[400]}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
               {errors.subject && (
                 <Text style={styles.errorText}>{errors.subject}</Text>
               )}
@@ -315,17 +315,17 @@ export default function ContactScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Subject</Text>
-              <TouchableOpacity onPress={() => setShowSubjectModal(false)}>
+              <DebouncedTouchable onPress={() => setShowSubjectModal(false)}>
                 <Ionicons
                   name="close"
                   size={24}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
             <ScrollView>
               {SUBJECTS.map((subject, index) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={index}
                   style={[
                     styles.modalOption,
@@ -356,7 +356,7 @@ export default function ContactScreen() {
                       color={AppColors.primary[600]}
                     />
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </ScrollView>
           </View>

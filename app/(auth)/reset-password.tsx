@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -19,6 +18,7 @@ import Toast from "react-native-toast-message"
 
 import { resetPassword } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 
@@ -246,7 +246,7 @@ export default function ResetPasswordScreen() {
                   autoCapitalize="none"
                   editable={!isLoading}
                 />
-                <TouchableOpacity
+                <DebouncedTouchable
                   onPress={() => setShowPassword(!showPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -255,7 +255,7 @@ export default function ResetPasswordScreen() {
                     size={config.iconSize}
                     color={AppColors.gray[400]}
                   />
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
               {errors.password && (
                 <Text
@@ -368,7 +368,7 @@ export default function ResetPasswordScreen() {
                   autoCapitalize="none"
                   editable={!isLoading}
                 />
-                <TouchableOpacity
+                <DebouncedTouchable
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -379,7 +379,7 @@ export default function ResetPasswordScreen() {
                     size={config.iconSize}
                     color={AppColors.gray[400]}
                   />
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
               {errors.confirmPassword && (
                 <Text

@@ -1,17 +1,11 @@
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { FlatList, Image, StyleSheet, Text, View } from "react-native"
 
 import { getUserOrders } from "@/src/api/orders"
 import EmptyState from "@/src/components/common/EmptyState"
 import Loader from "@/src/components/common/Loader"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { CartItem, Order } from "@/src/types"
@@ -58,7 +52,7 @@ export default function PurchasedBeforeScreen() {
 
   const renderItem = useCallback(
     ({ item }: { item: CartItem }) => (
-      <TouchableOpacity
+      <DebouncedTouchable
         onPress={() => router.push(`/product/${item.product_id}`)}
         style={styles.productCard}
         activeOpacity={0.8}
@@ -72,7 +66,7 @@ export default function PurchasedBeforeScreen() {
           {item.name}
         </Text>
         <Text style={styles.productPrice}>${item.unit_price?.toFixed(2)}</Text>
-      </TouchableOpacity>
+      </DebouncedTouchable>
     ),
     [router]
   )

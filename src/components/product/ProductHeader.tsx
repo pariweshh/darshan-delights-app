@@ -1,8 +1,9 @@
 import AppColors from "@/src/constants/Colors"
 import { FontAwesome, Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { StyleSheet, TouchableOpacity, View } from "react-native"
+import { StyleSheet, View } from "react-native"
 import ShareButton from "../common/ShareButton"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ProductHeaderProps {
   isFavorite: boolean
@@ -32,7 +33,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   return (
     <View style={styles.container}>
       {/* Back Button */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={styles.button}
         onPress={handleGoBack}
         activeOpacity={0.7}
@@ -42,14 +43,14 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
           size={24}
           color={AppColors.text.primary}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {/* Right Actions */}
       <View style={styles.rightActions}>
         {showShare && <ShareButton onPress={onShare} />}
 
         {showFavorite && (
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[styles.button, isFavorite && styles.favoriteActive]}
             onPress={onToggleFavorite}
             activeOpacity={0.7}
@@ -59,7 +60,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
               size={20}
               color={isFavorite ? "white" : AppColors.text.primary}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
       </View>
     </View>

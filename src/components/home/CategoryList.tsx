@@ -2,14 +2,8 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CategoryListProps {
   categories: Category[]
@@ -76,7 +70,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
       contentContainerStyle={[styles.scrollContent, { gap: config.gapSmall }]}
     >
       {/* All Products Button */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[styles.categoryButton, { width: config.categoryItemWidth }]}
         onPress={() => onCategoryPress(null)}
         activeOpacity={0.7}
@@ -103,11 +97,11 @@ const CategoryList: React.FC<CategoryListProps> = ({
         >
           All
         </Text>
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {/* Category Buttons */}
       {categories.map((category) => (
-        <TouchableOpacity
+        <DebouncedTouchable
           key={category.id}
           style={[styles.categoryButton, { width: config.categoryItemWidth }]}
           onPress={() => onCategoryPress(category.name)}
@@ -142,7 +136,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
           >
             {category.name}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       ))}
     </ScrollView>
   )

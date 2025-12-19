@@ -1,13 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Dimensions, StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window")
 
@@ -40,7 +35,7 @@ export default function SeasonalBanner({
   }
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={styles.container}
       onPress={handlePress}
       activeOpacity={0.95}
@@ -95,7 +90,7 @@ export default function SeasonalBanner({
           </View>
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

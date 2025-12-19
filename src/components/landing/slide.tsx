@@ -8,13 +8,13 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native"
 import { moderateScale, scale, verticalScale } from "react-native-size-matters"
 import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg"
 import AuthModal from "../auth/auth-modal"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface SlideProps {
   slide: LandingSlide
@@ -108,7 +108,7 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
         ]}
       >
         {Array.from({ length: totalSlides }).map((_, i) => (
-          <TouchableOpacity
+          <DebouncedTouchable
             key={i}
             style={[
               styles.indicator,
@@ -171,7 +171,7 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
 
       {/* Arrow Button on Wave - Centered Vertically */}
       {index < totalSlides - 1 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.arrowButton,
             {
@@ -193,7 +193,7 @@ const Slide = ({ slide, totalSlides, index, setIndex }: SlideProps) => {
             size={IsIPAD ? moderateScale(20, 0.3) : scale(18)}
             color="black"
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       <Modal

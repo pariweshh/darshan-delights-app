@@ -9,7 +9,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -17,6 +16,7 @@ import Toast from "react-native-toast-message"
 
 import { forgotPassword } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 
@@ -111,7 +111,7 @@ export default function ForgotPasswordScreen() {
             ]}
           >
             {/* Back Button */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.backButton,
                 {
@@ -129,7 +129,7 @@ export default function ForgotPasswordScreen() {
                 size={config.iconSizeLarge}
                 color={AppColors.text.primary}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             {/* Icon */}
             <View
@@ -246,7 +246,7 @@ export default function ForgotPasswordScreen() {
             />
 
             {/* Back to Login */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[styles.backToLogin, { marginTop: isTablet ? 28 : 24 }]}
               onPress={() => router.replace("/(auth)/login")}
             >
@@ -263,7 +263,7 @@ export default function ForgotPasswordScreen() {
               >
                 Back to Login
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

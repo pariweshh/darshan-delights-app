@@ -10,7 +10,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -19,6 +18,7 @@ import { getUserAddresses } from "@/src/api/addresses"
 import { calculateShippingCosts } from "@/src/api/shipping"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import {
   getFreeShippingOptions,
@@ -531,7 +531,7 @@ export default function SelectShippingScreen() {
   const renderBillingForm = () => (
     <>
       {savedAddresses.length > 0 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.savedAddressButton,
             {
@@ -593,7 +593,7 @@ export default function SelectShippingScreen() {
             size={config.iconSize}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       <TextInput
@@ -669,7 +669,7 @@ export default function SelectShippingScreen() {
             handleBillingFieldChange("address.city", text)
           }
         />
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[getInputStyle(), styles.halfInput, styles.selectInput]}
           onPress={() => openStateModal("billing")}
         >
@@ -687,7 +687,7 @@ export default function SelectShippingScreen() {
             size={config.iconSize}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
       {errors.billing_city && (
         <Text style={[styles.errorText, { fontSize: config.smallFontSize }]}>
@@ -816,7 +816,7 @@ export default function SelectShippingScreen() {
         </Text>
 
         {/* Home Delivery */}
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.optionCard,
             {
@@ -869,10 +869,10 @@ export default function SelectShippingScreen() {
               />
             )}
           </View>
-        </TouchableOpacity>
+        </DebouncedTouchable>
 
         {/* Local Pickup */}
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.optionCard,
             {
@@ -924,7 +924,7 @@ export default function SelectShippingScreen() {
               />
             )}
           </View>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       {/* Heavy items warning */}
@@ -1016,7 +1016,7 @@ export default function SelectShippingScreen() {
                 ]}
               >
                 {freeShippingOptions.map((option) => (
-                  <TouchableOpacity
+                  <DebouncedTouchable
                     key={option.serviceCode}
                     style={[
                       styles.shippingOption,
@@ -1110,7 +1110,7 @@ export default function SelectShippingScreen() {
                         ? "FREE"
                         : `$${option.cost.toFixed(2)}`}
                     </Text>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 ))}
               </View>
             </View>
@@ -1185,7 +1185,7 @@ export default function SelectShippingScreen() {
                   ]}
                 >
                   {shippingOptions.map((option) => (
-                    <TouchableOpacity
+                    <DebouncedTouchable
                       key={option.serviceCode}
                       style={[
                         styles.shippingOption,
@@ -1256,7 +1256,7 @@ export default function SelectShippingScreen() {
                           )}
                         </View>
                       </View>
-                    </TouchableOpacity>
+                    </DebouncedTouchable>
                   ))}
                 </View>
               )}
@@ -1345,7 +1345,7 @@ export default function SelectShippingScreen() {
           </Text>
 
           {savedAddresses.length > 0 && (
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.savedAddressButton,
                 {
@@ -1407,7 +1407,7 @@ export default function SelectShippingScreen() {
                 size={config.iconSize}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
 
           <TextInput
@@ -1447,7 +1447,7 @@ export default function SelectShippingScreen() {
                 handleShippingFieldChange("address.city", text)
               }
             />
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[getInputStyle(), styles.halfInput, styles.selectInput]}
               onPress={() => openStateModal("shipping")}
             >
@@ -1465,7 +1465,7 @@ export default function SelectShippingScreen() {
                 size={config.iconSize}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           <TextInput
@@ -1483,7 +1483,7 @@ export default function SelectShippingScreen() {
 
       {/* Same as shipping checkbox */}
       {deliveryOption === "delivery" && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[styles.checkboxRow, { marginBottom: isTablet ? 28 : 24 }]}
           onPress={() => setSameAsShipping(!sameAsShipping)}
           activeOpacity={0.7}
@@ -1512,7 +1512,7 @@ export default function SelectShippingScreen() {
           >
             Billing address same as shipping
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* Billing Address Form */}
@@ -1671,17 +1671,17 @@ export default function SelectShippingScreen() {
               >
                 Select State
               </Text>
-              <TouchableOpacity onPress={() => setShowStateModal(false)}>
+              <DebouncedTouchable onPress={() => setShowStateModal(false)}>
                 <Ionicons
                   name="close"
                   size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
             <ScrollView>
               {AUSTRALIAN_STATES.map((state) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={state.value}
                   style={[styles.stateOption, { padding: isTablet ? 18 : 16 }]}
                   onPress={() => handleStateSelect(state.value)}
@@ -1702,7 +1702,7 @@ export default function SelectShippingScreen() {
                   >
                     {state.value}
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </ScrollView>
           </View>
@@ -1747,13 +1747,13 @@ export default function SelectShippingScreen() {
                 {addressSelectorType === "shipping" ? "Shipping" : "Billing"}{" "}
                 Address
               </Text>
-              <TouchableOpacity onPress={() => setShowAddressSelector(false)}>
+              <DebouncedTouchable onPress={() => setShowAddressSelector(false)}>
                 <Ionicons
                   name="close"
                   size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
 
             {loadingAddresses ? (
@@ -1777,7 +1777,7 @@ export default function SelectShippingScreen() {
                 contentContainerStyle={{ padding: config.horizontalPadding }}
               >
                 {getFilteredAddresses(addressSelectorType).map((address) => (
-                  <TouchableOpacity
+                  <DebouncedTouchable
                     key={address.id}
                     style={[
                       styles.addressCard,
@@ -1855,10 +1855,10 @@ export default function SelectShippingScreen() {
                     >
                       {formatAddressDisplay(address)}
                     </Text>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 ))}
 
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={[
                     styles.addNewAddressCard,
                     {
@@ -1893,7 +1893,7 @@ export default function SelectShippingScreen() {
                   >
                     Add New Address
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </ScrollView>
             )}
           </View>

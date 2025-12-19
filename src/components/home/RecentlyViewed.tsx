@@ -1,19 +1,13 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import React from "react"
-import {
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { FlatList, Image, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useRecentlyViewedStore } from "@/src/store/recentlyViewedStore"
 import { RecentlyViewedProduct } from "@/src/types/recentlyViewed"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface RecentlyViewedProps {
   excludeProductId?: number
@@ -58,7 +52,7 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
     const hasDiscount = item.sale_price && item.sale_price < item.rrp
 
     return (
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.productCard,
           { width: cardWidth, borderRadius: config.cardBorderRadius },
@@ -121,7 +115,7 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
             )}
           </View>
         </View>
-      </TouchableOpacity>
+      </DebouncedTouchable>
     )
   }
 
@@ -147,13 +141,13 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
           </Text>
         </View>
         {!excludeProductId && (
-          <TouchableOpacity onPress={clearAll} activeOpacity={0.7}>
+          <DebouncedTouchable onPress={clearAll} activeOpacity={0.7}>
             <Text
               style={[styles.seeAllText, { fontSize: config.subtitleFontSize }]}
             >
               Clear All
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
       </View>
 

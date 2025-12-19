@@ -1,15 +1,10 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useRef } from "react"
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { StyleSheet, Text, TextInput, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface SearchHeaderProps {
   searchQuery: string
@@ -102,7 +97,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
             autoCorrect={false}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.clearButton}
               onPress={onClear}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -112,12 +107,12 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
                 size={isTablet ? 20 : 18}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
         </View>
 
         {/* Search Button */}
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.searchButton,
             {
@@ -130,7 +125,7 @@ const SearchHeader: React.FC<SearchHeaderProps> = ({
           activeOpacity={0.8}
         >
           <Ionicons name="search" size={isTablet ? 24 : 22} color="white" />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
     </View>
   )

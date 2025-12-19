@@ -11,12 +11,12 @@ import {
   ScaledSize,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import Wrapper from "@/src/components/common/Wrapper"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { useProductsStore } from "@/src/store/productStore"
@@ -138,7 +138,7 @@ export default function ProductsScreen() {
       const imageSize = finalItemWidth * 0.7
 
       return (
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={() => navigateToCategory(item.name)}
           style={[
             styles.categoryItem,
@@ -190,7 +190,7 @@ export default function ProductsScreen() {
           >
             {item.name}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )
     },
     [navigateToCategory, gridConfig, finalItemWidth, deviceType]
@@ -219,7 +219,7 @@ export default function ProductsScreen() {
             ]}
           >
             {user?.id && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 onPress={navigateToPurchasedBefore}
                 style={[
                   styles.quickAccessItem,
@@ -263,10 +263,10 @@ export default function ProductsScreen() {
                   size={20}
                   color={AppColors.gray[400]}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
 
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={navigateToWeeklySale}
               style={[
                 styles.quickAccessItem,
@@ -316,7 +316,7 @@ export default function ProductsScreen() {
                 size={20}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
 

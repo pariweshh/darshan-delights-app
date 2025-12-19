@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -21,6 +20,7 @@ import EmptyState from "@/src/components/common/EmptyState"
 import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
 import ProductCard from "@/src/components/product/ProductCard"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 export default function FavoritesScreen() {
   const router = useRouter()
@@ -101,13 +101,13 @@ export default function FavoritesScreen() {
         {favoriteCount} {favoriteCount === 1 ? "item" : "items"}
       </Text>
       {favoriteCount > 0 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={handleClearAll}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.clearAllText}>Clear All</Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
     </View>
   )

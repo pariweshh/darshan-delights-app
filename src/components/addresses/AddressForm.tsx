@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 
@@ -20,6 +19,7 @@ import {
   AddressValidationErrors,
   AUSTRALIAN_STATES,
 } from "@/src/types/address"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
   initialData?: Address
@@ -133,7 +133,7 @@ const AddressForm: React.FC<Props> = ({
       {/* Label Selector */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Address Label</Text>
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.selector}
           onPress={() => setShowLabelModal(true)}
           activeOpacity={0.7}
@@ -149,7 +149,7 @@ const AddressForm: React.FC<Props> = ({
             </Text>
           </View>
           <Ionicons name="chevron-down" size={20} color={AppColors.gray[400]} />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       </View>
 
       {/* Address Type */}
@@ -157,7 +157,7 @@ const AddressForm: React.FC<Props> = ({
         <Text style={styles.sectionTitle}>Address Type</Text>
         <View style={styles.typeContainer}>
           {(["both", "shipping", "billing"] as AddressType[]).map((type) => (
-            <TouchableOpacity
+            <DebouncedTouchable
               key={type}
               style={[
                 styles.typeButton,
@@ -178,7 +178,7 @@ const AddressForm: React.FC<Props> = ({
                   ? "Shipping"
                   : "Billing"}
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           ))}
         </View>
       </View>
@@ -280,7 +280,7 @@ const AddressForm: React.FC<Props> = ({
           {/* State */}
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.inputLabel}>State *</Text>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[styles.selector, errors.state && styles.inputError]}
               onPress={() => setShowStateModal(true)}
               activeOpacity={0.7}
@@ -298,7 +298,7 @@ const AddressForm: React.FC<Props> = ({
                 size={18}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
             {errors.state && (
               <Text style={styles.errorText}>{errors.state}</Text>
             )}
@@ -332,7 +332,7 @@ const AddressForm: React.FC<Props> = ({
       </View>
 
       {/* Set as Default */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={styles.defaultToggle}
         onPress={() => updateField("is_default", !formData.is_default)}
         activeOpacity={0.7}
@@ -348,7 +348,7 @@ const AddressForm: React.FC<Props> = ({
           )}
         </View>
         <Text style={styles.defaultToggleText}>Set as default address</Text>
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {/* Action Buttons */}
       <View style={styles.actions}>
@@ -378,17 +378,17 @@ const AddressForm: React.FC<Props> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select State</Text>
-              <TouchableOpacity onPress={() => setShowStateModal(false)}>
+              <DebouncedTouchable onPress={() => setShowStateModal(false)}>
                 <Ionicons
                   name="close"
                   size={24}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
             <ScrollView style={styles.modalList}>
               {AUSTRALIAN_STATES.map((state) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={state.value}
                   style={[
                     styles.modalItem,
@@ -416,7 +416,7 @@ const AddressForm: React.FC<Props> = ({
                       color={AppColors.primary[600]}
                     />
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </ScrollView>
           </View>
@@ -434,17 +434,17 @@ const AddressForm: React.FC<Props> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Label</Text>
-              <TouchableOpacity onPress={() => setShowLabelModal(false)}>
+              <DebouncedTouchable onPress={() => setShowLabelModal(false)}>
                 <Ionicons
                   name="close"
                   size={24}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
             <ScrollView style={styles.modalList}>
               {ADDRESS_LABELS.map((label) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={label.value}
                   style={[
                     styles.modalItem,
@@ -483,7 +483,7 @@ const AddressForm: React.FC<Props> = ({
                       color={AppColors.primary[600]}
                     />
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </ScrollView>
           </View>

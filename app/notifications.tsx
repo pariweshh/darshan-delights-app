@@ -8,7 +8,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -22,6 +21,7 @@ import {
 import EmptyState from "@/src/components/common/EmptyState"
 import Wrapper from "@/src/components/common/Wrapper"
 import NotificationCard from "@/src/components/notifications/NotificationCard"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
@@ -247,9 +247,9 @@ export default function NotificationsScreen() {
           {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
         </Text>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
+          <DebouncedTouchable onPress={handleMarkAllAsRead} activeOpacity={0.7}>
             <Text style={styles.markAllText}>Mark all as read</Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
       </View>
     )

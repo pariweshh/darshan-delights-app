@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
-import { StyleSheet, TouchableOpacity, ViewStyle } from "react-native"
+import { StyleSheet, ViewStyle } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import React from "react"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ShareButtonProps {
   onPress: () => void
@@ -20,14 +21,14 @@ const ShareButton: React.FC<ShareButtonProps> = ({
   iconName = "share-outline",
 }) => {
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[styles.button, style]}
       onPress={onPress}
       activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
       <Ionicons name={iconName} size={size} color={color} />
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

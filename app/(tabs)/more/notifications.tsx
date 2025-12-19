@@ -8,7 +8,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -26,6 +25,7 @@ import {
   NotificationCardSkeleton,
   SkeletonBase,
 } from "@/src/components/skeletons"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -312,7 +312,7 @@ export default function NotificationsScreenTab() {
           {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
         </Text>
         {unreadCount > 0 && (
-          <TouchableOpacity onPress={handleMarkAllAsRead} activeOpacity={0.7}>
+          <DebouncedTouchable onPress={handleMarkAllAsRead} activeOpacity={0.7}>
             <Text
               style={[
                 styles.markAllText,
@@ -321,7 +321,7 @@ export default function NotificationsScreenTab() {
             >
               Mark all as read
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
       </View>
     )

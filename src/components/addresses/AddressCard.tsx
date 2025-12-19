@@ -1,16 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import React, { useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { Address } from "@/src/types/address"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
   address: Address
@@ -118,7 +112,7 @@ const AddressCard: React.FC<Props> = ({
 
         {/* Actions */}
         <View style={styles.actions}>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.actionButton}
             onPress={() => onEdit(address)}
             activeOpacity={0.7}
@@ -128,9 +122,9 @@ const AddressCard: React.FC<Props> = ({
               size={18}
               color={AppColors.primary[600]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
 
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.actionButton}
             onPress={handleDelete}
             disabled={isDeleting}
@@ -145,7 +139,7 @@ const AddressCard: React.FC<Props> = ({
                 color={AppColors.error}
               />
             )}
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       </View>
 
@@ -160,7 +154,7 @@ const AddressCard: React.FC<Props> = ({
 
       {/* Set Default Button */}
       {!address.is_default && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.setDefaultButton}
           onPress={handleSetDefault}
           disabled={isSettingDefault}
@@ -178,7 +172,7 @@ const AddressCard: React.FC<Props> = ({
               <Text style={styles.setDefaultText}>Set as Default</Text>
             </>
           )}
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
     </View>
   )

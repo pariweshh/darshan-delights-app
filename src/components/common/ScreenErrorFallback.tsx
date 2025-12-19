@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ScreenErrorFallbackProps {
   title?: string
@@ -38,18 +39,18 @@ export default function ScreenErrorFallback({
 
       <View style={styles.buttonContainer}>
         {onRetry && (
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.retryButton}
             onPress={onRetry}
             activeOpacity={0.8}
           >
             <Ionicons name="refresh" size={18} color="white" />
             <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
 
         {showHomeButton && (
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.homeButton}
             onPress={handleGoHome}
             activeOpacity={0.8}
@@ -60,7 +61,7 @@ export default function ScreenErrorFallback({
               color={AppColors.primary[600]}
             />
             <Text style={styles.homeButtonText}>Go Home</Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
       </View>
     </View>

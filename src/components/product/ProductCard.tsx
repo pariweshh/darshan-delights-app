@@ -6,7 +6,6 @@ import {
   StyleProp,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native"
@@ -19,6 +18,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { useCartStore } from "@/src/store/cartStore"
 import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { Product } from "@/src/types"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ProductCardProps {
   product: Product
@@ -154,7 +154,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const favIconSize = isTablet ? 18 : 16
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       onPress={handleProductRoute}
       style={[
         styles.card,
@@ -203,7 +203,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         />
 
         {/* Favorite Button */}
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={() => handleToggleFavorite(product?.id)}
           style={[
             styles.favoriteButton,
@@ -221,7 +221,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             size={favIconSize}
             color={isFav ? "white" : AppColors.gray[600]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
 
         {/* Out of Stock Overlay */}
         {isOutOfStock && (
@@ -311,7 +311,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           />
         )}
       </View>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

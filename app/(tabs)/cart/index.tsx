@@ -8,7 +8,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -31,6 +30,7 @@ import {
   SkeletonBase,
 } from "@/src/components/skeletons"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 export default function CartScreen() {
   const router = useRouter()
@@ -255,7 +255,7 @@ export default function CartScreen() {
         {itemCount} {itemCount === 1 ? "item" : "items"}
       </Text>
       {itemCount > 0 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={handleClearCart}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -263,7 +263,7 @@ export default function CartScreen() {
           <Text style={[styles.clearText, { fontSize: config.bodyFontSize }]}>
             Clear All
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
     </View>
   )
@@ -321,7 +321,7 @@ export default function CartScreen() {
           >
             <Button title="Sign In" onPress={navigateToLogin} />
           </View>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[styles.browseButton, { marginTop: isTablet ? 20 : 16 }]}
             onPress={navigateToShop}
             activeOpacity={0.7}
@@ -331,7 +331,7 @@ export default function CartScreen() {
             >
               Browse Products
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       </Wrapper>
     )

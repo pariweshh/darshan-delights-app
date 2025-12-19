@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 
@@ -14,6 +13,7 @@ import { getUserAddresses } from "@/src/api/addresses"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { Address } from "@/src/types/address"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
   visible: boolean
@@ -139,9 +139,9 @@ const AddressSelector: React.FC<Props> = ({
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <DebouncedTouchable onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={AppColors.text.primary} />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           {/* Content */}
@@ -161,7 +161,7 @@ const AddressSelector: React.FC<Props> = ({
               <Text style={styles.emptyText}>
                 Add an address to speed up checkout
               </Text>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.addNewButton}
                 onPress={() => {
                   onClose()
@@ -171,7 +171,7 @@ const AddressSelector: React.FC<Props> = ({
               >
                 <Ionicons name="add" size={20} color="white" />
                 <Text style={styles.addNewButtonText}>Add New Address</Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
           ) : (
             <>
@@ -180,7 +180,7 @@ const AddressSelector: React.FC<Props> = ({
                 showsVerticalScrollIndicator={false}
               >
                 {addresses.map((address) => (
-                  <TouchableOpacity
+                  <DebouncedTouchable
                     key={address.id}
                     style={[
                       styles.addressCard,
@@ -233,11 +233,11 @@ const AddressSelector: React.FC<Props> = ({
                         {formatAddress(address)}
                       </Text>
                     </View>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 ))}
 
                 {/* Add New Address Option */}
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={styles.addNewCard}
                   onPress={() => {
                     onClose()
@@ -253,12 +253,12 @@ const AddressSelector: React.FC<Props> = ({
                     />
                   </View>
                   <Text style={styles.addNewText}>Add New Address</Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </ScrollView>
 
               {/* Footer */}
               <View style={styles.footer}>
-                <TouchableOpacity
+                <DebouncedTouchable
                   style={[
                     styles.confirmButton,
                     !selectedId && styles.confirmButtonDisabled,
@@ -268,7 +268,7 @@ const AddressSelector: React.FC<Props> = ({
                   activeOpacity={0.8}
                 >
                   <Text style={styles.confirmButtonText}>Use This Address</Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               </View>
             </>
           )}

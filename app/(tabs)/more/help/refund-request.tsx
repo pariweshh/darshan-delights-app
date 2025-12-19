@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -20,6 +19,7 @@ import Toast from "react-native-toast-message"
 import { getRefundByOrderNumber, submitRefundRequest } from "@/src/api/refund"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { CreateRefundRequestParams, RefundReason } from "@/src/types/refund"
@@ -406,7 +406,7 @@ export default function RefundRequestScreen() {
             {/* Purchase Date */}
             <View style={styles.field}>
               <Text style={styles.label}>Purchase Date *</Text>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[styles.input, styles.dateInput]}
                 onPress={() => setShowDatePicker(true)}
                 disabled={isSubmitting}
@@ -419,7 +419,7 @@ export default function RefundRequestScreen() {
                   size={20}
                   color={AppColors.gray[400]}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
 
             {showDatePicker && Platform.OS === "ios" && (
@@ -430,26 +430,26 @@ export default function RefundRequestScreen() {
                 onRequestClose={() => setShowDatePicker(false)}
               >
                 <View style={styles.datePickerOverlay}>
-                  <TouchableOpacity
+                  <DebouncedTouchable
                     style={styles.datePickerBackdrop}
                     activeOpacity={1}
                     onPress={() => setShowDatePicker(false)}
                   />
                   <View style={styles.datePickerContainer}>
                     <View style={styles.datePickerHeader}>
-                      <TouchableOpacity
+                      <DebouncedTouchable
                         onPress={() => setShowDatePicker(false)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <Text style={styles.datePickerCancel}>Cancel</Text>
-                      </TouchableOpacity>
+                      </DebouncedTouchable>
                       <Text style={styles.datePickerTitle}>Purchase Date</Text>
-                      <TouchableOpacity
+                      <DebouncedTouchable
                         onPress={() => setShowDatePicker(false)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <Text style={styles.datePickerDone}>Done</Text>
-                      </TouchableOpacity>
+                      </DebouncedTouchable>
                     </View>
                     <View style={styles.datePickerWrapper}>
                       <DateTimePicker
@@ -522,7 +522,7 @@ export default function RefundRequestScreen() {
             {/* Reason Selection */}
             <View style={styles.reasonsContainer}>
               {REFUND_REASONS.map((reason) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={reason.value}
                   style={[
                     styles.reasonOption,
@@ -555,7 +555,7 @@ export default function RefundRequestScreen() {
                   >
                     {reason.label}
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </View>
             {errors.reason && (
@@ -643,7 +643,7 @@ export default function RefundRequestScreen() {
           </View>
 
           {/* Agreement */}
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.agreementContainer}
             onPress={() =>
               updateField(
@@ -668,7 +668,7 @@ export default function RefundRequestScreen() {
             <Text style={styles.agreementText}>
               I agree to receive the refund to my original payment method.*
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
           {errors.refundAccountAgreement && (
             <Text style={[styles.errorText, styles.agreementError]}>
               {errors.refundAccountAgreement}

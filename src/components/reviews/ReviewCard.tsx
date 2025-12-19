@@ -3,13 +3,14 @@
 import { Ionicons } from "@expo/vector-icons"
 import { formatDistanceToNow } from "date-fns"
 import React, { useState } from "react"
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { Alert, StyleSheet, Text, View } from "react-native"
 
 import { markReviewHelpful } from "@/src/api/reviews"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 import Rating from "./Rating"
 
 interface ReviewCardProps {
@@ -150,7 +151,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
         {isOwnReview && showActions && (
           <View style={[styles.actions, { gap: isTablet ? 10 : 8 }]}>
             {onEdit && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 onPress={onEdit}
                 style={[styles.actionButton, { padding: isTablet ? 6 : 4 }]}
                 activeOpacity={0.7}
@@ -160,10 +161,10 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
                   size={config.iconSize}
                   color={AppColors.text.secondary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
             {onDelete && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 onPress={handleDelete}
                 style={[styles.actionButton, { padding: isTablet ? 6 : 4 }]}
                 activeOpacity={0.7}
@@ -173,7 +174,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
                   size={config.iconSize}
                   color={AppColors.error}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
           </View>
         )}
@@ -205,7 +206,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
       {/* Helpful */}
       {!isOwnReview && (
         <View style={styles.helpfulSection}>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.helpfulButton,
               hasMarkedHelpful && styles.helpfulButtonActive,
@@ -237,7 +238,7 @@ const ReviewCard: React.FC<ReviewCardProps> = ({
             >
               Helpful ({helpfulCount})
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       )}
     </View>

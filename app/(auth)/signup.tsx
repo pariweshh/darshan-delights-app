@@ -8,13 +8,13 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -312,7 +312,7 @@ export default function SignupScreen() {
               </View>
 
               {/* Show Password Toggle */}
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.showPasswordToggle}
                 onPress={() => setShowPassword(!showPassword)}
               >
@@ -335,7 +335,7 @@ export default function SignupScreen() {
                 >
                   Show passwords
                 </Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
 
               {/* Signup Button */}
               <View style={{ marginTop: isTablet ? 16 : 12 }}>
@@ -359,7 +359,7 @@ export default function SignupScreen() {
                   Already have an account?{" "}
                 </Text>
                 <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity>
+                  <DebouncedTouchable>
                     <Text
                       style={[
                         styles.linkHighlight,
@@ -368,7 +368,7 @@ export default function SignupScreen() {
                     >
                       Sign In
                     </Text>
-                  </TouchableOpacity>
+                  </DebouncedTouchable>
                 </Link>
               </View>
             </View>

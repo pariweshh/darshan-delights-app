@@ -6,12 +6,12 @@ import {
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { DeliveryStatus, Order, PaymentStatus } from "@/src/types"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
   order: Order
@@ -205,7 +205,7 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
 
           {/* Action Buttons */}
           <View style={styles.actionContainer}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.viewDetailsButton,
                 isCanceled && { backgroundColor: "#fff" },
@@ -214,9 +214,9 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
               activeOpacity={0.7}
             >
               <Text style={styles.viewDetailsText}>View Details</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
             {canCancel && !isCanceled && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.viewDetailsButton,
                   {
@@ -234,7 +234,7 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
                 ) : (
                   <Text style={styles.viewDetailsText}>Cancel Order</Text>
                 )}
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
           </View>
         </View>

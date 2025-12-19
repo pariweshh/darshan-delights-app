@@ -1,7 +1,8 @@
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Ionicons } from "@expo/vector-icons"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface SectionHeaderProps {
   title: string
@@ -22,7 +23,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
         {title}
       </Text>
       {showViewAll && onViewAll && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.viewAllButton}
           onPress={onViewAll}
           activeOpacity={0.7}
@@ -37,7 +38,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
             size={config.iconSizeSmall}
             color={AppColors.primary[500]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
     </View>
   )

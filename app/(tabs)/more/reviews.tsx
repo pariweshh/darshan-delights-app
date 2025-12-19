@@ -9,7 +9,6 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -19,6 +18,7 @@ import { deleteReview, getUserReviews } from "@/src/api/reviews"
 import EmptyState from "@/src/components/common/EmptyState"
 import Rating from "@/src/components/reviews/Rating"
 import { ReviewCardSkeleton, SkeletonBase } from "@/src/components/skeletons"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -205,7 +205,7 @@ export default function MyReviewsScreen() {
           ]}
         >
           {/* Product Info */}
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[styles.productInfo, { paddingBottom: isTablet ? 14 : 12 }]}
             onPress={() => handleProductPress(item)}
             activeOpacity={0.7}
@@ -263,7 +263,7 @@ export default function MyReviewsScreen() {
               size={isTablet ? 22 : 20}
               color={AppColors.gray[400]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
 
           {/* Rating */}
           <View style={[styles.ratingRow, { marginBottom: isTablet ? 10 : 8 }]}>
@@ -327,7 +327,7 @@ export default function MyReviewsScreen() {
               },
             ]}
           >
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[styles.actionButton, { gap: isTablet ? 6 : 4 }]}
               onPress={() => handleProductPress(item)}
               activeOpacity={0.7}
@@ -345,9 +345,9 @@ export default function MyReviewsScreen() {
               >
                 Edit
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[styles.actionButton, { gap: isTablet ? 6 : 4 }]}
               onPress={() => handleDeleteReview(item)}
               activeOpacity={0.7}
@@ -365,7 +365,7 @@ export default function MyReviewsScreen() {
               >
                 Delete
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
       )

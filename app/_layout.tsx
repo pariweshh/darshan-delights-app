@@ -1,4 +1,5 @@
 import ErrorBoundary from "@/src/components/common/ErrorBoundary"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
@@ -30,7 +31,6 @@ import {
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
@@ -297,7 +297,7 @@ export default function RootLayout() {
                   headerTintColor: AppColors.primary[500],
                   headerShadowVisible: false,
                   headerLeft: () => (
-                    <TouchableOpacity
+                    <DebouncedTouchable
                       onPress={() => router.back()}
                       style={styles.backButton}
                       activeOpacity={0.7}
@@ -309,7 +309,7 @@ export default function RootLayout() {
                         color={AppColors.primary[500]}
                       />
                       <Text className="text-lg font-medium">Back</Text>
-                    </TouchableOpacity>
+                    </DebouncedTouchable>
                   ),
                 }}
               />
@@ -330,7 +330,7 @@ export default function RootLayout() {
                   headerTintColor: AppColors.primary[500],
                   headerShadowVisible: false,
                   headerLeft: () => (
-                    <TouchableOpacity
+                    <DebouncedTouchable
                       onPress={() => router.back()}
                       style={styles.backButton}
                       activeOpacity={0.7}
@@ -342,7 +342,7 @@ export default function RootLayout() {
                         color={AppColors.primary[500]}
                       />
                       <Text className="text-lg font-medium">Back</Text>
-                    </TouchableOpacity>
+                    </DebouncedTouchable>
                   ),
                 }}
               />

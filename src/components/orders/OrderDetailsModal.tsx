@@ -11,7 +11,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -22,6 +21,7 @@ import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { CartItem, Order } from "@/src/types"
 import { Review } from "@/src/types/review"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 import OrderDeliveryProgress from "./OrderDeliveryProgress"
 
 interface Props {
@@ -181,7 +181,7 @@ const OrderDetailsModal: React.FC<Props> = ({
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
@@ -235,7 +235,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                   {formatDate(order.createdAt)}
                 </Text>
               </View>
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.closeButton,
                   {
@@ -252,7 +252,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                   size={config.iconSizeLarge}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
 
             {/* Delivery Progress */}
@@ -655,7 +655,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                           { paddingVertical: isTablet ? 10 : 8 },
                         ]}
                       >
-                        <TouchableOpacity
+                        <DebouncedTouchable
                           onPress={() => handleViewProduct(item)}
                           activeOpacity={0.7}
                         >
@@ -671,7 +671,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                             ]}
                             resizeMode="contain"
                           />
-                        </TouchableOpacity>
+                        </DebouncedTouchable>
 
                         <View
                           style={[
@@ -679,7 +679,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                             { marginLeft: isTablet ? 14 : 12 },
                           ]}
                         >
-                          <TouchableOpacity
+                          <DebouncedTouchable
                             onPress={() => handleViewProduct(item)}
                             activeOpacity={0.7}
                           >
@@ -692,7 +692,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                             >
                               {item.name}
                             </Text>
-                          </TouchableOpacity>
+                          </DebouncedTouchable>
                           <Text
                             style={[
                               styles.productPrice,
@@ -712,7 +712,7 @@ const OrderDetailsModal: React.FC<Props> = ({
 
                           {/* Review Button */}
                           {isReviewable && (
-                            <TouchableOpacity
+                            <DebouncedTouchable
                               style={[
                                 styles.reviewButton,
                                 isReviewed && styles.reviewButtonReviewed,
@@ -748,7 +748,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                               >
                                 {isReviewed ? "Reviewed" : "Write Review"}
                               </Text>
-                            </TouchableOpacity>
+                            </DebouncedTouchable>
                           )}
                         </View>
                       </View>
@@ -760,7 +760,7 @@ const OrderDetailsModal: React.FC<Props> = ({
 
             {/* Receipt Button */}
             {order.receipt_url && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={[
                   styles.receiptButton,
                   {
@@ -785,7 +785,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                 >
                   View Receipt
                 </Text>
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
 
             {/* Payment Method */}
@@ -825,7 +825,7 @@ const OrderDetailsModal: React.FC<Props> = ({
               },
             ]}
           >
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.closeFooterButton,
                 {
@@ -844,7 +844,7 @@ const OrderDetailsModal: React.FC<Props> = ({
               >
                 Close
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
       </View>

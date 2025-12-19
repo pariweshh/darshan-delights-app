@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -17,6 +16,7 @@ import Toast from "react-native-toast-message"
 import { deleteUserAccount } from "@/src/api/auth"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 
@@ -268,7 +268,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Personal Information</Text>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.editButton}
               onPress={handleEditToggle}
               activeOpacity={0.7}
@@ -281,7 +281,7 @@ export default function ProfileScreen() {
               <Text style={styles.editButtonText}>
                 {isEditing ? "Cancel" : "Edit"}
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           <View style={styles.formCard}>
@@ -360,7 +360,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
           <View style={styles.menuCard}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.menuItem}
               onPress={handleGoToSecurity}
               activeOpacity={0.7}
@@ -388,11 +388,11 @@ export default function ProfileScreen() {
                 size={20}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             <View style={styles.menuDivider} />
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.menuItem}
               onPress={handleGoToNotifications}
               activeOpacity={0.7}
@@ -422,7 +422,7 @@ export default function ProfileScreen() {
                 size={20}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
 
@@ -432,7 +432,7 @@ export default function ProfileScreen() {
             Danger Zone
           </Text>
           <View style={styles.menuCard}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.menuItem}
               onPress={handleLogout}
               activeOpacity={0.7}
@@ -456,11 +456,11 @@ export default function ProfileScreen() {
                   Logout
                 </Text>
               </View>
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             <View style={styles.menuDivider} />
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.menuItem}
               onPress={() => setShowDeleteModal(true)}
               activeOpacity={0.7}
@@ -484,7 +484,7 @@ export default function ProfileScreen() {
                   Delete Account
                 </Text>
               </View>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
       </ScrollView>
@@ -498,14 +498,14 @@ export default function ProfileScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={() => {
                 setShowDeleteModal(false)
                 setDeleteConfirmation("")
               }}
             >
               <Text style={styles.modalCancelText}>Cancel</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
             <Text style={[styles.modalTitle, { color: AppColors.error }]}>
               Delete Account
             </Text>

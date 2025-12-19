@@ -2,7 +2,8 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 const SignInPrompt = () => {
   const router = useRouter()
@@ -11,7 +12,7 @@ const SignInPrompt = () => {
   const iconContainerSize = isTablet ? 56 : 48
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.container,
         {
@@ -61,7 +62,7 @@ const SignInPrompt = () => {
           color={AppColors.gray[400]}
         />
       </View>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

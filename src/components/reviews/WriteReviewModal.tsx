@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -20,6 +19,7 @@ import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import Button from "../ui/Button"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 import StarRatingInput from "./StarRatingInput"
 
 interface WriteReviewModalProps {
@@ -182,7 +182,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
             },
           ]}
         >
-          <TouchableOpacity
+          <DebouncedTouchable
             onPress={handleClose}
             disabled={isSubmitting}
             activeOpacity={0.7}
@@ -192,7 +192,7 @@ const WriteReviewModal: React.FC<WriteReviewModalProps> = ({
               size={config.iconSizeLarge}
               color={AppColors.text.primary}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
           <Text
             style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
           >

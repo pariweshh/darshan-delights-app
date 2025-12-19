@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -21,6 +20,7 @@ import Toast from "react-native-toast-message"
 import { resendConfirmation, verifyOTP } from "@/src/api/auth"
 import OTPInput from "@/src/components/auth/otpInput"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -172,7 +172,7 @@ export default function VerifyEmailScreen() {
             ]}
           >
             {/* Back Button */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.backButton,
                 {
@@ -190,7 +190,7 @@ export default function VerifyEmailScreen() {
                 size={config.iconSizeLarge}
                 color={AppColors.text.primary}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             {/* Icon */}
             <View
@@ -279,7 +279,10 @@ export default function VerifyEmailScreen() {
                   Resend in {resendCooldown}s
                 </Text>
               ) : (
-                <TouchableOpacity onPress={handleResend} disabled={isResending}>
+                <DebouncedTouchable
+                  onPress={handleResend}
+                  disabled={isResending}
+                >
                   {isResending ? (
                     <ActivityIndicator
                       size="small"
@@ -295,12 +298,12 @@ export default function VerifyEmailScreen() {
                       Resend Code
                     </Text>
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               )}
             </View>
 
             {/* Open Email App */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.openEmailButton,
                 {
@@ -325,7 +328,7 @@ export default function VerifyEmailScreen() {
               >
                 Open Email App
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             {/* Help Text */}
             <View

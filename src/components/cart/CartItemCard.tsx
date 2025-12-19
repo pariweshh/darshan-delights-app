@@ -7,7 +7,6 @@ import {
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -17,6 +16,7 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useCartStore } from "@/src/store/cartStore"
 import { CartItem } from "@/src/types"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CartItemCardProps {
   item: CartItem
@@ -204,7 +204,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
       ]}
     >
       {/* Product Image */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.imageContainer,
           {
@@ -222,11 +222,11 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
           style={styles.image}
           resizeMode="contain"
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {/* Product Details */}
       <View style={styles.details}>
-        <TouchableOpacity onPress={handlePress} activeOpacity={0.8}>
+        <DebouncedTouchable onPress={handlePress} activeOpacity={0.8}>
           <Text
             style={[
               styles.name,
@@ -239,7 +239,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
           >
             {item.name}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
 
         {item.brand && (
           <Text style={[styles.brand, { fontSize: config.smallFontSize }]}>
@@ -262,7 +262,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
               },
             ]}
           >
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.quantityButton,
                 {
@@ -288,7 +288,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
                   color={AppColors.text.primary}
                 />
               )}
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             <View
               style={[styles.quantityDisplay, { minWidth: isTablet ? 48 : 40 }]}
@@ -310,7 +310,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
               )}
             </View>
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.quantityButton,
                 {
@@ -331,11 +331,11 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
                   isAtMaxStock ? AppColors.gray[400] : AppColors.text.primary
                 }
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
 
           {/* Remove Button */}
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.removeButton,
               {
@@ -352,7 +352,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
               size={config.iconSize}
               color={AppColors.gray[500]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       </View>
     </View>

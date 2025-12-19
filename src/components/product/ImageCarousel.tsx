@@ -7,12 +7,12 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ImageCarouselProps {
   coverImage?: { url: string }
@@ -121,7 +121,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.thumbnailContainer}
           renderItem={({ item, index }) => (
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={() => handleThumbnailPress(index)}
               activeOpacity={0.8}
             >
@@ -137,7 +137,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                   resizeMode="contain"
                 />
               </View>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
         />
       )}

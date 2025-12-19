@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import TitleHeader from "@/src/components/common/TitleHeader"
 import Wrapper from "@/src/components/common/Wrapper"
 import ScrollProductList from "@/src/components/product/ScrollProductList"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 
@@ -34,7 +35,7 @@ export default function PopularProductsScreen() {
             },
           ]}
         >
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[styles.backButton]}
             onPress={handlePressBack}
             activeOpacity={0.7}
@@ -47,7 +48,7 @@ export default function PopularProductsScreen() {
             <Text style={[styles.backText, { fontSize: config.bodyFontSize }]}>
               Back
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
           <View style={styles.headerCenter}>
             <TitleHeader
               title="Popular Products"

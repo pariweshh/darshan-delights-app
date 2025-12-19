@@ -1,15 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import Constants from "expo-constants"
 import { useRouter } from "expo-router"
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 
 import Wrapper from "@/src/components/common/Wrapper"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 
 interface MenuItemProps {
@@ -27,7 +22,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
   onPress,
   showBorder = true,
 }) => (
-  <TouchableOpacity
+  <DebouncedTouchable
     style={[styles.menuItem, showBorder && styles.menuItemBorder]}
     onPress={onPress}
     activeOpacity={0.7}
@@ -42,7 +37,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
       </View>
     </View>
     <Ionicons name="chevron-forward" size={20} color={AppColors.gray[400]} />
-  </TouchableOpacity>
+  </DebouncedTouchable>
 )
 
 export default function HelpScreen() {
@@ -93,7 +88,7 @@ export default function HelpScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsContainer}>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.quickActionCard}
               onPress={() => router.push("/(tabs)/more/orders")}
               activeOpacity={0.7}
@@ -106,9 +101,9 @@ export default function HelpScreen() {
                 />
               </View>
               <Text style={styles.quickActionText}>Track Order</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.quickActionCard}
               onPress={() => router.push("/(tabs)/more/addresses")}
               activeOpacity={0.7}
@@ -121,9 +116,9 @@ export default function HelpScreen() {
                 />
               </View>
               <Text style={styles.quickActionText}>Addresses</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
-            <TouchableOpacity
+            <DebouncedTouchable
               style={styles.quickActionCard}
               onPress={() => router.push("/(tabs)/more/profile")}
               activeOpacity={0.7}
@@ -136,7 +131,7 @@ export default function HelpScreen() {
                 />
               </View>
               <Text style={styles.quickActionText}>Account</Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </View>
 

@@ -1,5 +1,6 @@
 import { usePathname, useRouter } from "expo-router"
-import { Image, StyleSheet, TouchableOpacity } from "react-native"
+import { Image, StyleSheet } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface LogoProps {
   size?: number
@@ -10,7 +11,7 @@ const Logo: React.FC<LogoProps> = ({ size = 60 }) => {
   const pathname = usePathname()
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={styles.logoView}
       onPress={() => router.replace("/home")}
       activeOpacity={0.8}
@@ -20,7 +21,7 @@ const Logo: React.FC<LogoProps> = ({ size = 60 }) => {
         style={{ width: size, height: size }}
         resizeMode="contain"
       />
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

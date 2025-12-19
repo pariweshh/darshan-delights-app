@@ -1,7 +1,8 @@
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
-import { ScrollView, StyleSheet, Text, TouchableOpacity } from "react-native"
+import { ScrollView, StyleSheet, Text } from "react-native"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CategoryChipsProps {
   categories: Category[]
@@ -33,7 +34,7 @@ const CategoryChips: React.FC<CategoryChipsProps> = ({
       ]}
     >
       {/* All Button */}
-      <TouchableOpacity
+      <DebouncedTouchable
         style={[
           styles.chip,
           selectedCategory === null && styles.selectedChip,
@@ -55,11 +56,11 @@ const CategoryChips: React.FC<CategoryChipsProps> = ({
         >
           All
         </Text>
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {/* Category Chips */}
       {categories?.map((category) => (
-        <TouchableOpacity
+        <DebouncedTouchable
           key={category.id}
           style={[
             styles.chip,
@@ -82,7 +83,7 @@ const CategoryChips: React.FC<CategoryChipsProps> = ({
           >
             {category.name}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       ))}
     </ScrollView>
   )

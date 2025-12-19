@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view"
@@ -16,6 +15,7 @@ import Toast from "react-native-toast-message"
 import { sendFeedback } from "@/src/api/feedback"
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 
@@ -190,7 +190,7 @@ export default function FeedbackScreen() {
           {/* Topic */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Feedback Topic *</Text>
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[styles.selector, errors.topic && styles.inputError]}
               onPress={() => setShowTopicModal(true)}
               activeOpacity={0.7}
@@ -208,7 +208,7 @@ export default function FeedbackScreen() {
                 size={15}
                 color={AppColors.gray[400]}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
             {errors.topic && (
               <Text style={styles.errorText}>{errors.topic}</Text>
             )}
@@ -221,7 +221,7 @@ export default function FeedbackScreen() {
             </Text>
             <View style={styles.ratingContainer}>
               {RATINGS.map((item) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={item.value}
                   style={[
                     styles.ratingItem,
@@ -239,7 +239,7 @@ export default function FeedbackScreen() {
                   >
                     {item.label}
                   </Text>
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </View>
           </View>
@@ -290,17 +290,17 @@ export default function FeedbackScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Topic</Text>
-              <TouchableOpacity onPress={() => setShowTopicModal(false)}>
+              <DebouncedTouchable onPress={() => setShowTopicModal(false)}>
                 <Ionicons
                   name="close"
                   size={24}
                   color={AppColors.text.primary}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             </View>
             <ScrollView>
               {FEEDBACK_TOPICS.map((topic, index) => (
-                <TouchableOpacity
+                <DebouncedTouchable
                   key={index}
                   style={[
                     styles.modalOption,
@@ -342,7 +342,7 @@ export default function FeedbackScreen() {
                       color={AppColors.primary[600]}
                     />
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               ))}
             </ScrollView>
           </View>

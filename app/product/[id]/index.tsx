@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -38,6 +37,7 @@ import RatingSummary from "@/src/components/reviews/RatingSummary"
 import ReviewCard from "@/src/components/reviews/ReviewCard"
 import WriteReviewModal from "@/src/components/reviews/WriteReviewModal"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { useRecentlyViewed } from "@/src/hooks/useRecentlyViewed"
 import { Review, ReviewStats } from "@/src/types/review"
 import { shareProduct } from "@/src/utils/share"
@@ -455,7 +455,7 @@ export default function ProductDetailScreen() {
 
       {/* Rating Summary (Compact) */}
       {reviewStats && reviewStats.totalReviews > 0 && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.ratingRow}
           onPress={navigateToAllReviews}
           activeOpacity={0.7}
@@ -472,7 +472,7 @@ export default function ProductDetailScreen() {
             size={config.iconSizeSmall}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* Price Row */}
@@ -511,7 +511,7 @@ export default function ProductDetailScreen() {
 
       {/* Nutrition Link */}
       {product?.nutrition && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.nutritionLink,
             {
@@ -537,7 +537,7 @@ export default function ProductDetailScreen() {
             size={config.iconSizeSmall}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* Divider */}
@@ -559,7 +559,7 @@ export default function ProductDetailScreen() {
         {displayDescription}
       </Text>
       {shouldTruncateDescription && (
-        <TouchableOpacity
+        <DebouncedTouchable
           onPress={() => setShowFullDescription(!showFullDescription)}
           activeOpacity={0.7}
         >
@@ -568,7 +568,7 @@ export default function ProductDetailScreen() {
           >
             {showFullDescription ? "Show less" : "Read more"}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* Divider */}
@@ -623,7 +623,7 @@ export default function ProductDetailScreen() {
             Reviews
           </Text>
           {reviewStats && reviewStats.totalReviews > 0 && (
-            <TouchableOpacity
+            <DebouncedTouchable
               onPress={navigateToAllReviews}
               activeOpacity={0.7}
             >
@@ -632,7 +632,7 @@ export default function ProductDetailScreen() {
               >
                 See All
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           )}
         </View>
 
@@ -643,7 +643,7 @@ export default function ProductDetailScreen() {
 
         {/* Write Review Button */}
         {token && (canReview || userReview) && (
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.writeReviewButton,
               {
@@ -667,7 +667,7 @@ export default function ProductDetailScreen() {
             >
               {userReview ? "Edit Your Review" : "Write a Review"}
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         )}
 
         {/* User's Review */}
@@ -709,7 +709,7 @@ export default function ProductDetailScreen() {
             ))}
 
             {hasMoreReviews && (
-              <TouchableOpacity
+              <DebouncedTouchable
                 style={styles.viewAllButton}
                 onPress={navigateToAllReviews}
                 activeOpacity={0.7}
@@ -727,7 +727,7 @@ export default function ProductDetailScreen() {
                   size={config.iconSize}
                   color={AppColors.primary[600]}
                 />
-              </TouchableOpacity>
+              </DebouncedTouchable>
             )}
           </View>
         ) : (

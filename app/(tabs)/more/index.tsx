@@ -5,18 +5,12 @@ import Constants from "expo-constants"
 import { useRouter } from "expo-router"
 import * as WebBrowser from "expo-web-browser"
 import { useMemo } from "react"
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native"
 import Toast from "react-native-toast-message"
 
 import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -55,7 +49,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
   const badgeSize = isTablet ? 22 : 20
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.menuItem,
         {
@@ -114,7 +108,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
           color={AppColors.gray[400]}
         />
       )}
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 
@@ -331,7 +325,7 @@ export default function MoreScreen() {
   const renderProfileCard = () => {
     if (token && user) {
       return (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={[
             styles.profileCard,
             {
@@ -389,7 +383,7 @@ export default function MoreScreen() {
             size={isTablet ? 26 : 24}
             color={AppColors.gray[400]}
           />
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )
     }
 

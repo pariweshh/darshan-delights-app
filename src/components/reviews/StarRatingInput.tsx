@@ -1,8 +1,9 @@
 import { FontAwesome } from "@expo/vector-icons"
 import React from "react"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface StarRatingInputProps {
   rating: number
@@ -27,7 +28,7 @@ const StarRatingInput: React.FC<StarRatingInputProps> = ({
 
       <View style={styles.starsRow}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity
+          <DebouncedTouchable
             key={star}
             onPress={() => onRatingChange(star)}
             activeOpacity={0.7}
@@ -38,7 +39,7 @@ const StarRatingInput: React.FC<StarRatingInputProps> = ({
               size={size}
               color={star <= rating ? AppColors.star : AppColors.gray[300]}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         ))}
       </View>
 

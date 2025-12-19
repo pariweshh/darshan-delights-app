@@ -6,10 +6,10 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   UIManager,
   View,
 } from "react-native"
+import DebouncedTouchable from "./DebouncedTouchable"
 
 // Enable LayoutAnimation on Android
 if (
@@ -39,7 +39,7 @@ const Accordion: React.FC<AccordionProps> = ({
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <DebouncedTouchable
         style={styles.header}
         onPress={handlePress}
         activeOpacity={0.7}
@@ -50,7 +50,7 @@ const Accordion: React.FC<AccordionProps> = ({
           size={20}
           color={AppColors.gray[500]}
         />
-      </TouchableOpacity>
+      </DebouncedTouchable>
 
       {isExpanded && (
         <View style={styles.answerContainer}>

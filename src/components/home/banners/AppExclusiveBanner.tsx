@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface AppExclusiveBannerProps {
   onPress?: () => void
@@ -34,7 +35,7 @@ export default function AppExclusiveBanner({
   const maxWidth = isTablet && isLandscape ? width * 0.7 : undefined
 
   return (
-    <TouchableOpacity
+    <DebouncedTouchable
       style={[
         styles.container,
         {
@@ -138,7 +139,7 @@ export default function AppExclusiveBanner({
           />
         </View>
       </LinearGradient>
-    </TouchableOpacity>
+    </DebouncedTouchable>
   )
 }
 

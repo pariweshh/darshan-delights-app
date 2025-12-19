@@ -1,16 +1,11 @@
 import { useLocalSearchParams } from "expo-router"
 import { useEffect, useState } from "react"
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import { getProductById } from "@/src/api/products"
 import Loader from "@/src/components/common/Loader"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { Product } from "@/src/types"
 
@@ -96,7 +91,7 @@ export default function NutritionScreen() {
 
         {/* Tab Switcher */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={[
               styles.tab,
               activeTab === "per-serving" && styles.tabActive,
@@ -112,8 +107,8 @@ export default function NutritionScreen() {
             >
               Per Serving
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </DebouncedTouchable>
+          <DebouncedTouchable
             style={[styles.tab, activeTab === "per-100g" && styles.tabActive]}
             onPress={() => setActiveTab("per-100g")}
             activeOpacity={0.7}
@@ -126,7 +121,7 @@ export default function NutritionScreen() {
             >
               Per 100g/ml
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
 
         {/* Nutrition Table */}

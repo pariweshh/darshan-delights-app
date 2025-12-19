@@ -5,7 +5,6 @@ import {
   FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import Toast from "react-native-toast-message"
@@ -20,6 +19,7 @@ import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review, ReviewStats } from "@/src/types/review"
 import EmptyState from "../common/EmptyState"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 import RatingSummary from "./RatingSummary"
 import ReviewCard from "./ReviewCard"
 import WriteReviewModal from "./WriteReviewModal"
@@ -208,7 +208,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
 
       {/* Write Review Button */}
       {token && (canReview || userReview) && (
-        <TouchableOpacity
+        <DebouncedTouchable
           style={styles.writeReviewButton}
           onPress={() => setShowWriteReview(true)}
           activeOpacity={0.7}
@@ -221,7 +221,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
           <Text style={styles.writeReviewText}>
             {userReview ? "Edit Your Review" : "Write a Review"}
           </Text>
-        </TouchableOpacity>
+        </DebouncedTouchable>
       )}
 
       {/* User's Review */}
@@ -242,7 +242,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
           <Text style={styles.reviewCount}>
             {stats?.totalReviews || 0} Reviews
           </Text>
-          <TouchableOpacity
+          <DebouncedTouchable
             style={styles.sortButton}
             onPress={() => setShowSortPicker(!showSortPicker)}
             activeOpacity={0.7}
@@ -255,7 +255,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
               size={16}
               color={AppColors.text.secondary}
             />
-          </TouchableOpacity>
+          </DebouncedTouchable>
         </View>
       )}
 
@@ -263,7 +263,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
       {showSortPicker && (
         <View style={styles.sortPicker}>
           {SORT_OPTIONS.map((option) => (
-            <TouchableOpacity
+            <DebouncedTouchable
               key={option.value}
               style={[
                 styles.sortOption,
@@ -287,7 +287,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({
                   color={AppColors.primary[600]}
                 />
               )}
-            </TouchableOpacity>
+            </DebouncedTouchable>
           ))}
         </View>
       )}

@@ -12,7 +12,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -21,6 +20,7 @@ import Toast from "react-native-toast-message"
 import { forgotPassword, verifyResetOTP } from "@/src/api/auth"
 import OTPInput from "@/src/components/auth/otpInput"
 import Button from "@/src/components/ui/Button"
+import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 
@@ -168,7 +168,7 @@ export default function VerifyResetOTPScreen() {
             ]}
           >
             {/* Back Button */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.backButton,
                 {
@@ -186,7 +186,7 @@ export default function VerifyResetOTPScreen() {
                 size={config.iconSizeLarge}
                 color={AppColors.text.primary}
               />
-            </TouchableOpacity>
+            </DebouncedTouchable>
 
             {/* Icon */}
             <View
@@ -275,7 +275,10 @@ export default function VerifyResetOTPScreen() {
                   Resend in {resendCooldown}s
                 </Text>
               ) : (
-                <TouchableOpacity onPress={handleResend} disabled={isResending}>
+                <DebouncedTouchable
+                  onPress={handleResend}
+                  disabled={isResending}
+                >
                   {isResending ? (
                     <ActivityIndicator
                       size="small"
@@ -291,12 +294,12 @@ export default function VerifyResetOTPScreen() {
                       Resend Code
                     </Text>
                   )}
-                </TouchableOpacity>
+                </DebouncedTouchable>
               )}
             </View>
 
             {/* Open Email App */}
-            <TouchableOpacity
+            <DebouncedTouchable
               style={[
                 styles.openEmailButton,
                 {
@@ -321,7 +324,7 @@ export default function VerifyResetOTPScreen() {
               >
                 Open Email App
               </Text>
-            </TouchableOpacity>
+            </DebouncedTouchable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native"
+import { StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface SearchSuggestionsProps {
   onSuggestionSelect: (query: string) => void
@@ -78,7 +79,7 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
         ]}
       >
         {POPULAR_SEARCHES.map((suggestion, index) => (
-          <TouchableOpacity
+          <DebouncedTouchable
             key={`${suggestion}-${index}`}
             style={[
               styles.suggestionChip,
@@ -99,7 +100,7 @@ const SearchSuggestions: React.FC<SearchSuggestionsProps> = ({
             <Text style={[styles.suggestionText, { fontSize: chipFontSize }]}>
               {suggestion}
             </Text>
-          </TouchableOpacity>
+          </DebouncedTouchable>
         ))}
       </View>
     </View>
