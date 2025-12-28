@@ -3,6 +3,7 @@ import * as Updates from "expo-updates"
 import React, { Component, ErrorInfo, ReactNode } from "react"
 import { ScrollView, StyleSheet, Text, View } from "react-native"
 
+import { NetworkError } from "@/src/api/client"
 import AppColors from "@/src/constants/Colors"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
@@ -16,6 +17,7 @@ interface State {
   hasError: boolean
   error: Error | null
   errorInfo: ErrorInfo | null
+  isNetworkError: boolean
 }
 
 class ErrorBoundary extends Component<Props, State> {
@@ -25,25 +27,31 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      isNetworkError: false,
     }
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
-    return { hasError: true, error }
+    return {
+      hasError: true,
+      error,
+      isNetworkError:
+        error instanceof NetworkError ||
+        error.message.includes("Network") ||
+        error.message.includes("network") ||
+        error.message.includes("internet"),
+    }
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo })
 
-    // Log error to your error reporting service (e.g., Sentry)
-    console.error("Error Boundary caught an error:", error)
-    console.error("Error Info:", errorInfo)
-
-    // Call optional error handler
-    this.props.onError?.(error, errorInfo)
-
-    // Here you would send to your error reporting service
-    // Example: Sentry.captureException(error, { extra: errorInfo })
+    // Don't log network errors as they're expected
+    if (!(error instanceof NetworkError)) {
+      console.error("Error Boundary caught an error:", error)
+      console.error("Error Info:", errorInfo)
+      this.props.onError?.(error, errorInfo)
+    }
   }
 
   handleRetry = (): void => {
@@ -51,6 +59,7 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      isNetworkError: false,
     })
   }
 
@@ -74,6 +83,40 @@ class ErrorBoundary extends Component<Props, State> {
       // Return custom fallback if provided
       if (this.props.fallback) {
         return this.props.fallback
+      }
+
+      // Network error UI
+      if (this.state.isNetworkError) {
+        return (
+          <View style={styles.container}>
+            <View style={styles.content}>
+              <View style={[styles.iconContainer, styles.networkIconContainer]}>
+                <Ionicons
+                  name="cloud-offline-outline"
+                  size={64}
+                  color={AppColors.gray[500]}
+                />
+              </View>
+
+              <Text style={styles.title}>No Internet Connection</Text>
+
+              <Text style={styles.message}>
+                Please check your internet connection and try again.
+              </Text>
+
+              <View style={styles.buttonContainer}>
+                <DebouncedTouchable
+                  style={styles.primaryButton}
+                  onPress={this.handleRetry}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="refresh" size={20} color="white" />
+                  <Text style={styles.primaryButtonText}>Try Again</Text>
+                </DebouncedTouchable>
+              </View>
+            </View>
+          </View>
+        )
       }
 
       // Default error UI
@@ -167,6 +210,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
+  },
+  networkIconContainer: {
+    backgroundColor: AppColors.gray[100],
   },
   title: {
     fontFamily: "Poppins_700Bold",

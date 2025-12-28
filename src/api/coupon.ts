@@ -38,6 +38,7 @@ export const validateCoupon = async (
       code: code.toUpperCase(),
       platform: "mobile", // Always "mobile" for the app
       subtotal,
+      token,
     },
     { headers }
   )

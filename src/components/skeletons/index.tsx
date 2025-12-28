@@ -1,3 +1,4 @@
+export { default as AddressCardSkeleton } from "./AddressCardSkeleton"
 export { default as CartItemSkeleton } from "./CartItemSkeleton"
 export { default as CartSummarySkeleton } from "./CartSummarySkeleton"
 export { default as CategoryChipSkeleton } from "./CategoryChipSkeleton"

@@ -18,6 +18,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 
 const SUBJECTS = [
@@ -29,43 +30,8 @@ const SUBJECTS = [
   "Other",
 ]
 
-interface ContactMethod {
-  icon: keyof typeof Ionicons.glyphMap
-  title: string
-  subtitle: string
-  description: string
-  action: string
-  onPress: () => void
-}
-
-const contactMethods: ContactMethod[] = [
-  {
-    icon: "call-outline",
-    title: "Call Us",
-    subtitle: "+61 452 550 534",
-    description: "Mon-Fri 5PM-8PM, Sat-Sun 9AM-5PM",
-    action: "Call Now",
-    onPress: () => Linking.openURL("tel:+61452550534"),
-  },
-  {
-    icon: "mail-outline",
-    title: "Email Us",
-    subtitle: "support@darshandelights.com.au",
-    description: "We typically reply within 2-4 hours",
-    action: "Send Email",
-    onPress: () => Linking.openURL("mailto:support@darshandelights.com.au"),
-  },
-  {
-    icon: "logo-whatsapp",
-    title: "WhatsApp",
-    subtitle: "+61 452 550 534",
-    description: "Quick responses via WhatsApp",
-    action: "Chat Now",
-    onPress: () => Linking.openURL("https://wa.me/61452550534"),
-  },
-]
-
 export default function ContactScreen() {
+  const { config, isTablet, isLandscape } = useResponsive()
   const { user } = useAuthStore()
 
   const [name, setName] = useState(
@@ -77,6 +43,45 @@ export default function ContactScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSubjectModal, setShowSubjectModal] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const iconContainerSize = isTablet ? 44 : 40
+  const iconSize = isTablet ? 22 : 20
+  const inputPaddingH = isTablet ? 16 : 14
+  const inputPaddingV = isTablet ? 14 : 12
+  const inputFontSize = isTablet ? 16 : 15
+  const inputBorderRadius = isTablet ? 12 : 10
+
+  // Contact methods
+  const contactMethods = [
+    {
+      icon: "call-outline" as const,
+      title: "Call Us",
+      subtitle: "+61 452 550 534",
+      description: "Mon-Fri 5PM-8PM, Sat-Sun 9AM-5PM",
+      action: "Call Now",
+      onPress: () => Linking.openURL("tel:+61452550534"),
+    },
+    {
+      icon: "mail-outline" as const,
+      title: "Email Us",
+      subtitle: "support@darshandelights.com.au",
+      description: "We typically reply within 2-4 hours",
+      action: "Send Email",
+      onPress: () => Linking.openURL("mailto:support@darshandelights.com.au"),
+    },
+    {
+      icon: "logo-whatsapp" as const,
+      title: "WhatsApp",
+      subtitle: "+61 452 550 534",
+      description: "Quick responses via WhatsApp",
+      action: "Chat Now",
+      onPress: () => Linking.openURL("https://wa.me/61452550534"),
+    },
+  ]
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -159,43 +164,129 @@ export default function ContactScreen() {
     <Wrapper style={styles.container} edges={[]}>
       <KeyboardAwareScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
         enableAutomaticScroll
         keyboardOpeningTime={250}
       >
         {/* Contact Methods */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Get in Touch</Text>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            Get in Touch
+          </Text>
           {contactMethods.map((method, index) => (
-            <View key={index} style={styles.contactCard}>
-              <View style={styles.contactInfo}>
-                <View style={styles.contactHeader}>
-                  <View style={styles.contactIcon}>
+            <View
+              key={index}
+              style={[
+                styles.contactCard,
+                {
+                  padding: isTablet ? 18 : 16,
+                  borderRadius: isTablet ? 14 : 12,
+                  marginBottom: isTablet ? 14 : 12,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.contactInfo,
+                  { marginBottom: isTablet ? 14 : 12 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.contactHeader,
+                    { marginBottom: isTablet ? 10 : 8 },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.contactIcon,
+                      {
+                        width: iconContainerSize,
+                        height: iconContainerSize,
+                        borderRadius: isTablet ? 12 : 10,
+                        marginRight: isTablet ? 14 : 12,
+                      },
+                    ]}
+                  >
                     <Ionicons
                       name={method.icon}
-                      size={20}
+                      size={iconSize}
                       color={AppColors.primary[600]}
                     />
                   </View>
                   <View style={styles.contactText}>
-                    <Text style={styles.contactTitle}>{method.title}</Text>
-                    <Text style={styles.contactSubtitle}>
+                    <Text
+                      style={[
+                        styles.contactTitle,
+                        { fontSize: config.bodyFontSize },
+                      ]}
+                    >
+                      {method.title}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.contactSubtitle,
+                        {
+                          fontSize: config.bodyFontSize - 1,
+                          marginTop: isTablet ? 4 : 2,
+                        },
+                      ]}
+                    >
                       {method.subtitle}
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.contactDescription}>
+                <Text
+                  style={[
+                    styles.contactDescription,
+                    {
+                      fontSize: config.smallFontSize,
+                      marginLeft: iconContainerSize + (isTablet ? 14 : 12),
+                    },
+                  ]}
+                >
                   {method.description}
                 </Text>
               </View>
               <DebouncedTouchable
-                style={styles.contactAction}
+                style={[
+                  styles.contactAction,
+                  {
+                    paddingVertical: isTablet ? 12 : 10,
+                    paddingHorizontal: isTablet ? 18 : 16,
+                    borderRadius: isTablet ? 10 : 8,
+                  },
+                ]}
                 onPress={method.onPress}
                 activeOpacity={0.7}
               >
-                <Text style={styles.contactActionText}>{method.action}</Text>
+                <Text
+                  style={[
+                    styles.contactActionText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  {method.action}
+                </Text>
               </DebouncedTouchable>
             </View>
           ))}
@@ -203,18 +294,66 @@ export default function ContactScreen() {
 
         {/* Contact Form */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Send us a Message</Text>
-          <View style={styles.formCard}>
-            <Text style={styles.formSubtitle}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            Send us a Message
+          </Text>
+          <View
+            style={[
+              styles.formCard,
+              {
+                padding: isTablet ? 18 : 16,
+                borderRadius: config.cardBorderRadius + 4,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.formSubtitle,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  lineHeight: (config.bodyFontSize - 1) * 1.5,
+                  marginBottom: isTablet ? 22 : 20,
+                },
+              ]}
+            >
               We'd love to hear from you. Fill out the form below and we'll get
               back to you as soon as possible.
             </Text>
 
             {/* Name */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Your Name *</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Your Name *
+              </Text>
               <TextInput
-                style={[styles.input, errors.name && styles.inputError]}
+                style={[
+                  styles.input,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  errors.name && styles.inputError,
+                ]}
                 value={name}
                 onChangeText={(text) => updateField("name", text)}
                 placeholder="Enter your full name"
@@ -222,15 +361,40 @@ export default function ContactScreen() {
                 autoCapitalize="words"
               />
               {errors.name && (
-                <Text style={styles.errorText}>{errors.name}</Text>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.name}
+                </Text>
               )}
             </View>
 
             {/* Email */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address *</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Email Address *
+              </Text>
               <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
+                style={[
+                  styles.input,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  errors.email && styles.inputError,
+                ]}
                 value={email}
                 onChangeText={(text) => updateField("email", text)}
                 placeholder="Enter your email"
@@ -239,21 +403,46 @@ export default function ContactScreen() {
                 autoCapitalize="none"
               />
               {errors.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.email}
+                </Text>
               )}
             </View>
 
             {/* Subject */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Subject *</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Subject *
+              </Text>
               <DebouncedTouchable
-                style={[styles.selector, errors.subject && styles.inputError]}
+                style={[
+                  styles.selector,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                  },
+                  errors.subject && styles.inputError,
+                ]}
                 onPress={() => setShowSubjectModal(true)}
                 activeOpacity={0.7}
               >
                 <Text
                   style={[
                     styles.selectorText,
+                    { fontSize: inputFontSize },
                     !selectedSubject && styles.selectorPlaceholder,
                   ]}
                 >
@@ -261,20 +450,46 @@ export default function ContactScreen() {
                 </Text>
                 <Ionicons
                   name="chevron-down"
-                  size={20}
+                  size={isTablet ? 22 : 20}
                   color={AppColors.gray[400]}
                 />
               </DebouncedTouchable>
               {errors.subject && (
-                <Text style={styles.errorText}>{errors.subject}</Text>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.subject}
+                </Text>
               )}
             </View>
 
             {/* Message */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Message *</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}
+            >
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Message *
+              </Text>
               <TextInput
-                style={[styles.textArea, errors.message && styles.inputError]}
+                style={[
+                  styles.textArea,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                    minHeight: isTablet ? 140 : 120,
+                  },
+                  errors.message && styles.inputError,
+                ]}
                 value={message}
                 onChangeText={(text) => updateField("message", text)}
                 placeholder="Tell us how we can help you..."
@@ -284,11 +499,22 @@ export default function ContactScreen() {
                 textAlignVertical="top"
                 maxLength={1000}
               />
-              <View style={styles.charCount}>
-                <Text style={styles.charCountText}>{message.length}/1000</Text>
+              <View style={[styles.charCount, { marginTop: isTablet ? 6 : 4 }]}>
+                <Text
+                  style={[
+                    styles.charCountText,
+                    { fontSize: config.smallFontSize - 1 },
+                  ]}
+                >
+                  {message.length}/1000
+                </Text>
               </View>
               {errors.message && (
-                <Text style={styles.errorText}>{errors.message}</Text>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.message}
+                </Text>
               )}
             </View>
 
@@ -298,7 +524,9 @@ export default function ContactScreen() {
               onPress={handleSubmit}
               loading={isSubmitting}
               disabled={isSubmitting}
-              icon={<Ionicons name="send" size={18} color="white" />}
+              icon={
+                <Ionicons name="send" size={isTablet ? 20 : 18} color="white" />
+              }
             />
           </View>
         </View>
@@ -312,13 +540,28 @@ export default function ContactScreen() {
         onRequestClose={() => setShowSubjectModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Subject</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: isTablet ? 500 : undefined,
+                alignSelf: isTablet ? "center" : undefined,
+                width: isTablet ? "90%" : undefined,
+                borderTopLeftRadius: isTablet ? 28 : 24,
+                borderTopRightRadius: isTablet ? 28 : 24,
+              },
+            ]}
+          >
+            <View style={[styles.modalHeader, { padding: isTablet ? 22 : 20 }]}>
+              <Text
+                style={[styles.modalTitle, { fontSize: isTablet ? 20 : 18 }]}
+              >
+                Select Subject
+              </Text>
               <DebouncedTouchable onPress={() => setShowSubjectModal(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={isTablet ? 26 : 24}
                   color={AppColors.text.primary}
                 />
               </DebouncedTouchable>
@@ -329,6 +572,10 @@ export default function ContactScreen() {
                   key={index}
                   style={[
                     styles.modalOption,
+                    {
+                      paddingVertical: isTablet ? 16 : 14,
+                      paddingHorizontal: isTablet ? 22 : 20,
+                    },
                     selectedSubject === subject && styles.modalOptionSelected,
                   ]}
                   onPress={() => {
@@ -343,6 +590,7 @@ export default function ContactScreen() {
                   <Text
                     style={[
                       styles.modalOptionText,
+                      { fontSize: config.bodyFontSize },
                       selectedSubject === subject &&
                         styles.modalOptionTextSelected,
                     ]}
@@ -352,7 +600,7 @@ export default function ContactScreen() {
                   {selectedSubject === subject && (
                     <Ionicons
                       name="checkmark"
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={AppColors.primary[600]}
                     />
                   )}
@@ -375,86 +623,58 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  scrollContent: {},
   // Section
-  section: {
-    marginBottom: 24,
-  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
   // Contact Card
   contactCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  contactInfo: {
-    marginBottom: 12,
-  },
+  contactInfo: {},
   contactHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
   },
   contactIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   contactText: {
     flex: 1,
   },
   contactTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   contactSubtitle: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[600],
-    marginTop: 2,
   },
   contactDescription: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
-    marginLeft: 52,
   },
   contactAction: {
     backgroundColor: AppColors.primary[500],
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 8,
     alignItems: "center",
   },
   contactActionText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "white",
   },
   // Form Card
   formCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -463,30 +683,19 @@ const styles = StyleSheet.create({
   },
   formSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 20,
-    lineHeight: 20,
   },
   // Input
-  inputGroup: {
-    marginBottom: 16,
-  },
+  inputGroup: {},
   label: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.primary,
-    marginBottom: 6,
   },
   input: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   inputError: {
@@ -494,46 +703,34 @@ const styles = StyleSheet.create({
   },
   textArea: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
-    minHeight: 120,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 4,
   },
   charCount: {
     alignItems: "flex-end",
-    marginTop: 4,
   },
   charCountText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
   },
   // Selector
   selector: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   selectorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   selectorPlaceholder: {
@@ -547,29 +744,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: AppColors.background.primary,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     maxHeight: "60%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   modalOption: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
   },
@@ -578,7 +769,6 @@ const styles = StyleSheet.create({
   },
   modalOptionText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   modalOptionTextSelected: {

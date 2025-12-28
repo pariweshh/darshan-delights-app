@@ -2,7 +2,8 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Category } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native"
+import { Image } from "expo-image"
+import { ScrollView, StyleSheet, Text, View } from "react-native"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CategoryListProps {
@@ -46,14 +47,6 @@ const CategoryList: React.FC<CategoryListProps> = ({
   onCategoryPress,
 }) => {
   const { config, isTablet } = useResponsive()
-
-  // if (loading) {
-  //   return (
-  //     <View style={styles.loadingContainer}>
-  //       <ActivityIndicator size="small" color={AppColors.primary[500]} />
-  //     </View>
-  //   )
-  // }
 
   if (!categories || categories.length === 0) {
     return null
@@ -121,6 +114,10 @@ const CategoryList: React.FC<CategoryListProps> = ({
               <Image
                 source={{ uri: category?.cover?.url }}
                 style={{ width: imageSize, height: imageSize }}
+                contentFit="cover"
+                transition={200}
+                cachePolicy={"memory-disk"}
+                recyclingKey={`product-${category?.id}`}
               />
             ) : (
               <Ionicons

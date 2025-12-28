@@ -1,14 +1,7 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useState } from "react"
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native"
 import Toast from "react-native-toast-message"
 
 import { getProductById } from "@/src/api/products"
@@ -16,6 +9,7 @@ import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useCartStore } from "@/src/store/cartStore"
 import { CartItem } from "@/src/types"
+import { Image } from "expo-image"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface CartItemCardProps {
@@ -220,7 +214,7 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
         <Image
           source={{ uri: item.cover }}
           style={styles.image}
-          resizeMode="contain"
+          contentFit="contain"
         />
       </DebouncedTouchable>
 

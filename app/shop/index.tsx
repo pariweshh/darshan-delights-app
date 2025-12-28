@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router"
-import { useCallback, useEffect, useState } from "react"
+import { memo, useCallback, useEffect, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -8,7 +8,6 @@ import {
   Text,
   View,
 } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
@@ -17,6 +16,7 @@ import { useProductsStore } from "@/src/store/productStore"
 import { Brand, Product } from "@/src/types"
 
 import EmptyState from "@/src/components/common/EmptyState"
+import Wrapper from "@/src/components/common/Wrapper"
 import ProductCard from "@/src/components/product/ProductCard"
 import ActiveFilters from "@/src/components/shop/ActiveFilters"
 import CategoryChips from "@/src/components/shop/CategoryChips"
@@ -25,6 +25,32 @@ import { ProductGridSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 const ITEMS_PER_PAGE = 12
+
+// Memoize the product item component
+const ProductItem = memo(
+  ({
+    item,
+    index,
+    numColumns,
+    gap,
+    itemWidth,
+  }: {
+    item: Product
+    index: number
+    numColumns: number
+    gap: number
+    itemWidth: number
+  }) => {
+    const isLastInRow = (index + 1) % numColumns === 0
+    const marginRight = isLastInRow ? 0 : gap
+
+    return (
+      <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+        <ProductCard product={item} customStyle={{ width: "100%" }} />
+      </View>
+    )
+  }
+)
 
 export default function ShopScreen() {
   const router = useRouter()
@@ -438,26 +464,26 @@ export default function ShopScreen() {
     )
   }
 
-  const renderProduct = ({ item, index }: { item: Product; index: number }) => {
-    // Calculate margin for grid layout
-    const isLastInRow = (index + 1) % numColumns === 0
-    const marginRight = isLastInRow ? 0 : gap
+  const renderProduct = useCallback(
+    ({ item, index }: { item: Product; index: number }) => (
+      <ProductItem
+        item={item}
+        index={index}
+        numColumns={numColumns}
+        gap={gap}
+        itemWidth={itemWidth}
+      />
+    ),
+    [numColumns, gap, itemWidth]
+  )
 
-    return (
-      <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
-        <ProductCard product={item} customStyle={{ width: "100%" }} />
-      </View>
-    )
-  }
+  const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
 
   // Create a key for FlatList to force re-render when columns change
   const flatListKey = `grid-${numColumns}`
 
   return (
-    <SafeAreaView
-      style={styles.container}
-      edges={["top", "left", "right", "bottom"]}
-    >
+    <Wrapper style={styles.container} edges={["top", "bottom"]}>
       {/* Custom Top Header */}
       {renderTopHeader()}
 
@@ -466,7 +492,6 @@ export default function ShopScreen() {
 
       {/* Content */}
       {isInitialLoading ? (
-        // <Loader fullScreen />
         <View
           style={{
             paddingHorizontal: config.horizontalPadding,
@@ -492,7 +517,7 @@ export default function ShopScreen() {
           key={flatListKey}
           data={products}
           renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={keyExtractor}
           numColumns={numColumns}
           contentContainerStyle={[
             styles.listContent,
@@ -501,11 +526,14 @@ export default function ShopScreen() {
           showsVerticalScrollIndicator={false}
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
-          onEndReachedThreshold={0.5}
+          onEndReachedThreshold={0.3}
+          // Performance optimizations
           removeClippedSubviews={true}
           initialNumToRender={ITEMS_PER_PAGE}
-          maxToRenderPerBatch={ITEMS_PER_PAGE}
-          windowSize={4}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          updateCellsBatchingPeriod={50}
+          getItemLayout={undefined}
         />
       )}
 
@@ -521,7 +549,7 @@ export default function ShopScreen() {
         onReset={handleResetFilters}
         productCount={products.length}
       />
-    </SafeAreaView>
+    </Wrapper>
   )
 }
 

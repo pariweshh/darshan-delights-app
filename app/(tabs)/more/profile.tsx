@@ -1,3 +1,5 @@
+// app/(tabs)/more/profile.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
@@ -18,10 +20,12 @@ import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 
 export default function ProfileScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { user, token, logout, updateUser } = useAuthStore()
 
   // Edit mode state
@@ -38,6 +42,18 @@ export default function ProfileScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const avatarSize = isTablet ? 100 : 80
+  const avatarFontSize = isTablet ? 34 : 28
+  const inputPaddingH = isTablet ? 16 : 14
+  const inputPaddingV = isTablet ? 14 : 12
+  const inputFontSize = isTablet ? 16 : 15
+  const inputBorderRadius = isTablet ? 12 : 10
+  const menuIconContainerSize = isTablet ? 44 : 40
 
   // Sync profile data with user
   useEffect(() => {
@@ -231,8 +247,19 @@ export default function ProfileScreen() {
   if (!user || !token) {
     return (
       <Wrapper style={styles.container} edges={[]}>
-        <View style={styles.guestContainer}>
-          <Text style={styles.guestText}>
+        <View
+          style={[
+            styles.guestContainer,
+            {
+              padding: config.horizontalPadding + 8,
+              maxWidth: isTablet ? 400 : undefined,
+              alignSelf: isTablet ? "center" : undefined,
+            },
+          ]}
+        >
+          <Text
+            style={[styles.guestText, { fontSize: config.subtitleFontSize }]}
+          >
             Please login to view your profile
           </Text>
           <Button
@@ -249,48 +276,136 @@ export default function ProfileScreen() {
     <Wrapper style={styles.container} edges={[]}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
         {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+        <View
+          style={[
+            styles.profileHeader,
+            {
+              paddingVertical: isTablet ? 28 : 24,
+              borderRadius: config.cardBorderRadius + 4,
+              marginBottom: isTablet ? 28 : 24,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.avatar,
+              {
+                width: avatarSize,
+                height: avatarSize,
+                borderRadius: avatarSize / 2,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            <Text style={[styles.avatarText, { fontSize: avatarFontSize }]}>
+              {initials}
+            </Text>
           </View>
-          <Text style={styles.profileName}>
+          <Text style={[styles.profileName, { fontSize: isTablet ? 22 : 20 }]}>
             {profileData.fName} {profileData.lName}
           </Text>
-          <Text style={styles.profileEmail}>{profileData.email}</Text>
+          <Text
+            style={[
+              styles.profileEmail,
+              { fontSize: config.bodyFontSize, marginTop: isTablet ? 6 : 4 },
+            ]}
+          >
+            {profileData.email}
+          </Text>
         </View>
 
         {/* Personal Information */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <View
+            style={[styles.sectionHeader, { marginBottom: isTablet ? 14 : 12 }]}
+          >
+            <Text
+              style={[styles.sectionTitle, { fontSize: isTablet ? 17 : 16 }]}
+            >
+              Personal Information
+            </Text>
             <DebouncedTouchable
-              style={styles.editButton}
+              style={[
+                styles.editButton,
+                {
+                  paddingHorizontal: isTablet ? 14 : 12,
+                  paddingVertical: isTablet ? 8 : 6,
+                  borderRadius: isTablet ? 10 : 8,
+                  gap: isTablet ? 6 : 4,
+                },
+              ]}
               onPress={handleEditToggle}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={isEditing ? "close" : "pencil"}
-                size={16}
+                size={isTablet ? 18 : 16}
                 color={AppColors.primary[600]}
               />
-              <Text style={styles.editButtonText}>
+              <Text
+                style={[
+                  styles.editButtonText,
+                  { fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
                 {isEditing ? "Cancel" : "Edit"}
               </Text>
             </DebouncedTouchable>
           </View>
 
-          <View style={styles.formCard}>
+          <View
+            style={[
+              styles.formCard,
+              {
+                padding: isTablet ? 18 : 16,
+                borderRadius: config.cardBorderRadius + 4,
+              },
+            ]}
+          >
             {/* First Name & Last Name */}
-            <View style={styles.fieldRow}>
+            <View
+              style={[
+                styles.fieldRow,
+                { gap: isTablet ? 14 : 12, marginBottom: isTablet ? 18 : 16 },
+              ]}
+            >
               <View style={styles.fieldHalf}>
-                <Text style={styles.fieldLabel}>First Name</Text>
+                <Text
+                  style={[
+                    styles.fieldLabel,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  First Name
+                </Text>
                 <TextInput
-                  style={[styles.input, !isEditing && styles.inputDisabled]}
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                    },
+                    !isEditing && styles.inputDisabled,
+                  ]}
                   value={profileData.fName}
                   onChangeText={(text) =>
                     setProfileData({ ...profileData, fName: text })
@@ -301,9 +416,28 @@ export default function ProfileScreen() {
                 />
               </View>
               <View style={styles.fieldHalf}>
-                <Text style={styles.fieldLabel}>Last Name</Text>
+                <Text
+                  style={[
+                    styles.fieldLabel,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  Last Name
+                </Text>
                 <TextInput
-                  style={[styles.input, !isEditing && styles.inputDisabled]}
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                    },
+                    !isEditing && styles.inputDisabled,
+                  ]}
                   value={profileData.lName}
                   onChangeText={(text) =>
                     setProfileData({ ...profileData, lName: text })
@@ -316,22 +450,64 @@ export default function ProfileScreen() {
             </View>
 
             {/* Email (Read-only) */}
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Email</Text>
+            <View style={[styles.field, { marginBottom: isTablet ? 18 : 16 }]}>
+              <Text
+                style={[
+                  styles.fieldLabel,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Email
+              </Text>
               <TextInput
-                style={[styles.input, styles.inputDisabled]}
+                style={[
+                  styles.input,
+                  styles.inputDisabled,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                ]}
                 value={profileData.email}
                 editable={false}
                 placeholder="Email address"
               />
-              <Text style={styles.fieldHint}>Email cannot be changed</Text>
+              <Text
+                style={[styles.fieldHint, { fontSize: config.smallFontSize }]}
+              >
+                Email cannot be changed
+              </Text>
             </View>
 
             {/* Phone */}
             <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Phone Number</Text>
+              <Text
+                style={[
+                  styles.fieldLabel,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Phone Number
+              </Text>
               <TextInput
-                style={[styles.input, !isEditing && styles.inputDisabled]}
+                style={[
+                  styles.input,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  !isEditing && styles.inputDisabled,
+                ]}
                 value={profileData.phone}
                 onChangeText={(text) =>
                   setProfileData({ ...profileData, phone: text })
@@ -357,69 +533,134 @@ export default function ProfileScreen() {
         </View>
 
         {/* Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          <View style={styles.menuCard}>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            Settings
+          </Text>
+          <View
+            style={[
+              styles.menuCard,
+              { borderRadius: config.cardBorderRadius + 4 },
+            ]}
+          >
             <DebouncedTouchable
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                {
+                  paddingVertical: isTablet ? 16 : 14,
+                  paddingHorizontal: isTablet ? 18 : 16,
+                },
+              ]}
               onPress={handleGoToSecurity}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
+              <View style={[styles.menuItemLeft, { gap: isTablet ? 14 : 12 }]}>
                 <View
                   style={[
                     styles.menuIconContainer,
-                    { backgroundColor: AppColors.primary[50] },
+                    {
+                      width: menuIconContainerSize,
+                      height: menuIconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      backgroundColor: AppColors.primary[50],
+                    },
                   ]}
                 >
                   <Ionicons
                     name="shield-checkmark-outline"
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.primary[600]}
                   />
                 </View>
                 <View>
-                  <Text style={styles.menuItemLabel}>Security</Text>
-                  <Text style={styles.menuItemHint}>Password & biometrics</Text>
+                  <Text
+                    style={[
+                      styles.menuItemLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Security
+                  </Text>
+                  <Text
+                    style={[
+                      styles.menuItemHint,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    Password & biometrics
+                  </Text>
                 </View>
               </View>
               <Ionicons
                 name="chevron-forward"
-                size={20}
+                size={isTablet ? 22 : 20}
                 color={AppColors.gray[400]}
               />
             </DebouncedTouchable>
 
-            <View style={styles.menuDivider} />
+            <View
+              style={[styles.menuDivider, { marginLeft: isTablet ? 76 : 68 }]}
+            />
 
             <DebouncedTouchable
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                {
+                  paddingVertical: isTablet ? 16 : 14,
+                  paddingHorizontal: isTablet ? 18 : 16,
+                },
+              ]}
               onPress={handleGoToNotifications}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
+              <View style={[styles.menuItemLeft, { gap: isTablet ? 14 : 12 }]}>
                 <View
                   style={[
                     styles.menuIconContainer,
-                    { backgroundColor: "#FEF3C7" },
+                    {
+                      width: menuIconContainerSize,
+                      height: menuIconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      backgroundColor: "#FEF3C7",
+                    },
                   ]}
                 >
                   <Ionicons
                     name="notifications-outline"
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color="#D97706"
                   />
                 </View>
                 <View>
-                  <Text style={styles.menuItemLabel}>Notifications</Text>
-                  <Text style={styles.menuItemHint}>
+                  <Text
+                    style={[
+                      styles.menuItemLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Notifications
+                  </Text>
+                  <Text
+                    style={[
+                      styles.menuItemHint,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
                     Push notification preferences
                   </Text>
                 </View>
               </View>
               <Ionicons
                 name="chevron-forward"
-                size={20}
+                size={isTablet ? 22 : 20}
                 color={AppColors.gray[400]}
               />
             </DebouncedTouchable>
@@ -428,58 +669,102 @@ export default function ProfileScreen() {
 
         {/* Danger Zone */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: AppColors.error }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+                color: AppColors.error,
+              },
+            ]}
+          >
             Danger Zone
           </Text>
-          <View style={styles.menuCard}>
+          <View
+            style={[
+              styles.menuCard,
+              { borderRadius: config.cardBorderRadius + 4 },
+            ]}
+          >
             <DebouncedTouchable
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                {
+                  paddingVertical: isTablet ? 16 : 14,
+                  paddingHorizontal: isTablet ? 18 : 16,
+                },
+              ]}
               onPress={handleLogout}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
+              <View style={[styles.menuItemLeft, { gap: isTablet ? 14 : 12 }]}>
                 <View
                   style={[
                     styles.menuIconContainer,
-                    { backgroundColor: "#FEF3C7" },
+                    {
+                      width: menuIconContainerSize,
+                      height: menuIconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      backgroundColor: "#FEF3C7",
+                    },
                   ]}
                 >
                   <Ionicons
                     name="log-out-outline"
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.warning}
                   />
                 </View>
                 <Text
-                  style={[styles.menuItemLabel, { color: AppColors.warning }]}
+                  style={[
+                    styles.menuItemLabel,
+                    { fontSize: config.bodyFontSize, color: AppColors.warning },
+                  ]}
                 >
                   Logout
                 </Text>
               </View>
             </DebouncedTouchable>
 
-            <View style={styles.menuDivider} />
+            <View
+              style={[styles.menuDivider, { marginLeft: isTablet ? 76 : 68 }]}
+            />
 
             <DebouncedTouchable
-              style={styles.menuItem}
+              style={[
+                styles.menuItem,
+                {
+                  paddingVertical: isTablet ? 16 : 14,
+                  paddingHorizontal: isTablet ? 18 : 16,
+                },
+              ]}
               onPress={() => setShowDeleteModal(true)}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
+              <View style={[styles.menuItemLeft, { gap: isTablet ? 14 : 12 }]}>
                 <View
                   style={[
                     styles.menuIconContainer,
-                    { backgroundColor: "#FEE2E2" },
+                    {
+                      width: menuIconContainerSize,
+                      height: menuIconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      backgroundColor: "#FEE2E2",
+                    },
                   ]}
                 >
                   <Ionicons
                     name="trash-outline"
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.error}
                   />
                 </View>
                 <Text
-                  style={[styles.menuItemLabel, { color: AppColors.error }]}
+                  style={[
+                    styles.menuItemLabel,
+                    { fontSize: config.bodyFontSize, color: AppColors.error },
+                  ]}
                 >
                   Delete Account
                 </Text>
@@ -493,53 +778,154 @@ export default function ProfileScreen() {
       <Modal
         visible={showDeleteModal}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle={isTablet ? "formSheet" : "pageSheet"}
         onRequestClose={() => setShowDeleteModal(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
+        <SafeAreaView
+          style={[
+            styles.modalContainer,
+            isTablet && {
+              maxWidth: isLandscape ? 550 : 500,
+              alignSelf: "center",
+              width: "100%",
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.modalHeader,
+              {
+                paddingHorizontal: config.horizontalPadding,
+                paddingVertical: isTablet ? 18 : 16,
+              },
+            ]}
+          >
             <DebouncedTouchable
               onPress={() => {
                 setShowDeleteModal(false)
                 setDeleteConfirmation("")
               }}
             >
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text
+                style={[
+                  styles.modalCancelText,
+                  { fontSize: config.subtitleFontSize },
+                ]}
+              >
+                Cancel
+              </Text>
             </DebouncedTouchable>
-            <Text style={[styles.modalTitle, { color: AppColors.error }]}>
+            <Text
+              style={[
+                styles.modalTitle,
+                { fontSize: isTablet ? 20 : 18, color: AppColors.error },
+              ]}
+            >
               Delete Account
             </Text>
             <View style={{ width: 50 }} />
           </View>
 
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.deleteWarning}>
-              <View style={styles.deleteWarningIcon}>
-                <Ionicons name="warning" size={48} color={AppColors.error} />
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={{ padding: config.horizontalPadding }}
+          >
+            <View
+              style={[
+                styles.deleteWarning,
+                { paddingVertical: isTablet ? 24 : 20 },
+              ]}
+            >
+              <View
+                style={[
+                  styles.deleteWarningIcon,
+                  {
+                    width: isTablet ? 90 : 80,
+                    height: isTablet ? 90 : 80,
+                    borderRadius: isTablet ? 45 : 40,
+                    marginBottom: isTablet ? 18 : 16,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="warning"
+                  size={isTablet ? 52 : 48}
+                  color={AppColors.error}
+                />
               </View>
-              <Text style={styles.deleteWarningTitle}>
+              <Text
+                style={[
+                  styles.deleteWarningTitle,
+                  {
+                    fontSize: isTablet ? 20 : 18,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
                 This action cannot be undone
               </Text>
-              <Text style={styles.deleteWarningText}>
+              <Text
+                style={[
+                  styles.deleteWarningText,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 18 : 16,
+                  },
+                ]}
+              >
                 Deleting your account will permanently remove:
               </Text>
               <View style={styles.deleteWarningList}>
-                <Text style={styles.deleteWarningItem}>
-                  • Your profile information
-                </Text>
-                <Text style={styles.deleteWarningItem}>• Order history</Text>
-                <Text style={styles.deleteWarningItem}>• Saved addresses</Text>
-                <Text style={styles.deleteWarningItem}>• Favorites list</Text>
+                {[
+                  "Your profile information",
+                  "Order history",
+                  "Saved addresses",
+                  "Favorites list",
+                ].map((item, index) => (
+                  <Text
+                    key={index}
+                    style={[
+                      styles.deleteWarningItem,
+                      {
+                        fontSize: config.bodyFontSize,
+                        marginBottom: isTablet ? 6 : 4,
+                      },
+                    ]}
+                  >
+                    • {item}
+                  </Text>
+                ))}
               </View>
             </View>
 
-            <View style={styles.deleteConfirmation}>
-              <Text style={styles.deleteConfirmationLabel}>
+            <View
+              style={[
+                styles.deleteConfirmation,
+                { marginVertical: isTablet ? 28 : 24 },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.deleteConfirmationLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
                 Type <Text style={{ fontWeight: "bold" }}>DELETE</Text> to
                 confirm:
               </Text>
               <TextInput
-                style={styles.deleteConfirmationInput}
+                style={[
+                  styles.deleteConfirmationInput,
+                  {
+                    paddingHorizontal: isTablet ? 16 : 14,
+                    paddingVertical: isTablet ? 14 : 12,
+                    borderRadius: isTablet ? 12 : 10,
+                    fontSize: isTablet ? 17 : 16,
+                  },
+                ]}
                 value={deleteConfirmation}
                 onChangeText={setDeleteConfirmation}
                 placeholder="Type DELETE"
@@ -579,120 +965,81 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  scrollContent: {},
   guestContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 24,
   },
   guestText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.secondary,
   },
   // Profile Header
   profileHeader: {
     alignItems: "center",
-    paddingVertical: 24,
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    marginBottom: 24,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     backgroundColor: AppColors.primary[500],
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
   avatarText: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 28,
     color: "white",
   },
   profileName: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 20,
     color: AppColors.text.primary,
   },
   profileEmail: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
-    marginTop: 4,
   },
   // Section
-  section: {
-    marginBottom: 24,
-  },
+  section: {},
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.primary[50],
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 4,
   },
   editButtonText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[600],
   },
   // Form
   formCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
   },
   fieldRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
   },
   fieldHalf: {
     flex: 1,
   },
-  field: {
-    marginBottom: 16,
-  },
+  field: {},
   fieldLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 6,
   },
   fieldHint: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
     marginTop: 4,
   },
   input: {
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
@@ -704,42 +1051,32 @@ const styles = StyleSheet.create({
   // Menu
   menuCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
     overflow: "hidden",
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
   },
   menuItemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   menuIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
   menuItemLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   menuItemHint: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
   },
   menuDivider: {
     height: 1,
     backgroundColor: AppColors.gray[100],
-    marginLeft: 68,
   },
   // Modal
   modalContainer: {
@@ -750,78 +1087,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   modalCancelText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.secondary,
   },
   modalContent: {
     flex: 1,
-    padding: 20,
   },
   // Delete Warning
   deleteWarning: {
     alignItems: "center",
-    paddingVertical: 20,
   },
   deleteWarningIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     backgroundColor: "#FEE2E2",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
   },
   deleteWarningTitle: {
     fontFamily: "Poppins_700Bold",
-    fontSize: 18,
     color: AppColors.error,
-    marginBottom: 8,
   },
   deleteWarningText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     textAlign: "center",
-    marginBottom: 16,
   },
   deleteWarningList: {
     alignSelf: "stretch",
   },
   deleteWarningItem: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
-    marginBottom: 4,
   },
-  deleteConfirmation: {
-    marginVertical: 24,
-  },
+  deleteConfirmation: {},
   deleteConfirmationLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   deleteConfirmationInput: {
     borderWidth: 2,
     borderColor: AppColors.error,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
 })

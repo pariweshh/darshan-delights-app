@@ -1,12 +1,13 @@
 import { CommonActions } from "@react-navigation/native"
 import { BlurView } from "expo-blur"
 import { router, useNavigation } from "expo-router"
-import { Image, Text, View } from "react-native"
+import { Text, View } from "react-native"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
 import { IsIPAD, windowHeight, windowWidth } from "@/src/themes/app.constants"
 import { setOnboardingCompleted } from "@/src/utils/storage"
+import { Image } from "expo-image"
 
 interface AuthModalProps {
   setModalVisible: (value: boolean) => void
@@ -46,7 +47,7 @@ const AuthModal = ({ setModalVisible }: AuthModalProps) => {
       >
         <Image
           source={require("@/assets/images/logo.png")}
-          resizeMode="contain"
+          contentFit="contain"
           className="w-40 h-40"
         />
 
@@ -66,7 +67,7 @@ const AuthModal = ({ setModalVisible }: AuthModalProps) => {
           <Image
             source={require("@/assets/images/path.png")}
             className="w-20 h-4 absolute -bottom-6 right-0"
-            resizeMode="contain"
+            contentFit="contain"
           />
         </View>
 

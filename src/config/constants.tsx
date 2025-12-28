@@ -1,5 +1,6 @@
 import { IsIPAD } from "@/src/themes/app.constants"
-import { Dimensions, Image } from "react-native"
+import { Image } from "expo-image"
+import { Dimensions } from "react-native"
 import { moderateScale, verticalScale } from "react-native-size-matters"
 import { LandingSlide } from "../types"
 
@@ -49,7 +50,7 @@ export const landingScreenSlides: LandingSlide[] = [
           width: landingImageSize.width,
           height: landingImageSize.height,
         }}
-        resizeMode="contain"
+        contentFit="contain"
       />
     ),
   },
@@ -64,7 +65,7 @@ export const landingScreenSlides: LandingSlide[] = [
           width: landingImageSize.width,
           height: landingImageSize.height,
         }}
-        resizeMode="contain"
+        contentFit="contain"
       />
     ),
   },
@@ -80,7 +81,7 @@ export const landingScreenSlides: LandingSlide[] = [
           height: landingImageSize.height,
           marginBottom: verticalScale(30),
         }}
-        resizeMode="contain"
+        contentFit="contain"
       />
     ),
   },

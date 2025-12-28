@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   FlatList,
   Keyboard,
@@ -25,6 +25,134 @@ import { Product } from "@/src/types"
 
 const MIN_SEARCH_LENGTH = 2
 
+interface ProductItemProps {
+  item: Product
+  index: number
+  numColumns: number
+  gap: number
+  itemWidth: number
+}
+
+interface InitialStateProps {
+  recentSearches: string[]
+  onSearchSelect: (query: string) => void
+  onRemoveSearch: (query: string) => void
+  onClearAll: () => void
+  onSuggestionSelect: (query: string) => void
+}
+
+interface SkeletonStateProps {
+  horizontalPadding: number
+  bodyFontSize: number
+  paddingVertical: number
+  skeletonCount: number
+}
+
+interface ResultsHeaderProps {
+  count: number
+  searchQuery: string
+  fontSize: number
+  paddingVertical: number
+}
+
+const ProductItem = memo(
+  ({ item, index, numColumns, gap, itemWidth }: ProductItemProps) => {
+    const isLastInRow = (index + 1) % numColumns === 0
+    const marginRight = isLastInRow ? 0 : gap
+
+    return (
+      <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+        <ProductCard product={item} customStyle={{ width: "100%" }} />
+      </View>
+    )
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.index === nextProps.index &&
+      prevProps.numColumns === nextProps.numColumns &&
+      prevProps.itemWidth === nextProps.itemWidth
+    )
+  }
+)
+
+const InitialState = memo(
+  ({
+    recentSearches,
+    onSearchSelect,
+    onRemoveSearch,
+    onClearAll,
+    onSuggestionSelect,
+  }: InitialStateProps) => (
+    <ScrollView
+      style={styles.initialStateContainer}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <RecentSearches
+        searches={recentSearches}
+        onSearchSelect={onSearchSelect}
+        onRemoveSearch={onRemoveSearch}
+        onClearAll={onClearAll}
+      />
+
+      <SearchSuggestions onSuggestionSelect={onSuggestionSelect} />
+
+      {recentSearches.length === 0 && (
+        <View style={styles.emptyImageContainer}>
+          <EmptyState
+            type="initialSearch"
+            message="Find your favorites"
+            subMessage="Search for products by name, category, or brand"
+          />
+        </View>
+      )}
+    </ScrollView>
+  )
+)
+
+const SkeletonState = memo(
+  ({
+    horizontalPadding,
+    bodyFontSize,
+    paddingVertical,
+    skeletonCount,
+  }: SkeletonStateProps) => (
+    <View
+      style={[
+        styles.skeletonContainer,
+        { paddingHorizontal: horizontalPadding },
+      ]}
+    >
+      <View style={[styles.resultsHeader, { paddingVertical }]}>
+        <SkeletonBase width={150} height={bodyFontSize + 2} />
+      </View>
+      <ProductGridSkeleton count={skeletonCount} />
+    </View>
+  )
+)
+
+const ResultsHeader = memo(
+  ({ count, searchQuery, fontSize, paddingVertical }: ResultsHeaderProps) => (
+    <View style={[styles.resultsHeader, { paddingVertical }]}>
+      <Text style={[styles.resultsText, { fontSize }]}>
+        {count} results for "{searchQuery}"
+      </Text>
+    </View>
+  )
+)
+
+interface ErrorStateProps {
+  error: string
+  fontSize: number
+}
+
+const ErrorState = memo(({ error, fontSize }: ErrorStateProps) => (
+  <View style={styles.errorContainer}>
+    <Text style={[styles.errorText, { fontSize }]}>{error}</Text>
+  </View>
+))
+
 export default function SearchScreen() {
   const { config, isTablet, isLandscape, width } = useResponsive()
   const [searchQuery, setSearchQuery] = useState("")
@@ -42,18 +170,50 @@ export default function SearchScreen() {
   } = useRecentSearches()
 
   // Product store
-  const { filteredProducts, loading, error, searchProductsRealTime } =
-    useProductsStore()
+  const filteredProducts = useProductsStore((state) => state.filteredProducts)
+  const loading = useProductsStore((state) => state.loading)
+  const error = useProductsStore((state) => state.error)
+  const searchProductsRealTime = useProductsStore(
+    (state) => state.searchProductsRealTime
+  )
 
   // Calculate grid columns based on device and orientation
-  const numColumns = isTablet ? (isLandscape ? 4 : 3) : 2
-
+  const numColumns = useMemo(
+    () => (isTablet ? (isLandscape ? 4 : 3) : 2),
+    [isTablet, isLandscape]
+  )
   // Calculate item width for consistent grid
-  const gap = config.gap
-  const horizontalPadding = config.horizontalPadding
-  const totalGaps = gap * (numColumns - 1)
-  const containerWidth = width - horizontalPadding * 2
-  const itemWidth = (containerWidth - totalGaps) / numColumns
+  const gridDimensions = useMemo(() => {
+    const gap = config.gap
+    const horizontalPadding = config.horizontalPadding
+    const totalGaps = gap * (numColumns - 1)
+    const containerWidth = width - horizontalPadding * 2
+    const itemWidth = (containerWidth - totalGaps) / numColumns
+
+    return { gap, horizontalPadding, itemWidth }
+  }, [config.gap, config.horizontalPadding, numColumns, width])
+
+  const skeletonCount = useMemo(
+    () => (isTablet ? (isLandscape ? 8 : 6) : 6),
+    [isTablet, isLandscape]
+  )
+
+  const showResults = useMemo(
+    () => hasSearched && searchQuery.length >= MIN_SEARCH_LENGTH,
+    [hasSearched, searchQuery.length]
+  )
+
+  const showNoResults = useMemo(
+    () => showResults && filteredProducts?.length === 0 && !loading,
+    [showResults, filteredProducts?.length, loading]
+  )
+
+  const showInitialState = !showResults
+
+  const flatListKey = useMemo(
+    () => `search-results-${numColumns}`,
+    [numColumns]
+  )
 
   // Auto-search when debounced query changes
   useEffect(() => {
@@ -67,17 +227,17 @@ export default function SearchScreen() {
   }, [debouncedQuery, searchProductsRealTime])
 
   // Handlers
-  const handleSearchChange = (text: string) => {
+  const handleSearchChange = useCallback((text: string) => {
     setSearchQuery(text)
-  }
+  }, [])
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("")
     setHasSearched(false)
     searchProductsRealTime("")
-  }
+  }, [searchProductsRealTime])
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     Keyboard.dismiss()
 
     if (!searchQuery.trim()) {
@@ -100,115 +260,147 @@ export default function SearchScreen() {
       return
     }
 
-    // Add to recent searches
     addRecentSearch(searchQuery.trim())
     searchProductsRealTime(searchQuery.trim())
     setHasSearched(true)
-  }
+  }, [searchQuery, addRecentSearch, searchProductsRealTime])
 
-  const handleRecentSearchSelect = (query: string) => {
-    setSearchQuery(query)
-    searchProductsRealTime(query)
-    setHasSearched(true)
-    Keyboard.dismiss()
-  }
+  const handleRecentSearchSelect = useCallback(
+    (query: string) => {
+      setSearchQuery(query)
+      searchProductsRealTime(query)
+      setHasSearched(true)
+      Keyboard.dismiss()
+    },
+    [searchProductsRealTime]
+  )
 
-  const handleSuggestionSelect = (query: string) => {
-    setSearchQuery(query)
-    addRecentSearch(query)
-    searchProductsRealTime(query)
-    setHasSearched(true)
-    Keyboard.dismiss()
-  }
+  const handleSuggestionSelect = useCallback(
+    (query: string) => {
+      setSearchQuery(query)
+      addRecentSearch(query)
+      searchProductsRealTime(query)
+      setHasSearched(true)
+      Keyboard.dismiss()
+    },
+    [addRecentSearch, searchProductsRealTime]
+  )
 
-  const handleClearRecentSearches = () => {
+  const handleClearRecentSearches = useCallback(() => {
     clearRecentSearches()
     Toast.show({
       type: "success",
       text1: "Search history cleared",
       visibilityTime: 1500,
     })
-  }
+  }, [clearRecentSearches])
 
   // Render product item
   const renderProduct = useCallback(
-    ({ item, index }: { item: Product; index: number }) => {
-      const isLastInRow = (index + 1) % numColumns === 0
-      const marginRight = isLastInRow ? 0 : gap
-
-      return (
-        <View
-          style={{
-            width: itemWidth,
-            marginRight,
-            marginBottom: gap,
-          }}
-        >
-          <ProductCard product={item} customStyle={{ width: "100%" }} />
-        </View>
-      )
-    },
-    [numColumns, itemWidth, gap]
-  )
-
-  // Render initial state (no search yet)
-  const renderInitialState = () => (
-    <ScrollView
-      style={styles.initialStateContainer}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Recent Searches */}
-      <RecentSearches
-        searches={recentSearches}
-        onSearchSelect={handleRecentSearchSelect}
-        onRemoveSearch={removeRecentSearch}
-        onClearAll={handleClearRecentSearches}
+    ({ item, index }: { item: Product; index: number }) => (
+      <ProductItem
+        item={item}
+        index={index}
+        numColumns={numColumns}
+        gap={gridDimensions.gap}
+        itemWidth={gridDimensions.itemWidth}
       />
-
-      {/* Popular Searches */}
-      <SearchSuggestions onSuggestionSelect={handleSuggestionSelect} />
-
-      {/* Empty State Image */}
-      {recentSearches.length === 0 && (
-        <View style={styles.emptyImageContainer}>
-          <EmptyState
-            type="initialSearch"
-            message="Find your favorites"
-            subMessage="Search for products by name, category, or brand"
-          />
-        </View>
-      )}
-    </ScrollView>
+    ),
+    [numColumns, gridDimensions.gap, gridDimensions.itemWidth]
   )
 
-  // Render loading skeleton
-  const renderSkeleton = () => (
-    <View
-      style={[
-        styles.skeletonContainer,
-        { paddingHorizontal: config.horizontalPadding },
-      ]}
-    >
-      {/* Results skeleton */}
-      <View
-        style={[styles.resultsHeader, { paddingVertical: isTablet ? 14 : 12 }]}
-      >
-        <SkeletonBase width={150} height={config.bodyFontSize + 2} />
-      </View>
+  const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
 
-      <ProductGridSkeleton count={isTablet ? (isLandscape ? 8 : 6) : 6} />
-    </View>
+  const ListHeaderComponent = useMemo(
+    () => (
+      <ResultsHeader
+        count={filteredProducts?.length || 0}
+        searchQuery={searchQuery}
+        fontSize={config.bodyFontSize}
+        paddingVertical={isTablet ? 14 : 12}
+      />
+    ),
+    [filteredProducts?.length, searchQuery, config.bodyFontSize, isTablet]
   )
 
-  // Show results or initial state
-  const showResults = hasSearched && searchQuery.length >= MIN_SEARCH_LENGTH
-  const showNoResults =
-    showResults && filteredProducts?.length === 0 && !loading
-  const showInitialState = !showResults
+  const ListFooterComponent = useMemo(
+    () => <View style={{ height: isTablet ? 120 : 100 }} />,
+    [isTablet]
+  )
 
-  // Create a key for FlatList to force re-render when columns change
-  const flatListKey = `search-results-${numColumns}`
+  // Render content based on state
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <SearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onClear={handleClearSearch}
+          onSubmit={handleSearch}
+        />
+        <SkeletonState
+          horizontalPadding={config.horizontalPadding}
+          bodyFontSize={config.bodyFontSize}
+          paddingVertical={isTablet ? 14 : 12}
+          skeletonCount={skeletonCount}
+        />
+      </SafeAreaView>
+    )
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <SearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onClear={handleClearSearch}
+          onSubmit={handleSearch}
+        />
+        <ErrorState error={error} fontSize={config.subtitleFontSize} />
+      </SafeAreaView>
+    )
+  }
+
+  if (showNoResults) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <SearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onClear={handleClearSearch}
+          onSubmit={handleSearch}
+        />
+        <EmptyState
+          type="search"
+          message="No products found"
+          subMessage={`We couldn't find anything for "${searchQuery}"`}
+          actionLabel="Clear Search"
+          onAction={handleClearSearch}
+        />
+      </SafeAreaView>
+    )
+  }
+
+  if (showInitialState) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <SearchHeader
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onClear={handleClearSearch}
+          onSubmit={handleSearch}
+        />
+        <InitialState
+          recentSearches={recentSearches}
+          onSearchSelect={handleRecentSearchSelect}
+          onRemoveSearch={removeRecentSearch}
+          onClearAll={handleClearRecentSearches}
+          onSuggestionSelect={handleSuggestionSelect}
+        />
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -220,60 +412,29 @@ export default function SearchScreen() {
         onSubmit={handleSearch}
       />
 
-      {/* Content */}
-      {loading ? (
-        renderSkeleton()
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text
-            style={[styles.errorText, { fontSize: config.subtitleFontSize }]}
-          >
-            {error}
-          </Text>
-        </View>
-      ) : showNoResults ? (
-        <EmptyState
-          type="search"
-          message="No products found"
-          subMessage={`We couldn't find anything for "${searchQuery}"`}
-          actionLabel="Clear Search"
-          onAction={handleClearSearch}
-        />
-      ) : showInitialState ? (
-        renderInitialState()
-      ) : (
-        <FlatList
-          key={flatListKey}
-          data={filteredProducts}
-          renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={numColumns}
-          contentContainerStyle={[
-            styles.listContent,
-            { paddingHorizontal: config.horizontalPadding },
-          ]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          ListHeaderComponent={
-            <View
-              style={[
-                styles.resultsHeader,
-                { paddingVertical: isTablet ? 14 : 12 },
-              ]}
-            >
-              <Text
-                style={[styles.resultsText, { fontSize: config.bodyFontSize }]}
-              >
-                {filteredProducts?.length || 0} results for "{searchQuery}"
-              </Text>
-            </View>
-          }
-          ListFooterComponent={
-            <View style={{ height: isTablet ? 120 : 100 }} />
-          }
-        />
-      )}
+      <FlatList
+        key={flatListKey}
+        data={filteredProducts}
+        renderItem={renderProduct}
+        keyExtractor={keyExtractor}
+        numColumns={numColumns}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingHorizontal: gridDimensions.horizontalPadding },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        ListHeaderComponent={ListHeaderComponent}
+        ListFooterComponent={ListFooterComponent}
+        // Performance optimizations
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        initialNumToRender={10}
+        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        getItemLayout={undefined}
+      />
     </SafeAreaView>
   )
 }

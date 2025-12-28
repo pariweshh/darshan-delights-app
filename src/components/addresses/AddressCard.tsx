@@ -3,6 +3,7 @@ import React, { useState } from "react"
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { Address } from "@/src/types/address"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
@@ -19,6 +20,7 @@ const AddressCard: React.FC<Props> = ({
   onDelete,
   onSetDefault,
 }) => {
+  const { config, isTablet } = useResponsive()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isSettingDefault, setIsSettingDefault] = useState(false)
 
@@ -79,31 +81,72 @@ const AddressCard: React.FC<Props> = ({
     return parts.join(", ")
   }
 
+  // Responsive sizes
+  const labelIconContainerSize = isTablet ? 36 : 32
+  const labelIconSize = isTablet ? 20 : 18
+  const actionButtonSize = isTablet ? 40 : 36
+  const actionIconSize = isTablet ? 20 : 18
+
   return (
     <View
-      style={[styles.container, address.is_default && styles.containerDefault]}
+      style={[
+        styles.container,
+        {
+          padding: isTablet ? 18 : 16,
+          borderRadius: config.cardBorderRadius + 4,
+          marginBottom: isTablet ? 14 : 12,
+        },
+        address.is_default && styles.containerDefault,
+      ]}
     >
       {/* Default Badge */}
       {address.is_default && (
-        <View style={styles.defaultBadge}>
-          <Text style={styles.defaultBadgeText}>Default</Text>
+        <View style={[styles.defaultBadge, { right: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[styles.defaultBadgeText, { fontSize: isTablet ? 11 : 10 }]}
+          >
+            Default
+          </Text>
         </View>
       )}
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { marginBottom: isTablet ? 14 : 12 }]}>
         <View style={styles.labelContainer}>
-          <View style={styles.labelIcon}>
+          <View
+            style={[
+              styles.labelIcon,
+              {
+                width: labelIconContainerSize,
+                height: labelIconContainerSize,
+                borderRadius: isTablet ? 10 : 8,
+                marginRight: isTablet ? 12 : 10,
+              },
+            ]}
+          >
             <Ionicons
               name={getLabelIcon(address.label)}
-              size={18}
+              size={labelIconSize}
               color={AppColors.primary[600]}
             />
           </View>
-          <Text style={styles.label}>{address.label || "Address"}</Text>
+          <Text style={[styles.label, { fontSize: isTablet ? 17 : 16 }]}>
+            {address.label || "Address"}
+          </Text>
           {address.type !== "both" && (
-            <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>
+            <View
+              style={[
+                styles.typeBadge,
+                {
+                  paddingHorizontal: isTablet ? 10 : 8,
+                  paddingVertical: isTablet ? 3 : 2,
+                  marginLeft: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.typeBadgeText, { fontSize: isTablet ? 11 : 10 }]}
+              >
                 {address.type === "shipping" ? "Shipping" : "Billing"}
               </Text>
             </View>
@@ -111,21 +154,35 @@ const AddressCard: React.FC<Props> = ({
         </View>
 
         {/* Actions */}
-        <View style={styles.actions}>
+        <View style={[styles.actions, { gap: isTablet ? 6 : 4 }]}>
           <DebouncedTouchable
-            style={styles.actionButton}
+            style={[
+              styles.actionButton,
+              {
+                width: actionButtonSize,
+                height: actionButtonSize,
+                borderRadius: isTablet ? 10 : 8,
+              },
+            ]}
             onPress={() => onEdit(address)}
             activeOpacity={0.7}
           >
             <Ionicons
               name="pencil-outline"
-              size={18}
+              size={actionIconSize}
               color={AppColors.primary[600]}
             />
           </DebouncedTouchable>
 
           <DebouncedTouchable
-            style={styles.actionButton}
+            style={[
+              styles.actionButton,
+              {
+                width: actionButtonSize,
+                height: actionButtonSize,
+                borderRadius: isTablet ? 10 : 8,
+              },
+            ]}
             onPress={handleDelete}
             disabled={isDeleting}
             activeOpacity={0.7}
@@ -135,7 +192,7 @@ const AddressCard: React.FC<Props> = ({
             ) : (
               <Ionicons
                 name="trash-outline"
-                size={18}
+                size={actionIconSize}
                 color={AppColors.error}
               />
             )}
@@ -144,18 +201,44 @@ const AddressCard: React.FC<Props> = ({
       </View>
 
       {/* Contact Info */}
-      <View style={styles.contactInfo}>
-        <Text style={styles.name}>{address.full_name}</Text>
-        <Text style={styles.phone}>{address.phone}</Text>
+      <View style={[styles.contactInfo, { marginBottom: isTablet ? 10 : 8 }]}>
+        <Text style={[styles.name, { fontSize: isTablet ? 16 : 15 }]}>
+          {address.full_name}
+        </Text>
+        <Text
+          style={[
+            styles.phone,
+            { fontSize: config.bodyFontSize - 1, marginTop: isTablet ? 4 : 2 },
+          ]}
+        >
+          {address.phone}
+        </Text>
       </View>
 
       {/* Address */}
-      <Text style={styles.address}>{formatAddress()}</Text>
+      <Text
+        style={[
+          styles.address,
+          {
+            fontSize: config.bodyFontSize,
+            lineHeight: config.bodyFontSize * 1.45,
+          },
+        ]}
+      >
+        {formatAddress()}
+      </Text>
 
       {/* Set Default Button */}
       {!address.is_default && (
         <DebouncedTouchable
-          style={styles.setDefaultButton}
+          style={[
+            styles.setDefaultButton,
+            {
+              marginTop: isTablet ? 16 : 14,
+              paddingVertical: isTablet ? 12 : 10,
+              gap: isTablet ? 8 : 6,
+            },
+          ]}
           onPress={handleSetDefault}
           disabled={isSettingDefault}
           activeOpacity={0.7}
@@ -166,10 +249,17 @@ const AddressCard: React.FC<Props> = ({
             <>
               <Ionicons
                 name="checkmark-circle-outline"
-                size={16}
+                size={isTablet ? 18 : 16}
                 color={AppColors.primary[600]}
               />
-              <Text style={styles.setDefaultText}>Set as Default</Text>
+              <Text
+                style={[
+                  styles.setDefaultText,
+                  { fontSize: config.bodyFontSize - 1 },
+                ]}
+              >
+                Set as Default
+              </Text>
             </>
           )}
         </DebouncedTouchable>
@@ -183,9 +273,6 @@ export default AddressCard
 const styles = StyleSheet.create({
   container: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -200,7 +287,6 @@ const styles = StyleSheet.create({
   defaultBadge: {
     position: "absolute",
     top: -1,
-    right: 16,
     backgroundColor: AppColors.primary[500],
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -209,7 +295,6 @@ const styles = StyleSheet.create({
   },
   defaultBadgeText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 10,
     color: "white",
     textTransform: "uppercase",
   },
@@ -217,7 +302,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
   },
   labelContainer: {
     flexDirection: "row",
@@ -225,77 +309,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   labelIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 10,
   },
   label: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   typeBadge: {
     backgroundColor: AppColors.gray[100],
-    paddingHorizontal: 8,
-    paddingVertical: 2,
     borderRadius: 4,
-    marginLeft: 8,
   },
   typeBadgeText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 10,
     color: AppColors.text.secondary,
     textTransform: "uppercase",
   },
   actions: {
     flexDirection: "row",
-    gap: 4,
   },
   actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
     backgroundColor: AppColors.gray[50],
     alignItems: "center",
     justifyContent: "center",
   },
-  contactInfo: {
-    marginBottom: 8,
-  },
+  contactInfo: {},
   name: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   phone: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginTop: 2,
   },
   address: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
-    lineHeight: 20,
   },
   setDefaultButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 14,
-    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[100],
-    gap: 6,
   },
   setDefaultText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.primary[600],
   },
 })

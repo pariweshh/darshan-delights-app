@@ -1,5 +1,3 @@
-// app/(auth)/verify-email.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import * as Linking from "expo-linking"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -65,7 +63,6 @@ export default function VerifyEmailScreen() {
     Keyboard.dismiss()
     setIsVerifying(true)
     setError(false)
-
     try {
       const response = await verifyOTP(email, otpCode)
 
@@ -132,7 +129,7 @@ export default function VerifyEmailScreen() {
   }
 
   const maskEmail = (email: string): string => {
-    const [localPart, domain] = email.split("@")
+    const [localPart, domain] = email?.split("@")
     if (localPart.length <= 2) return email
     return `${localPart[0]}${"*".repeat(localPart.length - 2)}${
       localPart[localPart.length - 1]

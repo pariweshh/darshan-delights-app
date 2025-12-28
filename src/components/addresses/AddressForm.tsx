@@ -11,6 +11,7 @@ import {
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import {
   Address,
   ADDRESS_LABELS,
@@ -36,6 +37,8 @@ const AddressForm: React.FC<Props> = ({
   isLoading = false,
   submitLabel = "Save Address",
 }) => {
+  const { config, isTablet, isLandscape } = useResponsive()
+
   // Form state
   const [formData, setFormData] = useState<AddressFormData>({
     label: initialData?.label || "Home",
@@ -56,10 +59,18 @@ const AddressForm: React.FC<Props> = ({
   const [showStateModal, setShowStateModal] = useState(false)
   const [showLabelModal, setShowLabelModal] = useState(false)
 
+  // Content max width for tablet
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const inputPaddingH = isTablet ? 16 : 14
+  const inputPaddingV = isTablet ? 16 : 14
+  const inputFontSize = isTablet ? 16 : 15
+  const inputBorderRadius = isTablet ? 14 : 12
+
   // Update form field
   const updateField = (field: keyof AddressFormData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when field is updated
     if (errors[field as keyof AddressValidationErrors]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
@@ -111,12 +122,6 @@ const AddressForm: React.FC<Props> = ({
     await onSubmit(formData)
   }
 
-  // Get selected state label
-  const getStateLabel = (): string => {
-    const state = AUSTRALIAN_STATES.find((s) => s.value === formData.state)
-    return state?.label || "Select State"
-  }
-
   // Get selected label icon
   const getLabelIcon = (): keyof typeof Ionicons.glyphMap => {
     const label = ADDRESS_LABELS.find((l) => l.value === formData.label)
@@ -126,41 +131,79 @@ const AddressForm: React.FC<Props> = ({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          padding: config.horizontalPadding,
+          paddingBottom: isTablet ? 60 : 40,
+          maxWidth: contentMaxWidth,
+          alignSelf: contentMaxWidth ? "center" : undefined,
+          width: contentMaxWidth ? "100%" : undefined,
+        },
+      ]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
       {/* Label Selector */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Address Label</Text>
+      <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 14 : 12 },
+          ]}
+        >
+          Address Label
+        </Text>
         <DebouncedTouchable
-          style={styles.selector}
+          style={[
+            styles.selector,
+            {
+              paddingHorizontal: inputPaddingH,
+              paddingVertical: inputPaddingV,
+              borderRadius: inputBorderRadius,
+            },
+          ]}
           onPress={() => setShowLabelModal(true)}
           activeOpacity={0.7}
         >
-          <View style={styles.selectorLeft}>
+          <View style={[styles.selectorLeft, { gap: isTablet ? 12 : 10 }]}>
             <Ionicons
               name={getLabelIcon()}
-              size={20}
+              size={isTablet ? 22 : 20}
               color={AppColors.primary[600]}
             />
-            <Text style={styles.selectorText}>
+            <Text style={[styles.selectorText, { fontSize: inputFontSize }]}>
               {formData.label || "Select Label"}
             </Text>
           </View>
-          <Ionicons name="chevron-down" size={20} color={AppColors.gray[400]} />
+          <Ionicons
+            name="chevron-down"
+            size={isTablet ? 22 : 20}
+            color={AppColors.gray[400]}
+          />
         </DebouncedTouchable>
       </View>
 
       {/* Address Type */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Address Type</Text>
-        <View style={styles.typeContainer}>
+      <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 14 : 12 },
+          ]}
+        >
+          Address Type
+        </Text>
+        <View style={[styles.typeContainer, { gap: isTablet ? 12 : 10 }]}>
           {(["both", "shipping", "billing"] as AddressType[]).map((type) => (
             <DebouncedTouchable
               key={type}
               style={[
                 styles.typeButton,
+                {
+                  paddingVertical: isTablet ? 14 : 12,
+                  borderRadius: isTablet ? 12 : 10,
+                },
                 formData.type === type && styles.typeButtonActive,
               ]}
               onPress={() => updateField("type", type)}
@@ -169,6 +212,7 @@ const AddressForm: React.FC<Props> = ({
               <Text
                 style={[
                   styles.typeButtonText,
+                  { fontSize: config.bodyFontSize },
                   formData.type === type && styles.typeButtonTextActive,
                 ]}
               >
@@ -184,14 +228,40 @@ const AddressForm: React.FC<Props> = ({
       </View>
 
       {/* Contact Information */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Contact Information</Text>
+      <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 14 : 12 },
+          ]}
+        >
+          Contact Information
+        </Text>
 
         {/* Full Name */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Full Name *</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Full Name *
+          </Text>
           <TextInput
-            style={[styles.input, errors.full_name && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+              errors.full_name && styles.inputError,
+            ]}
             value={formData.full_name}
             onChangeText={(text) => updateField("full_name", text)}
             placeholder="Enter full name"
@@ -199,29 +269,77 @@ const AddressForm: React.FC<Props> = ({
             autoCapitalize="words"
           />
           {errors.full_name && (
-            <Text style={styles.errorText}>{errors.full_name}</Text>
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.full_name}
+            </Text>
           )}
         </View>
 
         {/* Phone */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Phone Number *</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Phone Number *
+          </Text>
           <TextInput
-            style={[styles.input, errors.phone && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+              errors.phone && styles.inputError,
+            ]}
             value={formData.phone}
             onChangeText={(text) => updateField("phone", text)}
             placeholder="Enter phone number"
             placeholderTextColor={AppColors.gray[400]}
             keyboardType="phone-pad"
           />
-          {errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
+          {errors.phone && (
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.phone}
+            </Text>
+          )}
         </View>
 
         {/* Email (Optional) */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Email (Optional)</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Email (Optional)
+          </Text>
           <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+              errors.email && styles.inputError,
+            ]}
             value={formData.email}
             onChangeText={(text) => updateField("email", text)}
             placeholder="Enter email address"
@@ -229,32 +347,88 @@ const AddressForm: React.FC<Props> = ({
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+          {errors.email && (
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.email}
+            </Text>
+          )}
         </View>
       </View>
 
       {/* Address Details */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Address Details</Text>
+      <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+        <Text
+          style={[
+            styles.sectionTitle,
+            { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 14 : 12 },
+          ]}
+        >
+          Address Details
+        </Text>
 
         {/* Street Address */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Street Address *</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Street Address *
+          </Text>
           <TextInput
-            style={[styles.input, errors.line1 && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+              errors.line1 && styles.inputError,
+            ]}
             value={formData.line1}
             onChangeText={(text) => updateField("line1", text)}
             placeholder="Enter street address"
             placeholderTextColor={AppColors.gray[400]}
           />
-          {errors.line1 && <Text style={styles.errorText}>{errors.line1}</Text>}
+          {errors.line1 && (
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.line1}
+            </Text>
+          )}
         </View>
 
         {/* Apartment/Unit */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Apartment / Unit (Optional)</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Apartment / Unit (Optional)
+          </Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+            ]}
             value={formData.line2}
             onChangeText={(text) => updateField("line2", text)}
             placeholder="Apartment, suite, unit, etc."
@@ -263,31 +437,75 @@ const AddressForm: React.FC<Props> = ({
         </View>
 
         {/* City */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>City / Suburb *</Text>
+        <View style={[styles.inputGroup, { marginBottom: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            City / Suburb *
+          </Text>
           <TextInput
-            style={[styles.input, errors.city && styles.inputError]}
+            style={[
+              styles.input,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+                fontSize: inputFontSize,
+              },
+              errors.city && styles.inputError,
+            ]}
             value={formData.city}
             onChangeText={(text) => updateField("city", text)}
             placeholder="Enter city or suburb"
             placeholderTextColor={AppColors.gray[400]}
           />
-          {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
+          {errors.city && (
+            <Text
+              style={[styles.errorText, { fontSize: config.smallFontSize }]}
+            >
+              {errors.city}
+            </Text>
+          )}
         </View>
 
         {/* State & Postal Code Row */}
-        <View style={styles.row}>
+        <View style={[styles.row, { gap: isTablet ? 14 : 12 }]}>
           {/* State */}
           <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.inputLabel}>State *</Text>
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 8 : 6,
+                },
+              ]}
+            >
+              State *
+            </Text>
             <DebouncedTouchable
-              style={[styles.selector, errors.state && styles.inputError]}
+              style={[
+                styles.selector,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                },
+                errors.state && styles.inputError,
+              ]}
               onPress={() => setShowStateModal(true)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.selectorText,
+                  { fontSize: inputFontSize },
                   !formData.state && styles.selectorPlaceholder,
                 ]}
               >
@@ -295,20 +513,43 @@ const AddressForm: React.FC<Props> = ({
               </Text>
               <Ionicons
                 name="chevron-down"
-                size={18}
+                size={isTablet ? 20 : 18}
                 color={AppColors.gray[400]}
               />
             </DebouncedTouchable>
             {errors.state && (
-              <Text style={styles.errorText}>{errors.state}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.state}
+              </Text>
             )}
           </View>
 
           {/* Postal Code */}
           <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.inputLabel}>Postal Code *</Text>
+            <Text
+              style={[
+                styles.inputLabel,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 8 : 6,
+                },
+              ]}
+            >
+              Postal Code *
+            </Text>
             <TextInput
-              style={[styles.input, errors.postal_code && styles.inputError]}
+              style={[
+                styles.input,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                  fontSize: inputFontSize,
+                },
+                errors.postal_code && styles.inputError,
+              ]}
               value={formData.postal_code}
               onChangeText={(text) => updateField("postal_code", text)}
               placeholder="0000"
@@ -317,41 +558,89 @@ const AddressForm: React.FC<Props> = ({
               maxLength={4}
             />
             {errors.postal_code && (
-              <Text style={styles.errorText}>{errors.postal_code}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.postal_code}
+              </Text>
             )}
           </View>
         </View>
 
         {/* Country (Read-only) */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Country</Text>
-          <View style={[styles.input, styles.inputDisabled]}>
-            <Text style={styles.inputDisabledText}>Australia</Text>
+        <View style={[styles.inputGroup, { marginTop: isTablet ? 18 : 16 }]}>
+          <Text
+            style={[
+              styles.inputLabel,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 8 : 6,
+              },
+            ]}
+          >
+            Country
+          </Text>
+          <View
+            style={[
+              styles.input,
+              styles.inputDisabled,
+              {
+                paddingHorizontal: inputPaddingH,
+                paddingVertical: inputPaddingV,
+                borderRadius: inputBorderRadius,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.inputDisabledText, { fontSize: inputFontSize }]}
+            >
+              Australia
+            </Text>
           </View>
         </View>
       </View>
 
       {/* Set as Default */}
       <DebouncedTouchable
-        style={styles.defaultToggle}
+        style={[
+          styles.defaultToggle,
+          {
+            gap: isTablet ? 14 : 12,
+            paddingVertical: isTablet ? 18 : 16,
+            marginBottom: isTablet ? 28 : 24,
+          },
+        ]}
         onPress={() => updateField("is_default", !formData.is_default)}
         activeOpacity={0.7}
       >
         <View
           style={[
             styles.checkbox,
+            {
+              width: isTablet ? 28 : 24,
+              height: isTablet ? 28 : 24,
+              borderRadius: isTablet ? 8 : 6,
+            },
             formData.is_default && styles.checkboxChecked,
           ]}
         >
           {formData.is_default && (
-            <Ionicons name="checkmark" size={14} color="white" />
+            <Ionicons
+              name="checkmark"
+              size={isTablet ? 16 : 14}
+              color="white"
+            />
           )}
         </View>
-        <Text style={styles.defaultToggleText}>Set as default address</Text>
+        <Text
+          style={[styles.defaultToggleText, { fontSize: config.bodyFontSize }]}
+        >
+          Set as default address
+        </Text>
       </DebouncedTouchable>
 
       {/* Action Buttons */}
-      <View style={styles.actions}>
+      <View style={[styles.actions, { marginTop: isTablet ? 12 : 8 }]}>
         <Button
           title={submitLabel}
           onPress={handleSubmit}
@@ -375,23 +664,45 @@ const AddressForm: React.FC<Props> = ({
         onRequestClose={() => setShowStateModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select State</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: isTablet ? 500 : undefined,
+                alignSelf: isTablet ? "center" : undefined,
+                width: isTablet ? "90%" : undefined,
+                borderTopLeftRadius: isTablet ? 28 : 24,
+                borderTopRightRadius: isTablet ? 28 : 24,
+              },
+            ]}
+          >
+            <View style={[styles.modalHeader, { padding: isTablet ? 24 : 20 }]}>
+              <Text
+                style={[styles.modalTitle, { fontSize: isTablet ? 20 : 18 }]}
+              >
+                Select State
+              </Text>
               <DebouncedTouchable onPress={() => setShowStateModal(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={isTablet ? 26 : 24}
                   color={AppColors.text.primary}
                 />
               </DebouncedTouchable>
             </View>
-            <ScrollView style={styles.modalList}>
+            <ScrollView
+              style={[styles.modalList, { padding: isTablet ? 10 : 8 }]}
+            >
               {AUSTRALIAN_STATES.map((state) => (
                 <DebouncedTouchable
                   key={state.value}
                   style={[
                     styles.modalItem,
+                    {
+                      paddingVertical: isTablet ? 16 : 14,
+                      paddingHorizontal: isTablet ? 18 : 16,
+                      borderRadius: isTablet ? 12 : 10,
+                    },
                     formData.state === state.value && styles.modalItemSelected,
                   ]}
                   onPress={() => {
@@ -403,6 +714,7 @@ const AddressForm: React.FC<Props> = ({
                   <Text
                     style={[
                       styles.modalItemText,
+                      { fontSize: config.bodyFontSize },
                       formData.state === state.value &&
                         styles.modalItemTextSelected,
                     ]}
@@ -412,7 +724,7 @@ const AddressForm: React.FC<Props> = ({
                   {formData.state === state.value && (
                     <Ionicons
                       name="checkmark"
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={AppColors.primary[600]}
                     />
                   )}
@@ -431,23 +743,45 @@ const AddressForm: React.FC<Props> = ({
         onRequestClose={() => setShowLabelModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Label</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: isTablet ? 500 : undefined,
+                alignSelf: isTablet ? "center" : undefined,
+                width: isTablet ? "90%" : undefined,
+                borderTopLeftRadius: isTablet ? 28 : 24,
+                borderTopRightRadius: isTablet ? 28 : 24,
+              },
+            ]}
+          >
+            <View style={[styles.modalHeader, { padding: isTablet ? 24 : 20 }]}>
+              <Text
+                style={[styles.modalTitle, { fontSize: isTablet ? 20 : 18 }]}
+              >
+                Select Label
+              </Text>
               <DebouncedTouchable onPress={() => setShowLabelModal(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={isTablet ? 26 : 24}
                   color={AppColors.text.primary}
                 />
               </DebouncedTouchable>
             </View>
-            <ScrollView style={styles.modalList}>
+            <ScrollView
+              style={[styles.modalList, { padding: isTablet ? 10 : 8 }]}
+            >
               {ADDRESS_LABELS.map((label) => (
                 <DebouncedTouchable
                   key={label.value}
                   style={[
                     styles.modalItem,
+                    {
+                      paddingVertical: isTablet ? 16 : 14,
+                      paddingHorizontal: isTablet ? 18 : 16,
+                      borderRadius: isTablet ? 12 : 10,
+                    },
                     formData.label === label.value && styles.modalItemSelected,
                   ]}
                   onPress={() => {
@@ -456,10 +790,12 @@ const AddressForm: React.FC<Props> = ({
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.modalItemLeft}>
+                  <View
+                    style={[styles.modalItemLeft, { gap: isTablet ? 14 : 12 }]}
+                  >
                     <Ionicons
                       name={label.icon as keyof typeof Ionicons.glyphMap}
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={
                         formData.label === label.value
                           ? AppColors.primary[600]
@@ -469,6 +805,7 @@ const AddressForm: React.FC<Props> = ({
                     <Text
                       style={[
                         styles.modalItemText,
+                        { fontSize: config.bodyFontSize },
                         formData.label === label.value &&
                           styles.modalItemTextSelected,
                       ]}
@@ -479,7 +816,7 @@ const AddressForm: React.FC<Props> = ({
                   {formData.label === label.value && (
                     <Ionicons
                       name="checkmark"
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={AppColors.primary[600]}
                     />
                   )}
@@ -500,38 +837,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: AppColors.background.secondary,
   },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  section: {
-    marginBottom: 24,
-  },
+  content: {},
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
   // Input
-  inputGroup: {
-    marginBottom: 16,
-  },
+  inputGroup: {},
   inputLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 6,
   },
   input: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   inputError: {
@@ -543,27 +865,21 @@ const styles = StyleSheet.create({
   },
   inputDisabledText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 4,
   },
   row: {
     flexDirection: "row",
-    gap: 12,
   },
   // Selector
   selector: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -571,11 +887,9 @@ const styles = StyleSheet.create({
   selectorLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
   },
   selectorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   selectorPlaceholder: {
@@ -584,12 +898,9 @@ const styles = StyleSheet.create({
   // Type Buttons
   typeContainer: {
     flexDirection: "row",
-    gap: 10,
   },
   typeButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
     backgroundColor: AppColors.gray[100],
     alignItems: "center",
   },
@@ -598,7 +909,6 @@ const styles = StyleSheet.create({
   },
   typeButtonText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
   },
   typeButtonTextActive: {
@@ -608,14 +918,8 @@ const styles = StyleSheet.create({
   defaultToggle: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 16,
-    marginBottom: 24,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
     borderWidth: 2,
     borderColor: AppColors.gray[300],
     alignItems: "center",
@@ -627,13 +931,10 @@ const styles = StyleSheet.create({
   },
   defaultToggleText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   // Actions
-  actions: {
-    marginTop: 8,
-  },
+  actions: {},
   // Modal
   modalOverlay: {
     flex: 1,
@@ -642,33 +943,24 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: AppColors.background.primary,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     maxHeight: "60%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
-  modalList: {
-    padding: 8,
-  },
+  modalList: {},
   modalItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
   },
   modalItemSelected: {
     backgroundColor: AppColors.primary[50],
@@ -676,11 +968,9 @@ const styles = StyleSheet.create({
   modalItemLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   modalItemText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   modalItemTextSelected: {

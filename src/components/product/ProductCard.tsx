@@ -1,14 +1,8 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
 import { useRouter } from "expo-router"
-import { useState } from "react"
-import {
-  Image,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from "react-native"
+import { memo, useCallback, useState } from "react"
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native"
 import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
@@ -35,35 +29,33 @@ const ProductCard: React.FC<ProductCardProps> = ({
 }) => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { addItem, error, getItemQuantityInCart } = useCartStore()
-  const { user, token } = useAuthStore()
-  const { toggleFavorite, isFavorite } = useFavoritesStore()
   const [loading, setLoading] = useState(false)
 
-  const isFav = isFavorite(product.id)
+  const addItem = useCartStore((state) => state.addItem)
+  const error = useCartStore((state) => state.error)
+  const getItemQuantityInCart = useCartStore(
+    (state) => state.getItemQuantityInCart
+  )
+
+  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.token)
+
+  const favoriteProducts = useFavoritesStore(
+    (state) => state.favoriteList?.products
+  )
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
+
+  const isFav = favoriteProducts?.some((p) => p.id === product.id) ?? false
   const currentQuantityInCart = getItemQuantityInCart?.(product.id) || 0
   const isOutOfStock = product?.stock === 0
   const isMaxQuantityInCart = currentQuantityInCart >= (product?.stock || 0)
   const canAddToCart = !isOutOfStock && !isMaxQuantityInCart
 
-  const createItemData = (prod: Product) => {
-    const price = prod?.sale_price || prod?.rrp
-    return {
-      product_id: prod?.id,
-      user_id: parseInt(user?.id?.toString() ?? "0"),
-      quantity: 1,
-      amount: price,
-      name: prod?.name,
-      cover: prod?.cover?.url,
-      slug: prod?.slug,
-      unit_price: price,
-      publishedAt: new Date(),
-      brand: prod?.brand?.name,
-      weight: prod?.weight_in_grams,
-    }
-  }
+  const discountPercentage = product?.sale_price
+    ? Math.round(((product.rrp - product.sale_price) / product.rrp) * 100)
+    : 0
 
-  const handleAddToCart = async (prod: Product) => {
+  const handleAddToCart = useCallback(async () => {
     if (!token) {
       Toast.show({
         type: "error",
@@ -87,7 +79,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
 
     setLoading(true)
-    const data = createItemData(prod)
+    const price = product?.sale_price || product?.rrp
+    const data = {
+      product_id: product?.id,
+      user_id: parseInt(user?.id?.toString() ?? "0"),
+      quantity: 1,
+      amount: price,
+      name: product?.name,
+      cover: product?.cover?.url,
+      slug: product?.slug,
+      unit_price: price,
+      publishedAt: new Date(),
+      brand: product?.brand?.name,
+      weight: product?.weight_in_grams,
+    }
 
     try {
       const result = await addItem(data as any, token)
@@ -96,7 +101,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         Toast.show({
           type: "success",
           text1: "Added to cart!",
-          text2: `${prod?.name} has been added to your cart`,
+          text2: `${product?.name} has been added to your cart`,
           visibilityTime: 2000,
         })
       } else {
@@ -118,9 +123,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, canAddToCart, isOutOfStock, product, user?.id, addItem, error])
 
-  const handleToggleFavorite = (id: number) => {
+  const handleToggleFavorite = useCallback(() => {
     if (!token) {
       Toast.show({
         type: "info",
@@ -130,23 +135,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       })
       return
     }
-    toggleFavorite({ product_id: id }, token)
-  }
+    toggleFavorite({ product_id: product.id }, token)
+  }, [token, toggleFavorite, product.id])
 
-  const handleProductRoute = () => {
+  const handleProductRoute = useCallback(() => {
     router.push(`/product/${product?.id}`)
-  }
+  }, [router, product?.id])
 
-  const getButtonText = () => {
+  const getButtonText = useCallback(() => {
     if (loading) return "Adding..."
     if (isOutOfStock) return "Out of stock"
     if (isMaxQuantityInCart) return "Max in cart"
     return "Add to cart"
-  }
-
-  const discountPercentage = product?.sale_price
-    ? Math.round(((product.rrp - product.sale_price) / product.rrp) * 100)
-    : 0
+  }, [loading, isOutOfStock, isMaxQuantityInCart])
 
   // Responsive sizes
   const imageHeight = config.imageHeight
@@ -199,12 +200,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Image
           source={{ uri: product?.cover?.url }}
           style={styles.image}
-          resizeMode="contain"
+          contentFit="contain"
+          transition={200}
+          cachePolicy={"memory-disk"}
+          recyclingKey={`product-${product?.id}`}
         />
 
         {/* Favorite Button */}
         <DebouncedTouchable
-          onPress={() => handleToggleFavorite(product?.id)}
+          onPress={handleToggleFavorite}
           style={[
             styles.favoriteButton,
             isFav && styles.activeFavoriteButton,
@@ -295,7 +299,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             title={getButtonText()}
             size="small"
             variant={canAddToCart ? "primary" : "outline"}
-            onPress={() => handleAddToCart(product)}
+            onPress={handleAddToCart}
             disabled={loading || !canAddToCart}
             loading={loading}
             containerStyles="mt-2"
@@ -315,7 +319,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   )
 }
 
-export default ProductCard
+export default memo(ProductCard)
 
 const styles = StyleSheet.create({
   card: {
@@ -324,7 +328,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 1,
     overflow: "hidden",
     marginBottom: 16,
     borderWidth: 1,

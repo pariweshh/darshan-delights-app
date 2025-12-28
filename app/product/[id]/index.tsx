@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import { useCallback, useEffect, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   Platform,
@@ -9,7 +9,6 @@ import {
   Text,
   View,
 } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
 import { getProductById, getProductBySlug } from "@/src/api/products"
@@ -42,8 +41,227 @@ import { useRecentlyViewed } from "@/src/hooks/useRecentlyViewed"
 import { Review, ReviewStats } from "@/src/types/review"
 import { shareProduct } from "@/src/utils/share"
 
+// Reviews Section Component
+interface ReviewsSectionProps {
+  reviewStats: ReviewStats | null
+  reviews: Review[]
+  userReview: Review | null
+  reviewsLoading: boolean
+  canReview: boolean
+  token: string | null
+  config: any
+  isTablet: boolean
+  onNavigateToAllReviews: () => void
+  onWriteReview: () => void
+  onEditReview: () => void
+  onDeleteReview: () => void
+}
+
 const MAX_DESCRIPTION_LENGTH = 150
 const INITIAL_REVIEWS_COUNT = 3
+
+// Price Display Component
+const PriceDisplay = memo(
+  ({
+    salePrice,
+    rrp,
+    fontSize,
+  }: {
+    salePrice?: number
+    rrp: number
+    fontSize: number
+  }) => {
+    if (salePrice) {
+      return (
+        <View style={styles.priceContainer}>
+          <Text style={[styles.salePrice, { fontSize }]}>
+            ${salePrice.toFixed(2)}
+          </Text>
+          <Text style={[styles.originalPrice, { fontSize: fontSize * 0.5 }]}>
+            ${rrp.toFixed(2)}
+          </Text>
+          <View style={styles.saveBadge}>
+            <Text style={[styles.saveText, { fontSize: fontSize * 0.35 }]}>
+              Save ${(rrp - salePrice).toFixed(2)}
+            </Text>
+          </View>
+        </View>
+      )
+    }
+
+    return <Text style={[styles.price, { fontSize }]}>${rrp.toFixed(2)}</Text>
+  }
+)
+
+const ReviewsSection = memo(
+  ({
+    reviewStats,
+    reviews,
+    userReview,
+    reviewsLoading,
+    canReview,
+    token,
+    config,
+    isTablet,
+    onNavigateToAllReviews,
+    onWriteReview,
+    onEditReview,
+    onDeleteReview,
+  }: ReviewsSectionProps) => {
+    const otherReviews = useMemo(
+      () => reviews.filter((r) => r.id !== userReview?.id),
+      [reviews, userReview?.id]
+    )
+
+    const displayedReviews = useMemo(
+      () => otherReviews.slice(0, INITIAL_REVIEWS_COUNT),
+      [otherReviews]
+    )
+
+    const hasMoreReviews = otherReviews.length > INITIAL_REVIEWS_COUNT
+    const totalReviewsCount = reviewStats?.totalReviews || reviews.length
+
+    return (
+      <View style={styles.reviewsSection}>
+        <View style={styles.reviewsHeader}>
+          <Text
+            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
+          >
+            Reviews
+          </Text>
+          {reviewStats && reviewStats.totalReviews > 0 && (
+            <DebouncedTouchable
+              onPress={onNavigateToAllReviews}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[styles.seeAllText, { fontSize: config.bodyFontSize }]}
+              >
+                See All
+              </Text>
+            </DebouncedTouchable>
+          )}
+        </View>
+
+        {reviewStats && reviewStats.totalReviews > 0 && (
+          <RatingSummary stats={reviewStats} />
+        )}
+
+        {token && (canReview || userReview) && (
+          <DebouncedTouchable
+            style={[
+              styles.writeReviewButton,
+              {
+                paddingVertical: isTablet ? 14 : 12,
+                borderRadius: isTablet ? 12 : 10,
+              },
+            ]}
+            onPress={onWriteReview}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={userReview ? "pencil" : "create-outline"}
+              size={config.iconSize}
+              color={AppColors.primary[600]}
+            />
+            <Text
+              style={[
+                styles.writeReviewText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              {userReview ? "Edit Your Review" : "Write a Review"}
+            </Text>
+          </DebouncedTouchable>
+        )}
+
+        {userReview && (
+          <View style={styles.userReviewContainer}>
+            <Text
+              style={[
+                styles.userReviewLabel,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Your Review
+            </Text>
+            <ReviewCard
+              review={userReview}
+              onEdit={onEditReview}
+              onDelete={onDeleteReview}
+            />
+          </View>
+        )}
+
+        {reviewsLoading ? (
+          <View style={styles.reviewsLoading}>
+            <ActivityIndicator size="small" color={AppColors.primary[500]} />
+            <Text
+              style={[
+                styles.reviewsLoadingText,
+                { fontSize: config.bodyFontSize },
+              ]}
+            >
+              Loading reviews...
+            </Text>
+          </View>
+        ) : totalReviewsCount > 0 ? (
+          <View style={styles.reviewsList}>
+            {displayedReviews.map((review) => (
+              <ReviewCard key={review.id} review={review} showActions={false} />
+            ))}
+
+            {hasMoreReviews && (
+              <DebouncedTouchable
+                style={styles.viewAllButton}
+                onPress={onNavigateToAllReviews}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.viewAllText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  View All {reviewStats?.totalReviews} Reviews
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={config.iconSize}
+                  color={AppColors.primary[600]}
+                />
+              </DebouncedTouchable>
+            )}
+          </View>
+        ) : (
+          <View style={styles.noReviewsContainer}>
+            <Ionicons
+              name="chatbubble-outline"
+              size={isTablet ? 48 : 40}
+              color={AppColors.gray[300]}
+            />
+            <Text
+              style={[
+                styles.noReviewsText,
+                { fontSize: config.subtitleFontSize },
+              ]}
+            >
+              No reviews yet
+            </Text>
+            <Text
+              style={[
+                styles.noReviewsSubtext,
+                { fontSize: config.bodyFontSize - 1 },
+              ]}
+            >
+              Be the first to review this product!
+            </Text>
+          </View>
+        )}
+      </View>
+    )
+  }
+)
 
 export default function ProductDetailScreen() {
   const router = useRouter()
@@ -65,19 +283,28 @@ export default function ProductDetailScreen() {
   const [canReview, setCanReview] = useState(false)
   const [reviewOrderId, setReviewOrderId] = useState<number | undefined>()
   const [showWriteReviewModal, setShowWriteReviewModal] = useState(false)
-  const [showAllReviews, setShowAllReviews] = useState(false)
 
-  // Stores
-  const { token, user } = useAuthStore()
-  const { addItem, cart, isLoading: cartLoading } = useCartStore()
-  const { toggleFavorite, isFavorite } = useFavoritesStore()
+  const token = useAuthStore((state) => state.token)
+  const user = useAuthStore((state) => state.user)
+  const addItem = useCartStore((state) => state.addItem)
+  const cart = useCartStore((state) => state.cart)
+  const cartLoading = useCartStore((state) => state.isLoading)
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
+  const isFavorite = useFavoritesStore((state) => state.isFavorite)
   const { trackProductView } = useRecentlyViewed()
 
-  const isFav = isFavorite(product?.id ?? 0)
+  const isFav = useMemo(
+    () => isFavorite(product?.id ?? 0),
+    [isFavorite, product?.id]
+  )
 
   // Calculate stock availability
-  const productInCart = cart?.find(
-    (item) => item.product_id?.toString() === product?.id?.toString()
+  const productInCart = useMemo(
+    () =>
+      cart?.find(
+        (item) => item.product_id?.toString() === product?.id?.toString()
+      ),
+    [cart, product?.id]
   )
   const quantityInCart = productInCart?.quantity || 0
   const availableStock = (product?.stock || 0) - quantityInCart
@@ -85,6 +312,29 @@ export default function ProductDetailScreen() {
 
   // Tablet layout: side-by-side in landscape
   const useHorizontalLayout = isTablet && isLandscape
+
+  const totalPrice = useMemo(
+    () =>
+      product
+        ? ((product.sale_price || product.rrp) * quantity).toFixed(2)
+        : "0.00",
+    [product, quantity]
+  )
+
+  const shouldTruncateDescription = useMemo(
+    () =>
+      product?.description &&
+      product.description.length > MAX_DESCRIPTION_LENGTH,
+    [product?.description]
+  )
+
+  const displayDescription = useMemo(
+    () =>
+      shouldTruncateDescription && !showFullDescription
+        ? `${product?.description?.slice(0, MAX_DESCRIPTION_LENGTH)}...`
+        : product?.description,
+    [product?.description, shouldTruncateDescription, showFullDescription]
+  )
 
   // Fetch product
   useEffect(() => {
@@ -95,13 +345,11 @@ export default function ProductDetailScreen() {
       setError(null)
 
       try {
-        let product
-        if (isSlug === "true") {
-          product = await getProductBySlug(id)
-        } else {
-          product = await getProductById(+id)
-        }
-        setProduct(product)
+        const fetchedProduct =
+          isSlug === "true"
+            ? await getProductBySlug(id)
+            : await getProductById(+id)
+        setProduct(fetchedProduct)
       } catch (err) {
         console.error("Error fetching product:", err)
         setError("Failed to load product. Please try again.")
@@ -168,23 +416,23 @@ export default function ProductDetailScreen() {
     }
   }, [availableStock, quantity])
 
+  console.log({ canReview, userReview })
+
   // Handlers
-  const handleIncreaseQuantity = () => {
+  const handleIncreaseQuantity = useCallback(() => {
     if (quantity < availableStock) {
       setQuantity((prev) => prev + 1)
     }
-  }
+  }, [quantity, availableStock])
 
-  const handleDecreaseQuantity = () => {
+  const handleDecreaseQuantity = useCallback(() => {
     if (quantity > 1) {
       setQuantity((prev) => prev - 1)
     }
-  }
+  }, [quantity])
 
-  const handleAddToCart = async () => {
-    if (!product) return
-
-    if (!token) {
+  const handleAddToCart = useCallback(async () => {
+    if (!product || !token) {
       Toast.show({
         type: "error",
         text1: "Please login",
@@ -247,12 +495,10 @@ export default function ProductDetailScreen() {
         visibilityTime: 2000,
       })
     }
-  }
+  }, [product, token, user?.id, quantity, isOutOfStock, addItem])
 
-  const handleToggleFavorite = () => {
-    if (!product) return
-
-    if (!token) {
+  const handleToggleFavorite = useCallback(() => {
+    if (!product || !token) {
       Toast.show({
         type: "info",
         text1: "Login required",
@@ -261,34 +507,29 @@ export default function ProductDetailScreen() {
       })
       return
     }
-
     toggleFavorite({ product_id: product.id }, token)
-  }
+  }, [product, token, toggleFavorite])
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (!product) return
 
-    const result = await shareProduct({
+    await shareProduct({
       productId: product.id,
       productName: product.name,
       productSlug: product.slug,
       price: product.rrp,
       salePrice: product.sale_price,
     })
+  }, [product])
 
-    if (result.success) {
-      console.log("Product shared successfully!")
-    }
-  }
-
-  const navigateToNutrition = () => {
+  const navigateToNutrition = useCallback(() => {
     if (product) {
       router.push({
         pathname: "/product/[id]/nutrition",
         params: { id: product.id.toString() },
       })
     }
-  }
+  }, [product, router])
 
   const navigateToAllReviews = () => {
     if (product) {
@@ -300,17 +541,20 @@ export default function ProductDetailScreen() {
   }
 
   // Review handlers
-  const handleReviewSuccess = (review: Review) => {
-    setUserReview(review)
-    setCanReview(false)
-    fetchReviews()
-  }
+  const handleReviewSuccess = useCallback(
+    (review: Review) => {
+      setUserReview(review)
+      setCanReview(false)
+      fetchReviews()
+    },
+    [fetchReviews]
+  )
 
-  const handleEditReview = () => {
+  const handleEditReview = useCallback(() => {
     setShowWriteReviewModal(true)
-  }
+  }, [])
 
-  const handleDeleteReview = async () => {
+  const handleDeleteReview = useCallback(async () => {
     if (!userReview || !token || !product?.id) return
 
     try {
@@ -338,9 +582,9 @@ export default function ProductDetailScreen() {
         visibilityTime: 2000,
       })
     }
-  }
+  }, [userReview, token, product?.id, fetchReviews])
 
-  const handleWriteReviewPress = () => {
+  const handleWriteReviewPress = useCallback(() => {
     if (!token) {
       Toast.show({
         type: "info",
@@ -362,42 +606,33 @@ export default function ProductDetailScreen() {
     }
 
     setShowWriteReviewModal(true)
-  }
+  }, [token, canReview, userReview])
 
-  // Calculate total price
-  const totalPrice = product
-    ? ((product.sale_price || product.rrp) * quantity).toFixed(2)
-    : "0.00"
-
-  // Check if description needs truncation
-  const shouldTruncateDescription =
-    product?.description && product.description.length > MAX_DESCRIPTION_LENGTH
-  const displayDescription =
-    shouldTruncateDescription && !showFullDescription
-      ? `${product?.description?.slice(0, MAX_DESCRIPTION_LENGTH)}...`
-      : product?.description
+  const toggleDescription = useCallback(() => {
+    setShowFullDescription((prev) => !prev)
+  }, [])
 
   // Get reviews to display
-  const otherReviews = reviews.filter((r) => r.id !== userReview?.id)
-  const displayedReviews = showAllReviews
-    ? otherReviews
-    : otherReviews.slice(0, INITIAL_REVIEWS_COUNT)
-  const hasMoreReviews = otherReviews.length > INITIAL_REVIEWS_COUNT
-  const totalReviewsCount = reviewStats?.totalReviews || reviews.length
+  // const otherReviews = reviews.filter((r) => r.id !== userReview?.id)
+  // const displayedReviews = showAllReviews
+  //   ? otherReviews
+  //   : otherReviews.slice(0, INITIAL_REVIEWS_COUNT)
+  // const hasMoreReviews = otherReviews.length > INITIAL_REVIEWS_COUNT
+  // const totalReviewsCount = reviewStats?.totalReviews || reviews.length
 
   // Loading state
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Wrapper style={styles.container}>
         <Loader fullScreen text="Loading product..." />
-      </SafeAreaView>
+      </Wrapper>
     )
   }
 
   // Error state
   if (error || !product) {
     return (
-      <SafeAreaView style={styles.container}>
+      <Wrapper style={styles.container}>
         <View style={styles.errorContainer}>
           <Ionicons
             name="alert-circle-outline"
@@ -416,7 +651,7 @@ export default function ProductDetailScreen() {
             containerStyles="mt-4"
           />
         </View>
-      </SafeAreaView>
+      </Wrapper>
     )
   }
 
@@ -477,36 +712,11 @@ export default function ProductDetailScreen() {
 
       {/* Price Row */}
       <View style={styles.priceRow}>
-        <View style={styles.priceContainer}>
-          {product.sale_price ? (
-            <>
-              <Text
-                style={[styles.salePrice, { fontSize: isTablet ? 32 : 28 }]}
-              >
-                ${product.sale_price.toFixed(2)}
-              </Text>
-              <Text
-                style={[
-                  styles.originalPrice,
-                  { fontSize: config.subtitleFontSize },
-                ]}
-              >
-                ${product.rrp.toFixed(2)}
-              </Text>
-              <View style={styles.saveBadge}>
-                <Text
-                  style={[styles.saveText, { fontSize: config.smallFontSize }]}
-                >
-                  Save ${(product.rrp - product.sale_price).toFixed(2)}
-                </Text>
-              </View>
-            </>
-          ) : (
-            <Text style={[styles.price, { fontSize: isTablet ? 32 : 28 }]}>
-              ${product.rrp.toFixed(2)}
-            </Text>
-          )}
-        </View>
+        <PriceDisplay
+          salePrice={product.sale_price}
+          rrp={product.rrp}
+          fontSize={isTablet ? 32 : 28}
+        />
       </View>
 
       {/* Nutrition Link */}
@@ -558,6 +768,7 @@ export default function ProductDetailScreen() {
       >
         {displayDescription}
       </Text>
+
       {shouldTruncateDescription && (
         <DebouncedTouchable
           onPress={() => setShowFullDescription(!showFullDescription)}
@@ -615,147 +826,20 @@ export default function ProductDetailScreen() {
       <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />
 
       {/* Reviews Section */}
-      <View style={styles.reviewsSection}>
-        <View style={styles.reviewsHeader}>
-          <Text
-            style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}
-          >
-            Reviews
-          </Text>
-          {reviewStats && reviewStats.totalReviews > 0 && (
-            <DebouncedTouchable
-              onPress={navigateToAllReviews}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[styles.seeAllText, { fontSize: config.bodyFontSize }]}
-              >
-                See All
-              </Text>
-            </DebouncedTouchable>
-          )}
-        </View>
-
-        {/* Rating Summary */}
-        {reviewStats && reviewStats.totalReviews > 0 && (
-          <RatingSummary stats={reviewStats} />
-        )}
-
-        {/* Write Review Button */}
-        {token && (canReview || userReview) && (
-          <DebouncedTouchable
-            style={[
-              styles.writeReviewButton,
-              {
-                paddingVertical: isTablet ? 14 : 12,
-                borderRadius: isTablet ? 12 : 10,
-              },
-            ]}
-            onPress={handleWriteReviewPress}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={userReview ? "pencil" : "create-outline"}
-              size={config.iconSize}
-              color={AppColors.primary[600]}
-            />
-            <Text
-              style={[
-                styles.writeReviewText,
-                { fontSize: config.bodyFontSize },
-              ]}
-            >
-              {userReview ? "Edit Your Review" : "Write a Review"}
-            </Text>
-          </DebouncedTouchable>
-        )}
-
-        {/* User's Review */}
-        {userReview && (
-          <View style={styles.userReviewContainer}>
-            <Text
-              style={[
-                styles.userReviewLabel,
-                { fontSize: config.bodyFontSize },
-              ]}
-            >
-              Your Review
-            </Text>
-            <ReviewCard
-              review={userReview}
-              onEdit={handleEditReview}
-              onDelete={handleDeleteReview}
-            />
-          </View>
-        )}
-
-        {/* Reviews List */}
-        {reviewsLoading ? (
-          <View style={styles.reviewsLoading}>
-            <ActivityIndicator size="small" color={AppColors.primary[500]} />
-            <Text
-              style={[
-                styles.reviewsLoadingText,
-                { fontSize: config.bodyFontSize },
-              ]}
-            >
-              Loading reviews...
-            </Text>
-          </View>
-        ) : totalReviewsCount > 0 ? (
-          <View style={styles.reviewsList}>
-            {displayedReviews.map((review) => (
-              <ReviewCard key={review.id} review={review} showActions={false} />
-            ))}
-
-            {hasMoreReviews && (
-              <DebouncedTouchable
-                style={styles.viewAllButton}
-                onPress={navigateToAllReviews}
-                activeOpacity={0.7}
-              >
-                <Text
-                  style={[
-                    styles.viewAllText,
-                    { fontSize: config.bodyFontSize },
-                  ]}
-                >
-                  View All {reviewStats?.totalReviews} Reviews
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={config.iconSize}
-                  color={AppColors.primary[600]}
-                />
-              </DebouncedTouchable>
-            )}
-          </View>
-        ) : (
-          <View style={styles.noReviewsContainer}>
-            <Ionicons
-              name="chatbubble-outline"
-              size={isTablet ? 48 : 40}
-              color={AppColors.gray[300]}
-            />
-            <Text
-              style={[
-                styles.noReviewsText,
-                { fontSize: config.subtitleFontSize },
-              ]}
-            >
-              No reviews yet
-            </Text>
-            <Text
-              style={[
-                styles.noReviewsSubtext,
-                { fontSize: config.bodyFontSize - 1 },
-              ]}
-            >
-              Be the first to review this product!
-            </Text>
-          </View>
-        )}
-      </View>
+      <ReviewsSection
+        reviewStats={reviewStats}
+        reviews={reviews}
+        userReview={userReview}
+        reviewsLoading={reviewsLoading}
+        canReview={canReview}
+        token={token}
+        config={config}
+        isTablet={isTablet}
+        onNavigateToAllReviews={navigateToAllReviews}
+        onWriteReview={handleWriteReviewPress}
+        onEditReview={handleEditReview}
+        onDeleteReview={handleDeleteReview}
+      />
 
       {/* Divider */}
       <View style={[styles.divider, { marginVertical: isTablet ? 24 : 20 }]} />

@@ -2,7 +2,14 @@ import ProductCard from "@/src/components/product/ProductCard"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Product } from "@/src/types"
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native"
+import { memo, useCallback } from "react"
+import {
+  ActivityIndicator,
+  FlatList,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native"
 
 interface ProductGridProps {
   products: Product[]
@@ -25,6 +32,28 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const availableWidth = width - config.horizontalPadding * 2
   const itemWidth = (availableWidth - totalGap) / columns
 
+  // Memoize renderItem
+  const renderItem = useCallback(
+    ({ item, index }: { item: Product; index: number }) => {
+      const isLastInRow = (index + 1) % columns === 0
+      const marginRight = isLastInRow ? 0 : gap
+
+      return (
+        <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+          <ProductCard
+            product={item}
+            saleCard={saleCard}
+            customStyle={{ width: "100%" }}
+          />
+        </View>
+      )
+    },
+    [columns, gap, itemWidth, saleCard]
+  )
+
+  // Memoize keyExtractor
+  const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -44,21 +73,35 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   return (
-    <View style={[styles.grid, { gap }]}>
-      {products.map((product) => (
-        <View key={product.id} style={{ width: itemWidth }}>
-          <ProductCard
-            product={product}
-            saleCard={saleCard}
-            customStyle={{ width: "100%" }}
-          />
-        </View>
-      ))}
-    </View>
+    // <View style={[styles.grid, { gap }]}>
+    //   {products.map((product) => (
+    //     <View key={product.id} style={{ width: itemWidth }}>
+    //       <ProductCard
+    //         product={product}
+    //         saleCard={saleCard}
+    //         customStyle={{ width: "100%" }}
+    //       />
+    //     </View>
+    //   ))}
+    // </View>
+    <FlatList
+      data={products}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
+      numColumns={columns}
+      key={`grid-${columns}`}
+      scrollEnabled={false} // Since this is usually inside a ScrollView
+      showsVerticalScrollIndicator={false}
+      // Performance optimizations
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={6}
+      initialNumToRender={6}
+      windowSize={3}
+    />
   )
 }
 
-export default ProductGrid
+export default memo(ProductGrid)
 
 const styles = StyleSheet.create({
   grid: {

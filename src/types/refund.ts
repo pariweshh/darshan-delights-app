@@ -1,10 +1,9 @@
 export type RefundReason =
-  | "damaged_product"
-  | "wrong_product"
-  | "quality_issue"
-  | "changed_mind"
-  | "late_delivery"
-  | "other"
+  | "Wrong product"
+  | "Quality issue"
+  | "Damaged"
+  | "Never received"
+  | "Other"
 
 export type RefundStatus = "pending" | "under_review" | "approved" | "rejected"
 
@@ -30,10 +29,14 @@ export interface RefundRequest {
   requested_amount: number
   additional_notes?: string
   refund_account_agreement: boolean
-  questions?: RefundQuestion[]
+  questions?: {
+    proof: "Yes" | "No"
+    policy: "Yes" | "No"
+    eligibility: "Yes" | "No"
+  }
   purchase_date: string
-  status: RefundStatus
-  result?: RefundResult
+  status: "open" | "closed"
+  result?: "pending" | "refunded" | "no refund"
   createdAt: string
   updatedAt: string
 }
@@ -48,6 +51,10 @@ export interface CreateRefundRequestParams {
   requested_amount: number
   additional_notes?: string
   refund_account_agreement: boolean
-  questions?: RefundQuestion[]
+  questions?: {
+    proof: "Yes" | "No" | null
+    policy: "Yes" | "No" | null
+    eligibility: "Yes" | "No" | null
+  }
   purchase_date: string
 }

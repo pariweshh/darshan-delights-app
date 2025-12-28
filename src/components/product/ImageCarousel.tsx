@@ -3,7 +3,6 @@
 import React, { useRef, useState } from "react"
 import {
   FlatList,
-  Image,
   NativeScrollEvent,
   NativeSyntheticEvent,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import { Image } from "expo-image"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface ImageCarouselProps {
@@ -58,7 +58,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
         <Image
           source={require("@/assets/images/empty.png")}
           style={styles.placeholderImage}
-          resizeMode="contain"
+          contentFit="contain"
         />
       </View>
     )
@@ -86,7 +86,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
             <Image
               source={{ uri: item.url }}
               style={styles.image}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </View>
         )}
@@ -134,7 +134,7 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
                 <Image
                   source={{ uri: item.url }}
                   style={styles.thumbnailImage}
-                  resizeMode="contain"
+                  contentFit="contain"
                 />
               </View>
             </DebouncedTouchable>
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   imageContainer: {
-    backgroundColor: AppColors.gray[50],
+    backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,19 +1,22 @@
-// app/(tabs)/products/index.tsx
-
 import { FontAwesome5, Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
 import { useRouter } from "expo-router"
-import { useCallback, useEffect, useState } from "react"
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
-  ActivityIndicator,
   Dimensions,
   FlatList,
-  Image,
+  RefreshControl,
   ScaledSize,
   StyleSheet,
   Text,
   View,
 } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated"
 
 import Wrapper from "@/src/components/common/Wrapper"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
@@ -37,26 +40,11 @@ const getGridConfig = (width: number) => {
 
   switch (deviceType) {
     case "largeTablet":
-      return {
-        numColumns: 6,
-        gridPadding: 24,
-        gridGap: 16,
-        maxItemWidth: 160,
-      }
+      return { numColumns: 6, gridPadding: 24, gridGap: 16, maxItemWidth: 160 }
     case "tablet":
-      return {
-        numColumns: 4,
-        gridPadding: 20,
-        gridGap: 14,
-        maxItemWidth: 180,
-      }
+      return { numColumns: 4, gridPadding: 20, gridGap: 14, maxItemWidth: 180 }
     default:
-      return {
-        numColumns: 3,
-        gridPadding: 16,
-        gridGap: 12,
-        maxItemWidth: 200,
-      }
+      return { numColumns: 3, gridPadding: 16, gridGap: 12, maxItemWidth: 200 }
   }
 }
 
@@ -65,16 +53,476 @@ const getQuickAccessLayout = (width: number): "vertical" | "horizontal" => {
 }
 
 // ==========================================
-// Component
+// Memoized Skeleton Components
+// ==========================================
+
+const SkeletonPulse = memo(({ style }: { style?: any }) => {
+  const opacity = useSharedValue(0.3)
+
+  useEffect(() => {
+    opacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true)
+  }, [])
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }))
+
+  return (
+    <Animated.View
+      style={[
+        { backgroundColor: AppColors.gray[200], borderRadius: 8 },
+        style,
+        animatedStyle,
+      ]}
+    />
+  )
+})
+
+interface CategorySkeletonProps {
+  itemWidth: number
+  deviceType: "phone" | "tablet" | "largeTablet"
+}
+
+const CategorySkeleton = memo(
+  ({ itemWidth, deviceType }: CategorySkeletonProps) => {
+    const imageSize = itemWidth * 0.7
+
+    return (
+      <View
+        style={[
+          styles.categoryItem,
+          {
+            width: itemWidth,
+            paddingVertical: deviceType === "phone" ? 12 : 16,
+          },
+        ]}
+      >
+        <SkeletonPulse
+          style={{
+            width: imageSize,
+            height: imageSize,
+            borderRadius: imageSize / 2,
+            marginBottom: 10,
+          }}
+        />
+        <SkeletonPulse
+          style={{
+            width: itemWidth * 0.8,
+            height: deviceType === "phone" ? 14 : 16,
+            marginBottom: 4,
+          }}
+        />
+        <SkeletonPulse
+          style={{
+            width: itemWidth * 0.5,
+            height: deviceType === "phone" ? 12 : 14,
+          }}
+        />
+      </View>
+    )
+  }
+)
+
+interface QuickAccessSkeletonProps {
+  isHorizontal: boolean
+  deviceType: "phone" | "tablet" | "largeTablet"
+}
+
+const QuickAccessSkeleton = memo(
+  ({ isHorizontal, deviceType }: QuickAccessSkeletonProps) => {
+    const iconSize = deviceType === "phone" ? 44 : 52
+
+    const SkeletonItem = () => (
+      <View
+        style={[
+          styles.quickAccessItem,
+          isHorizontal && styles.quickAccessItemHorizontal,
+          !isHorizontal && { marginBottom: 10 },
+        ]}
+      >
+        <SkeletonPulse
+          style={{
+            width: iconSize,
+            height: iconSize,
+            borderRadius: 12,
+            marginRight: 14,
+          }}
+        />
+        <View style={styles.quickAccessContent}>
+          <SkeletonPulse
+            style={{
+              width: 120,
+              height: deviceType === "phone" ? 16 : 18,
+              marginBottom: 6,
+            }}
+          />
+          <SkeletonPulse
+            style={{
+              width: 100,
+              height: deviceType === "phone" ? 12 : 14,
+            }}
+          />
+        </View>
+      </View>
+    )
+
+    return (
+      <View
+        style={[
+          styles.quickAccessInner,
+          isHorizontal && styles.quickAccessInnerHorizontal,
+        ]}
+      >
+        <SkeletonItem />
+        <SkeletonItem />
+      </View>
+    )
+  }
+)
+
+// ==========================================
+// Memoized Category Item Component
+// ==========================================
+
+interface CategoryItemProps {
+  item: Category
+  index: number
+  numColumns: number
+  gridGap: number
+  itemWidth: number
+  deviceType: "phone" | "tablet" | "largeTablet"
+  onPress: (name: string) => void
+}
+
+const CategoryItem = memo(
+  ({
+    item,
+    index,
+    numColumns,
+    gridGap,
+    itemWidth,
+    deviceType,
+    onPress,
+  }: CategoryItemProps) => {
+    const isFirstInRow = index % numColumns === 0
+    const isLastInRow = index % numColumns === numColumns - 1
+    const imageSize = itemWidth * 0.7
+
+    const handlePress = useCallback(() => {
+      onPress(item.name)
+    }, [onPress, item.name])
+
+    return (
+      <DebouncedTouchable
+        onPress={handlePress}
+        style={[
+          styles.categoryItem,
+          {
+            width: itemWidth,
+            marginLeft: isFirstInRow ? 0 : gridGap / 2,
+            marginRight: isLastInRow ? 0 : gridGap / 2,
+            paddingVertical: deviceType === "phone" ? 12 : 16,
+          },
+        ]}
+        activeOpacity={0.7}
+      >
+        <View
+          style={[
+            styles.categoryImageContainer,
+            {
+              width: imageSize,
+              height: imageSize,
+              borderRadius: imageSize / 2,
+            },
+          ]}
+        >
+          {item.cover ? (
+            <Image
+              source={{ uri: item.cover.url }}
+              style={styles.categoryImage}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+              recyclingKey={`category-${item.id}`}
+            />
+          ) : (
+            <View style={styles.categoryPlaceholder}>
+              <FontAwesome5
+                name="box-open"
+                size={deviceType === "phone" ? 28 : 36}
+                color={AppColors.gray[400]}
+              />
+            </View>
+          )}
+        </View>
+        <Text
+          style={[
+            styles.categoryName,
+            {
+              fontSize: deviceType === "phone" ? 12 : 14,
+              height: deviceType === "phone" ? 32 : 40,
+              lineHeight: deviceType === "phone" ? 16 : 20,
+            },
+          ]}
+          numberOfLines={2}
+        >
+          {item.name}
+        </Text>
+      </DebouncedTouchable>
+    )
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.name === nextProps.item.name &&
+      prevProps.item.cover?.url === nextProps.item.cover?.url &&
+      prevProps.index === nextProps.index &&
+      prevProps.numColumns === nextProps.numColumns &&
+      prevProps.itemWidth === nextProps.itemWidth
+    )
+  }
+)
+
+// ==========================================
+// Memoized Quick Access Section
+// ==========================================
+
+interface QuickAccessSectionProps {
+  userId: string | number | undefined
+  isHorizontal: boolean
+  deviceType: "phone" | "tablet" | "largeTablet"
+  gridPadding: number
+  onPurchasedBefore: () => void
+  onWeeklySale: () => void
+}
+
+const QuickAccessSection = memo(
+  ({
+    userId,
+    isHorizontal,
+    deviceType,
+    gridPadding,
+    onPurchasedBefore,
+    onWeeklySale,
+  }: QuickAccessSectionProps) => (
+    <View
+      style={[
+        styles.quickAccessSection,
+        isHorizontal && styles.quickAccessSectionHorizontal,
+        { paddingHorizontal: gridPadding },
+      ]}
+    >
+      <View
+        style={[
+          styles.quickAccessInner,
+          isHorizontal && styles.quickAccessInnerHorizontal,
+        ]}
+      >
+        {userId && (
+          <DebouncedTouchable
+            onPress={onPurchasedBefore}
+            style={[
+              styles.quickAccessItem,
+              isHorizontal && styles.quickAccessItemHorizontal,
+            ]}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.quickAccessIconContainer,
+                deviceType !== "phone" && styles.quickAccessIconContainerLarge,
+              ]}
+            >
+              <Ionicons
+                name="receipt"
+                size={deviceType === "phone" ? 24 : 28}
+                color={AppColors.primary[500]}
+              />
+            </View>
+            <View style={styles.quickAccessContent}>
+              <Text
+                style={[
+                  styles.quickAccessTitle,
+                  deviceType !== "phone" && styles.quickAccessTitleLarge,
+                ]}
+              >
+                Purchased before
+              </Text>
+              <Text
+                style={[
+                  styles.quickAccessSubtitle,
+                  deviceType !== "phone" && styles.quickAccessSubtitleLarge,
+                ]}
+              >
+                Reorder your favorites
+              </Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={AppColors.gray[400]}
+            />
+          </DebouncedTouchable>
+        )}
+
+        <DebouncedTouchable
+          onPress={onWeeklySale}
+          style={[
+            styles.quickAccessItem,
+            styles.saleItem,
+            isHorizontal && styles.quickAccessItemHorizontal,
+            !isHorizontal && { marginBottom: 0 },
+          ]}
+          activeOpacity={0.7}
+        >
+          <View
+            style={[
+              styles.quickAccessIconContainer,
+              styles.saleIconContainer,
+              deviceType !== "phone" && styles.quickAccessIconContainerLarge,
+            ]}
+          >
+            <Ionicons
+              name="pricetag"
+              size={deviceType === "phone" ? 24 : 28}
+              color="#fff"
+            />
+          </View>
+          <View style={styles.quickAccessContent}>
+            <Text
+              style={[
+                styles.quickAccessTitle,
+                deviceType !== "phone" && styles.quickAccessTitleLarge,
+              ]}
+            >
+              Weekly Sale
+            </Text>
+            <Text
+              style={[
+                styles.quickAccessSubtitle,
+                deviceType !== "phone" && styles.quickAccessSubtitleLarge,
+              ]}
+            >
+              Don't miss the deals
+            </Text>
+          </View>
+          <View style={styles.saleBadge}>
+            <Text style={styles.saleBadgeText}>HOT</Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={AppColors.gray[400]}
+          />
+        </DebouncedTouchable>
+      </View>
+    </View>
+  )
+)
+
+interface SkeletonScreenProps {
+  gridConfig: ReturnType<typeof getGridConfig>
+  quickAccessLayout: "vertical" | "horizontal"
+  deviceType: "phone" | "tablet" | "largeTablet"
+  itemWidth: number
+}
+
+const SkeletonScreen = memo(
+  ({
+    gridConfig,
+    quickAccessLayout,
+    deviceType,
+    itemWidth,
+  }: SkeletonScreenProps) => {
+    const isHorizontal = quickAccessLayout === "horizontal"
+    const skeletonCount = gridConfig.numColumns * 3
+
+    return (
+      <Wrapper style={styles.container}>
+        <View style={styles.headerContainer}>
+          {/* Quick Access Skeleton */}
+          <View
+            style={[
+              styles.quickAccessSection,
+              isHorizontal && styles.quickAccessSectionHorizontal,
+              { paddingHorizontal: gridConfig.gridPadding },
+            ]}
+          >
+            <QuickAccessSkeleton
+              isHorizontal={isHorizontal}
+              deviceType={deviceType}
+            />
+          </View>
+
+          {/* Section Header Skeleton */}
+          <View
+            style={[
+              styles.sectionHeader,
+              { paddingHorizontal: gridConfig.gridPadding },
+            ]}
+          >
+            <SkeletonPulse
+              style={{
+                width: 150,
+                height: deviceType === "phone" ? 20 : 24,
+              }}
+            />
+            <SkeletonPulse
+              style={{
+                width: 80,
+                height: deviceType === "phone" ? 14 : 16,
+              }}
+            />
+          </View>
+
+          {/* Category Grid Skeleton */}
+          <View style={{ paddingHorizontal: gridConfig.gridPadding }}>
+            <View style={styles.skeletonGridContainer}>
+              {Array.from({ length: skeletonCount }).map((_, index) => {
+                const isFirstInRow = index % gridConfig.numColumns === 0
+                const isLastInRow =
+                  index % gridConfig.numColumns === gridConfig.numColumns - 1
+
+                return (
+                  <View
+                    key={index}
+                    style={{
+                      marginLeft: isFirstInRow ? 0 : gridConfig.gridGap / 2,
+                      marginRight: isLastInRow ? 0 : gridConfig.gridGap / 2,
+                      marginBottom: gridConfig.gridGap,
+                    }}
+                  >
+                    <CategorySkeleton
+                      itemWidth={itemWidth}
+                      deviceType={deviceType}
+                    />
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        </View>
+      </Wrapper>
+    )
+  }
+)
+
+// ==========================================
+// Main Component
 // ==========================================
 
 export default function ProductsScreen() {
   const router = useRouter()
-  const { user } = useAuthStore()
-  const { fetchCategories, categories, categoriesLoading, setCategory } =
-    useProductsStore()
 
-  // Track screen dimensions for responsive layout
+  // Use individual selectors
+  const user = useAuthStore((state) => state.user)
+  const fetchCategories = useProductsStore((state) => state.fetchCategories)
+  const categories = useProductsStore((state) => state.categories)
+  const categoriesLoading = useProductsStore((state) => state.categoriesLoading)
+  const setCategory = useProductsStore((state) => state.setCategory)
+
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [dimensions, setDimensions] = useState(() => Dimensions.get("window"))
 
   useEffect(() => {
@@ -84,29 +532,56 @@ export default function ProductsScreen() {
         setDimensions(window)
       }
     )
-
     return () => subscription?.remove()
   }, [])
 
-  // Calculate responsive values
-  const gridConfig = getGridConfig(dimensions.width)
-  const quickAccessLayout = getQuickAccessLayout(dimensions.width)
-  const deviceType = getDeviceType(dimensions.width)
+  // Memoize computed values
+  const gridConfig = useMemo(
+    () => getGridConfig(dimensions.width),
+    [dimensions.width]
+  )
+  const quickAccessLayout = useMemo(
+    () => getQuickAccessLayout(dimensions.width),
+    [dimensions.width]
+  )
+  const deviceType = useMemo(
+    () => getDeviceType(dimensions.width),
+    [dimensions.width]
+  )
 
-  const itemWidth =
-    (dimensions.width -
-      gridConfig.gridPadding * 2 -
-      gridConfig.gridGap * (gridConfig.numColumns - 1)) /
-    gridConfig.numColumns
+  const itemWidth = useMemo(() => {
+    const calculated =
+      (dimensions.width -
+        gridConfig.gridPadding * 2 -
+        gridConfig.gridGap * (gridConfig.numColumns - 1)) /
+      gridConfig.numColumns
+    return Math.min(calculated, gridConfig.maxItemWidth)
+  }, [dimensions.width, gridConfig])
 
-  // Clamp item width to max
-  const finalItemWidth = Math.min(itemWidth, gridConfig.maxItemWidth)
-
+  // Fetch once on mount
   useEffect(() => {
-    if (!categories || categories.length === 0) {
-      fetchCategories()
+    const loadCategories = async () => {
+      // If categories already exist, skip showing skeleton
+      if (categories?.length > 0) {
+        setIsInitialLoad(false)
+        return
+      }
+
+      await fetchCategories()
+      setIsInitialLoad(false)
     }
-  }, [fetchCategories, categories])
+    loadCategories()
+  }, [fetchCategories, categories?.length])
+
+  // Memoize handlers
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      await fetchCategories()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [fetchCategories])
 
   const navigateToCategory = useCallback(
     (categoryName: string) => {
@@ -127,198 +602,44 @@ export default function ProductsScreen() {
     router.push("/(tabs)/home/weekly-sale")
   }, [router])
 
-  // Render category grid item
+  // Memoize renderItem
   const renderCategoryItem = useCallback(
-    ({ item, index }: { item: Category; index: number }) => {
-      const isFirstInRow = index % gridConfig.numColumns === 0
-      const isLastInRow =
-        index % gridConfig.numColumns === gridConfig.numColumns - 1
-
-      // Calculate image size (proportional to item width)
-      const imageSize = finalItemWidth * 0.7
-
-      return (
-        <DebouncedTouchable
-          onPress={() => navigateToCategory(item.name)}
-          style={[
-            styles.categoryItem,
-            {
-              width: finalItemWidth,
-              marginLeft: isFirstInRow ? 0 : gridConfig.gridGap / 2,
-              marginRight: isLastInRow ? 0 : gridConfig.gridGap / 2,
-              paddingVertical: deviceType === "phone" ? 12 : 16,
-            },
-          ]}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.categoryImageContainer,
-              {
-                width: imageSize,
-                height: imageSize,
-                borderRadius: imageSize / 2,
-              },
-            ]}
-          >
-            {item.cover ? (
-              <Image
-                source={{ uri: item.cover.url }}
-                style={styles.categoryImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View style={styles.categoryPlaceholder}>
-                <FontAwesome5
-                  name="box-open"
-                  size={deviceType === "phone" ? 28 : 36}
-                  color={AppColors.gray[400]}
-                />
-              </View>
-            )}
-          </View>
-          <Text
-            style={[
-              styles.categoryName,
-              {
-                fontSize: deviceType === "phone" ? 12 : 14,
-                height: deviceType === "phone" ? 32 : 40,
-                lineHeight: deviceType === "phone" ? 16 : 20,
-              },
-            ]}
-            numberOfLines={2}
-          >
-            {item.name}
-          </Text>
-        </DebouncedTouchable>
-      )
-    },
-    [navigateToCategory, gridConfig, finalItemWidth, deviceType]
+    ({ item, index }: { item: Category; index: number }) => (
+      <CategoryItem
+        item={item}
+        index={index}
+        numColumns={gridConfig.numColumns}
+        gridGap={gridConfig.gridGap}
+        itemWidth={itemWidth}
+        deviceType={deviceType}
+        onPress={navigateToCategory}
+      />
+    ),
+    [
+      gridConfig.numColumns,
+      gridConfig.gridGap,
+      itemWidth,
+      deviceType,
+      navigateToCategory,
+    ]
   )
 
   const keyExtractor = useCallback((item: Category) => item.id.toString(), [])
 
-  // Header component with quick access items
-  const ListHeader = useCallback(() => {
+  const ListHeader = useMemo(() => {
     const isHorizontal = quickAccessLayout === "horizontal"
 
     return (
       <View style={styles.headerContainer}>
         {/* Quick Access Section */}
-        <View
-          style={[
-            styles.quickAccessSection,
-            isHorizontal && styles.quickAccessSectionHorizontal,
-            { paddingHorizontal: gridConfig.gridPadding },
-          ]}
-        >
-          <View
-            style={[
-              styles.quickAccessInner,
-              isHorizontal && styles.quickAccessInnerHorizontal,
-            ]}
-          >
-            {user?.id && (
-              <DebouncedTouchable
-                onPress={navigateToPurchasedBefore}
-                style={[
-                  styles.quickAccessItem,
-                  isHorizontal && styles.quickAccessItemHorizontal,
-                ]}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.quickAccessIconContainer,
-                    deviceType !== "phone" &&
-                      styles.quickAccessIconContainerLarge,
-                  ]}
-                >
-                  <Ionicons
-                    name="receipt"
-                    size={deviceType === "phone" ? 24 : 28}
-                    color={AppColors.primary[500]}
-                  />
-                </View>
-                <View style={styles.quickAccessContent}>
-                  <Text
-                    style={[
-                      styles.quickAccessTitle,
-                      deviceType !== "phone" && styles.quickAccessTitleLarge,
-                    ]}
-                  >
-                    Purchased before
-                  </Text>
-                  <Text
-                    style={[
-                      styles.quickAccessSubtitle,
-                      deviceType !== "phone" && styles.quickAccessSubtitleLarge,
-                    ]}
-                  >
-                    Reorder your favorites
-                  </Text>
-                </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color={AppColors.gray[400]}
-                />
-              </DebouncedTouchable>
-            )}
-
-            <DebouncedTouchable
-              onPress={navigateToWeeklySale}
-              style={[
-                styles.quickAccessItem,
-                styles.saleItem,
-                isHorizontal && styles.quickAccessItemHorizontal,
-                !isHorizontal && { marginBottom: 0 },
-              ]}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.quickAccessIconContainer,
-                  styles.saleIconContainer,
-                  deviceType !== "phone" &&
-                    styles.quickAccessIconContainerLarge,
-                ]}
-              >
-                <Ionicons
-                  name="pricetag"
-                  size={deviceType === "phone" ? 24 : 28}
-                  color="#fff"
-                />
-              </View>
-              <View style={styles.quickAccessContent}>
-                <Text
-                  style={[
-                    styles.quickAccessTitle,
-                    deviceType !== "phone" && styles.quickAccessTitleLarge,
-                  ]}
-                >
-                  Weekly Sale
-                </Text>
-                <Text
-                  style={[
-                    styles.quickAccessSubtitle,
-                    deviceType !== "phone" && styles.quickAccessSubtitleLarge,
-                  ]}
-                >
-                  Don't miss the deals
-                </Text>
-              </View>
-              <View style={styles.saleBadge}>
-                <Text style={styles.saleBadgeText}>HOT</Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={AppColors.gray[400]}
-              />
-            </DebouncedTouchable>
-          </View>
-        </View>
+        <QuickAccessSection
+          userId={user?.id}
+          isHorizontal={isHorizontal}
+          deviceType={deviceType}
+          gridPadding={gridConfig.gridPadding}
+          onPurchasedBefore={navigateToPurchasedBefore}
+          onWeeklySale={navigateToWeeklySale}
+        />
 
         {/* Categories Section Header */}
         <View
@@ -348,47 +669,57 @@ export default function ProductsScreen() {
     )
   }, [
     user?.id,
-    navigateToPurchasedBefore,
-    navigateToWeeklySale,
     categories?.length,
     quickAccessLayout,
     gridConfig,
     deviceType,
+    navigateToPurchasedBefore,
+    navigateToWeeklySale,
   ])
 
-  // Empty state for categories
-  const ListEmpty = useCallback(() => {
-    if (categoriesLoading) {
-      return (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color={AppColors.primary[500]} />
-          <Text style={styles.emptyText}>Loading categories...</Text>
-        </View>
-      )
-    }
+  const ListEmpty = useMemo(() => {
+    // Don't show empty state while loading
+    if (categoriesLoading) return null
 
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="grid-outline" size={48} color={AppColors.gray[400]} />
-        <Text style={styles.emptyText}>No categories available</Text>
+        <View style={styles.emptyIconContainer}>
+          <Ionicons name="grid-outline" size={48} color={AppColors.gray[400]} />
+        </View>
+        <Text style={styles.emptyTitle}>No Categories Available</Text>
+        <Text style={styles.emptySubtitle}>
+          Check back later for our product categories
+        </Text>
+        <DebouncedTouchable
+          style={styles.retryButton}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="refresh" size={18} color="#fff" />
+          <Text style={styles.retryButtonText}>Refresh</Text>
+        </DebouncedTouchable>
       </View>
     )
-  }, [categoriesLoading])
+  }, [categoriesLoading, handleRefresh])
 
-  if (categoriesLoading && (!categories || categories.length === 0)) {
+  const showSkeleton = isInitialLoad && categoriesLoading && !categories?.length
+
+  if (showSkeleton) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={AppColors.primary[500]} />
-        <Text style={styles.loadingText}>Loading categories...</Text>
-      </SafeAreaView>
+      <SkeletonScreen
+        gridConfig={gridConfig}
+        quickAccessLayout={quickAccessLayout}
+        deviceType={deviceType}
+        itemWidth={itemWidth}
+      />
     )
   }
 
   return (
     <Wrapper style={styles.container}>
       <FlatList
-        key={`grid-${gridConfig.numColumns}`} // Force re-render on column change
-        data={categories}
+        key={`grid-${gridConfig.numColumns}`}
+        data={categoriesLoading ? [] : categories}
         renderItem={renderCategoryItem}
         keyExtractor={keyExtractor}
         numColumns={gridConfig.numColumns}
@@ -397,18 +728,34 @@ export default function ProductsScreen() {
         contentContainerStyle={[
           styles.listContent,
           { paddingBottom: deviceType === "phone" ? 24 : 40 },
+          !categories?.length && !categoriesLoading && styles.listContentEmpty,
         ]}
-        columnWrapperStyle={[
-          styles.columnWrapper,
-          {
-            paddingHorizontal: gridConfig.gridPadding,
-            marginBottom: gridConfig.gridGap,
-          },
-        ]}
+        columnWrapperStyle={
+          categories?.length
+            ? [
+                styles.columnWrapper,
+                {
+                  paddingHorizontal: gridConfig.gridPadding,
+                  marginBottom: gridConfig.gridGap,
+                },
+              ]
+            : undefined
+        }
         showsVerticalScrollIndicator={false}
+        // Performance optimizations
         removeClippedSubviews={true}
-        maxToRenderPerBatch={15}
-        initialNumToRender={18}
+        maxToRenderPerBatch={12}
+        initialNumToRender={15}
+        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={[AppColors.primary[500]]}
+            tintColor={AppColors.primary[500]}
+          />
+        }
       />
     </Wrapper>
   )
@@ -420,24 +767,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: AppColors.background.primary,
-  },
-  loadingText: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 14,
-    color: AppColors.text.secondary,
-    marginTop: 12,
-  },
   listContent: {},
+  listContentEmpty: {
+    flexGrow: 1,
+  },
   columnWrapper: {
     justifyContent: "flex-start",
   },
-
-  // Header Section
   headerContainer: {
     marginBottom: 8,
   },
@@ -520,8 +856,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: "#fff",
   },
-
-  // Section Header
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -546,8 +880,6 @@ const styles = StyleSheet.create({
   sectionSubtitleLarge: {
     fontSize: 14,
   },
-
-  // Category Grid Items
   categoryItem: {
     alignItems: "center",
     backgroundColor: AppColors.background.primary,
@@ -578,17 +910,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "capitalize",
   },
-
-  // Empty State
+  skeletonGridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
   emptyContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
+    paddingHorizontal: 24,
   },
-  emptyText: {
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: AppColors.gray[100],
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 18,
+    color: AppColors.text.primary,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptySubtitle: {
     fontFamily: "Poppins_400Regular",
     fontSize: 14,
     color: AppColors.text.secondary,
-    marginTop: 12,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: AppColors.primary[500],
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    gap: 8,
+  },
+  retryButtonText: {
+    fontFamily: "Poppins_600SemiBold",
+    fontSize: 15,
+    color: "#fff",
   },
 })

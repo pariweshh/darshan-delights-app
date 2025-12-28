@@ -1,6 +1,7 @@
 import ProductCard from "@/src/components/product/ProductCard"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Product } from "@/src/types"
+import { memo, useCallback } from "react"
 import { FlatList, StyleSheet } from "react-native"
 
 interface ProductHorizontalListProps {
@@ -15,13 +16,29 @@ const ProductHorizontalList: React.FC<ProductHorizontalListProps> = ({
   const { config, isTablet } = useResponsive()
   const cardWidth = isTablet ? 180 : 160
 
-  // if (loading) {
-  //   return (
-  //     <View style={styles.loadingContainer}>
-  //       <ActivityIndicator size="small" color={AppColors.primary[500]} />
-  //     </View>
-  //   )
-  // }
+  // Memoize renderItem
+  const renderItem = useCallback(
+    ({ item }: { item: Product }) => (
+      <ProductCard
+        product={item}
+        customStyle={{ width: cardWidth, marginRight: config.gap }}
+      />
+    ),
+    [cardWidth, config.gap]
+  )
+
+  // Memoize keyExtractor
+  const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
+
+  // Memoize getItemLayout for fixed-width items
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: cardWidth + config.gap,
+      offset: (cardWidth + config.gap) * index,
+      index,
+    }),
+    [cardWidth, config.gap]
+  )
 
   if (!products || products.length === 0) {
     return null
@@ -30,21 +47,22 @@ const ProductHorizontalList: React.FC<ProductHorizontalListProps> = ({
   return (
     <FlatList
       data={products}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={keyExtractor}
+      renderItem={renderItem}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.listContent}
-      renderItem={({ item }) => (
-        <ProductCard
-          product={item}
-          customStyle={{ width: cardWidth, marginRight: config.gap }}
-        />
-      )}
+      getItemLayout={getItemLayout}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={5}
+      initialNumToRender={4}
+      windowSize={3}
+      updateCellsBatchingPeriod={50}
     />
   )
 }
 
-export default ProductHorizontalList
+export default memo(ProductHorizontalList)
 
 const styles = StyleSheet.create({
   listContent: {

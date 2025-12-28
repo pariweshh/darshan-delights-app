@@ -17,6 +17,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 
 const FEEDBACK_TOPICS = [
@@ -36,6 +37,7 @@ const RATINGS = [
 ]
 
 export default function FeedbackScreen() {
+  const { config, isTablet, isLandscape } = useResponsive()
   const { user } = useAuthStore()
 
   const [name, setName] = useState(
@@ -48,6 +50,17 @@ export default function FeedbackScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showTopicModal, setShowTopicModal] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const inputPaddingH = isTablet ? 16 : 14
+  const inputPaddingV = isTablet ? 14 : 12
+  const inputFontSize = isTablet ? 16 : 15
+  const inputBorderRadius = isTablet ? 12 : 10
+  const headerIconSize = isTablet ? 72 : 64
+  const headerIconContainerSize = isTablet ? 36 : 32
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -132,49 +145,149 @@ export default function FeedbackScreen() {
     <Wrapper style={styles.container} edges={[]}>
       <KeyboardAwareScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         enableOnAndroid
         enableAutomaticScroll
         keyboardOpeningTime={250}
       >
         {/* Header Card */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerIcon}>
+        <View
+          style={[
+            styles.headerCard,
+            {
+              padding: isTablet ? 24 : 20,
+              borderRadius: config.cardBorderRadius + 4,
+              marginBottom: isTablet ? 24 : 20,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.headerIcon,
+              {
+                width: headerIconSize,
+                height: headerIconSize,
+                borderRadius: headerIconSize / 2,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
             <Ionicons
               name="chatbubbles-outline"
-              size={32}
+              size={headerIconContainerSize}
               color={AppColors.primary[600]}
             />
           </View>
-          <Text style={styles.headerTitle}>We Value Your Feedback</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { fontSize: isTablet ? 20 : 18, marginBottom: isTablet ? 10 : 8 },
+            ]}
+          >
+            We Value Your Feedback
+          </Text>
+          <Text
+            style={[
+              styles.headerSubtitle,
+              {
+                fontSize: config.bodyFontSize - 1,
+                lineHeight: (config.bodyFontSize - 1) * 1.5,
+              },
+            ]}
+          >
             Help us improve the Darshan Delights app by sharing your thoughts,
             suggestions, or reporting issues.
           </Text>
         </View>
 
         {/* Form */}
-        <View style={styles.formCard}>
+        <View
+          style={[
+            styles.formCard,
+            {
+              padding: isTablet ? 18 : 16,
+              borderRadius: config.cardBorderRadius + 4,
+              marginBottom: isTablet ? 0 : 32,
+            },
+          ]}
+        >
           {/* Name */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Your Name *</Text>
+          <View
+            style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              Your Name *
+            </Text>
             <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
+              style={[
+                styles.input,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                  fontSize: inputFontSize,
+                },
+                errors.name && styles.inputError,
+              ]}
               value={name}
               onChangeText={(text) => updateField("name", text)}
               placeholder="Enter your name"
               placeholderTextColor={AppColors.gray[400]}
               autoCapitalize="words"
             />
-            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+            {errors.name && (
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.name}
+              </Text>
+            )}
           </View>
 
           {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address *</Text>
+          <View
+            style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              Email Address *
+            </Text>
             <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
+              style={[
+                styles.input,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                  fontSize: inputFontSize,
+                },
+                errors.email && styles.inputError,
+              ]}
               value={email}
               onChangeText={(text) => updateField("email", text)}
               placeholder="Enter your email"
@@ -183,21 +296,46 @@ export default function FeedbackScreen() {
               autoCapitalize="none"
             />
             {errors.email && (
-              <Text style={styles.errorText}>{errors.email}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.email}
+              </Text>
             )}
           </View>
 
           {/* Topic */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Feedback Topic *</Text>
+          <View
+            style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              Feedback Topic *
+            </Text>
             <DebouncedTouchable
-              style={[styles.selector, errors.topic && styles.inputError]}
+              style={[
+                styles.selector,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                },
+                errors.topic && styles.inputError,
+              ]}
               onPress={() => setShowTopicModal(true)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.selectorText,
+                  { fontSize: inputFontSize },
                   !selectedTopic && styles.selectorPlaceholder,
                 ]}
               >
@@ -205,18 +343,32 @@ export default function FeedbackScreen() {
               </Text>
               <Ionicons
                 name="chevron-down"
-                size={15}
+                size={isTablet ? 18 : 15}
                 color={AppColors.gray[400]}
               />
             </DebouncedTouchable>
             {errors.topic && (
-              <Text style={styles.errorText}>{errors.topic}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.topic}
+              </Text>
             )}
           </View>
 
           {/* Rating (Optional) */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>
+          <View
+            style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 10 : 8,
+                },
+              ]}
+            >
               How would you rate your experience?
             </Text>
             <View style={styles.ratingContainer}>
@@ -225,15 +377,31 @@ export default function FeedbackScreen() {
                   key={item.value}
                   style={[
                     styles.ratingItem,
+                    {
+                      padding: isTablet ? 12 : 10,
+                      borderRadius: isTablet ? 14 : 12,
+                      minWidth: isTablet ? 68 : 58,
+                    },
                     rating === item.value && styles.ratingItemSelected,
                   ]}
                   onPress={() => setRating(item.value)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.ratingEmoji}>{item.emoji}</Text>
+                  <Text
+                    style={[
+                      styles.ratingEmoji,
+                      {
+                        fontSize: isTablet ? 28 : 24,
+                        marginBottom: isTablet ? 6 : 4,
+                      },
+                    ]}
+                  >
+                    {item.emoji}
+                  </Text>
                   <Text
                     style={[
                       styles.ratingLabel,
+                      { fontSize: isTablet ? 11 : 10 },
                       rating === item.value && styles.ratingLabelSelected,
                     ]}
                   >
@@ -245,10 +413,32 @@ export default function FeedbackScreen() {
           </View>
 
           {/* Message */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Your Feedback *</Text>
+          <View
+            style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+          >
+            <Text
+              style={[
+                styles.label,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  marginBottom: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              Your Feedback *
+            </Text>
             <TextInput
-              style={[styles.textArea, errors.message && styles.inputError]}
+              style={[
+                styles.textArea,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                  fontSize: inputFontSize,
+                  minHeight: isTablet ? 160 : 140,
+                },
+                errors.message && styles.inputError,
+              ]}
               value={message}
               onChangeText={(text) => updateField("message", text)}
               placeholder="Tell us what you think, what could be improved, or report any issues..."
@@ -258,11 +448,22 @@ export default function FeedbackScreen() {
               textAlignVertical="top"
               maxLength={1000}
             />
-            <View style={styles.charCount}>
-              <Text style={styles.charCountText}>{message.length}/1000</Text>
+            <View style={[styles.charCount, { marginTop: isTablet ? 6 : 4 }]}>
+              <Text
+                style={[
+                  styles.charCountText,
+                  { fontSize: config.smallFontSize - 1 },
+                ]}
+              >
+                {message.length}/1000
+              </Text>
             </View>
             {errors.message && (
-              <Text style={styles.errorText}>{errors.message}</Text>
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.message}
+              </Text>
             )}
           </View>
 
@@ -273,7 +474,11 @@ export default function FeedbackScreen() {
             loading={isSubmitting}
             disabled={isSubmitting}
             icon={
-              <Ionicons name="paper-plane-outline" size={18} color="white" />
+              <Ionicons
+                name="paper-plane-outline"
+                size={isTablet ? 20 : 18}
+                color="white"
+              />
             }
           />
         </View>
@@ -287,13 +492,28 @@ export default function FeedbackScreen() {
         onRequestClose={() => setShowTopicModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Topic</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                maxWidth: isTablet ? 500 : undefined,
+                alignSelf: isTablet ? "center" : undefined,
+                width: isTablet ? "90%" : undefined,
+                borderTopLeftRadius: isTablet ? 28 : 24,
+                borderTopRightRadius: isTablet ? 28 : 24,
+              },
+            ]}
+          >
+            <View style={[styles.modalHeader, { padding: isTablet ? 22 : 20 }]}>
+              <Text
+                style={[styles.modalTitle, { fontSize: isTablet ? 20 : 18 }]}
+              >
+                Select Topic
+              </Text>
               <DebouncedTouchable onPress={() => setShowTopicModal(false)}>
                 <Ionicons
                   name="close"
-                  size={24}
+                  size={isTablet ? 26 : 24}
                   color={AppColors.text.primary}
                 />
               </DebouncedTouchable>
@@ -304,6 +524,10 @@ export default function FeedbackScreen() {
                   key={index}
                   style={[
                     styles.modalOption,
+                    {
+                      paddingVertical: isTablet ? 16 : 14,
+                      paddingHorizontal: isTablet ? 22 : 20,
+                    },
                     selectedTopic === topic.label && styles.modalOptionSelected,
                   ]}
                   onPress={() => {
@@ -315,10 +539,15 @@ export default function FeedbackScreen() {
                   }}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.modalOptionLeft}>
+                  <View
+                    style={[
+                      styles.modalOptionLeft,
+                      { gap: isTablet ? 14 : 12 },
+                    ]}
+                  >
                     <Ionicons
                       name={topic.icon as any}
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={
                         selectedTopic === topic.label
                           ? AppColors.primary[600]
@@ -328,6 +557,7 @@ export default function FeedbackScreen() {
                     <Text
                       style={[
                         styles.modalOptionText,
+                        { fontSize: config.bodyFontSize },
                         selectedTopic === topic.label &&
                           styles.modalOptionTextSelected,
                       ]}
@@ -338,7 +568,7 @@ export default function FeedbackScreen() {
                   {selectedTopic === topic.label && (
                     <Ionicons
                       name="checkmark"
-                      size={20}
+                      size={isTablet ? 22 : 20}
                       color={AppColors.primary[600]}
                     />
                   )}
@@ -361,48 +591,32 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  scrollContent: {},
   // Header Card
   headerCard: {
     backgroundColor: AppColors.primary[50],
-    borderRadius: 16,
-    padding: 20,
     alignItems: "center",
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: AppColors.primary[100],
   },
   headerIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
     backgroundColor: AppColors.background.primary,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
   headerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.primary[700],
-    marginBottom: 8,
     textAlign: "center",
   },
   headerSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
     textAlign: "center",
-    lineHeight: 20,
   },
   // Form Card
   formCard: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -410,24 +624,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   // Input
-  inputGroup: {
-    marginBottom: 20,
-  },
+  inputGroup: {},
   label: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   input: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   inputError: {
@@ -435,46 +641,34 @@ const styles = StyleSheet.create({
   },
   textArea: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
-    minHeight: 140,
   },
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 4,
   },
   charCount: {
     alignItems: "flex-end",
-    marginTop: 4,
   },
   charCountText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 11,
     color: AppColors.text.tertiary,
   },
   // Selector
   selector: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   selectorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   selectorPlaceholder: {
@@ -487,24 +681,17 @@ const styles = StyleSheet.create({
   },
   ratingItem: {
     alignItems: "center",
-    padding: 10,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
     backgroundColor: AppColors.gray[50],
-    minWidth: 58,
   },
   ratingItemSelected: {
     borderColor: AppColors.primary[500],
     backgroundColor: AppColors.primary[50],
   },
-  ratingEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
+  ratingEmoji: {},
   ratingLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 10,
     color: AppColors.text.secondary,
   },
   ratingLabelSelected: {
@@ -519,29 +706,23 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: AppColors.background.primary,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     maxHeight: "50%",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   modalOption: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[100],
   },
@@ -551,11 +732,9 @@ const styles = StyleSheet.create({
   modalOptionLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   modalOptionText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   modalOptionTextSelected: {

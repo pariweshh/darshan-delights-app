@@ -19,10 +19,13 @@ import Loader from "@/src/components/common/Loader"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useBiometricAuth } from "@/src/hooks/useBiometricAuth"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 
 export default function SecurityScreen() {
-  // Auth store - handles biometric auth state
+  const { config, isTablet, isLandscape } = useResponsive()
+
+  // Auth store
   const {
     token,
     biometricAuthEnabled,
@@ -30,7 +33,7 @@ export default function SecurityScreen() {
     isLoading: authLoading,
   } = useAuthStore()
 
-  // Biometric hook - handles device capabilities
+  // Biometric hook
   const {
     isBiometricSupported,
     isBiometricEnrolled,
@@ -60,6 +63,18 @@ export default function SecurityScreen() {
     {}
   )
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const iconContainerSize = isTablet ? 48 : 44
+  const iconSize = isTablet ? 26 : 24
+  const menuIconSize = isTablet ? 24 : 22
+  const inputPaddingH = isTablet ? 18 : 16
+  const inputPaddingV = isTablet ? 16 : 14
+  const inputFontSize = isTablet ? 16 : 15
+  const inputBorderRadius = isTablet ? 14 : 12
 
   // Check biometric support on mount
   useEffect(() => {
@@ -186,9 +201,7 @@ export default function SecurityScreen() {
    * Handle password change
    */
   const handlePasswordChange = async () => {
-    if (!validatePasswordForm()) {
-      return
-    }
+    if (!validatePasswordForm()) return
 
     if (!token) {
       Toast.show({
@@ -217,7 +230,6 @@ export default function SecurityScreen() {
           visibilityTime: 2500,
         })
 
-        // Close modal and reset form
         setShowPasswordModal(false)
         setPasswordData({
           currentPassword: "",
@@ -301,34 +313,94 @@ export default function SecurityScreen() {
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 60 : 40,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Biometric Authentication Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Biometric Authentication</Text>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            Biometric Authentication
+          </Text>
 
-          <View style={styles.card}>
+          <View
+            style={[
+              styles.card,
+              {
+                padding: isTablet ? 18 : 16,
+                borderRadius: config.cardBorderRadius + 4,
+              },
+            ]}
+          >
             {/* Biometric Toggle */}
             <View style={styles.settingRow}>
-              <View style={styles.settingIconContainer}>
+              <View
+                style={[
+                  styles.settingIconContainer,
+                  {
+                    width: iconContainerSize,
+                    height: iconContainerSize,
+                    borderRadius: isTablet ? 14 : 12,
+                    marginRight: isTablet ? 14 : 12,
+                  },
+                ]}
+              >
                 <Ionicons
                   name={biometricIcon as any}
-                  size={24}
+                  size={iconSize}
                   color={AppColors.primary[600]}
                 />
               </View>
 
-              <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Enable {biometricType}</Text>
-                <Text style={styles.settingHint}>
+              <View
+                style={[
+                  styles.settingInfo,
+                  { marginRight: isTablet ? 14 : 12 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.settingLabel,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  Enable {biometricType}
+                </Text>
+                <Text
+                  style={[
+                    styles.settingHint,
+                    {
+                      fontSize: config.bodyFontSize - 2,
+                      lineHeight: (config.bodyFontSize - 2) * 1.4,
+                      marginTop: isTablet ? 4 : 2,
+                    },
+                  ]}
+                >
                   {isBiometricAvailable
                     ? `Use ${biometricType} for quick and secure sign-in`
                     : "Not available on this device"}
                 </Text>
               </View>
 
-              <View style={styles.switchContainer}>
+              <View
+                style={[styles.switchContainer, { width: isTablet ? 56 : 52 }]}
+              >
                 {isSwitchLoading ? (
                   <ActivityIndicator
                     size="small"
@@ -355,9 +427,31 @@ export default function SecurityScreen() {
 
             {/* Warning if not available */}
             {!isBiometricAvailable && (
-              <View style={styles.warningBanner}>
-                <Ionicons name="warning-outline" size={20} color="#92400E" />
-                <Text style={styles.warningText}>
+              <View
+                style={[
+                  styles.warningBanner,
+                  {
+                    padding: isTablet ? 14 : 12,
+                    borderRadius: isTablet ? 14 : 12,
+                    marginTop: isTablet ? 18 : 16,
+                    gap: isTablet ? 12 : 10,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="warning-outline"
+                  size={isTablet ? 22 : 20}
+                  color="#92400E"
+                />
+                <Text
+                  style={[
+                    styles.warningText,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      lineHeight: (config.bodyFontSize - 1) * 1.4,
+                    },
+                  ]}
+                >
                   {!isBiometricSupported
                     ? "Your device does not support biometric authentication."
                     : "No biometrics enrolled. Please set up biometrics in your device settings."}
@@ -368,46 +462,107 @@ export default function SecurityScreen() {
             {/* Test Button */}
             {isBiometricAvailable && biometricAuthEnabled && (
               <DebouncedTouchable
-                style={styles.testButton}
+                style={[
+                  styles.testButton,
+                  {
+                    paddingVertical: isTablet ? 16 : 14,
+                    borderRadius: isTablet ? 14 : 12,
+                    marginTop: isTablet ? 18 : 16,
+                    gap: isTablet ? 10 : 8,
+                  },
+                ]}
                 onPress={handleTestBiometrics}
                 activeOpacity={0.7}
                 disabled={isSwitchLoading}
               >
-                <Ionicons name={biometricIcon as any} size={20} color="white" />
-                <Text style={styles.testButtonText}>Test {biometricType}</Text>
+                <Ionicons
+                  name={biometricIcon as any}
+                  size={isTablet ? 22 : 20}
+                  color="white"
+                />
+                <Text
+                  style={[
+                    styles.testButtonText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
+                >
+                  Test {biometricType}
+                </Text>
               </DebouncedTouchable>
             )}
           </View>
         </View>
 
         {/* Password Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Password</Text>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              {
+                fontSize: isTablet ? 17 : 16,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
+            Password
+          </Text>
 
-          <View style={styles.card}>
+          <View
+            style={[
+              styles.card,
+              {
+                padding: isTablet ? 18 : 16,
+                borderRadius: config.cardBorderRadius + 4,
+              },
+            ]}
+          >
             <DebouncedTouchable
               style={styles.menuItem}
               onPress={() => setShowPasswordModal(true)}
               activeOpacity={0.7}
             >
-              <View style={styles.menuItemLeft}>
-                <View style={styles.menuIconContainer}>
+              <View style={[styles.menuItemLeft, { gap: isTablet ? 14 : 12 }]}>
+                <View
+                  style={[
+                    styles.menuIconContainer,
+                    {
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      borderRadius: isTablet ? 14 : 12,
+                    },
+                  ]}
+                >
                   <Ionicons
                     name="lock-closed-outline"
-                    size={22}
+                    size={menuIconSize}
                     color={AppColors.primary[600]}
                   />
                 </View>
                 <View>
-                  <Text style={styles.menuItemLabel}>Change Password</Text>
-                  <Text style={styles.menuItemHint}>
+                  <Text
+                    style={[
+                      styles.menuItemLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Change Password
+                  </Text>
+                  <Text
+                    style={[
+                      styles.menuItemHint,
+                      {
+                        fontSize: config.bodyFontSize - 2,
+                        marginTop: isTablet ? 4 : 2,
+                      },
+                    ]}
+                  >
                     Update your account password
                   </Text>
                 </View>
               </View>
               <Ionicons
                 name="chevron-forward"
-                size={20}
+                size={isTablet ? 22 : 20}
                 color={AppColors.gray[400]}
               />
             </DebouncedTouchable>
@@ -415,17 +570,53 @@ export default function SecurityScreen() {
         </View>
 
         {/* Security Info Card */}
-        <View style={styles.infoCard}>
-          <View style={styles.infoIconContainer}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              padding: isTablet ? 18 : 16,
+              borderRadius: config.cardBorderRadius + 4,
+              gap: isTablet ? 14 : 12,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.infoIconContainer,
+              {
+                width: iconContainerSize,
+                height: iconContainerSize,
+                borderRadius: iconContainerSize / 2,
+              },
+            ]}
+          >
             <Ionicons
               name="shield-checkmark"
-              size={24}
+              size={iconSize}
               color={AppColors.primary[600]}
             />
           </View>
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Your Security Matters</Text>
-            <Text style={styles.infoText}>
+            <Text
+              style={[
+                styles.infoTitle,
+                {
+                  fontSize: config.bodyFontSize,
+                  marginBottom: isTablet ? 6 : 4,
+                },
+              ]}
+            >
+              Your Security Matters
+            </Text>
+            <Text
+              style={[
+                styles.infoText,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  lineHeight: (config.bodyFontSize - 1) * 1.5,
+                },
+              ]}
+            >
               Your biometric data is stored securely on your device and is never
               shared with our servers. We use industry-standard encryption to
               protect your credentials.
@@ -438,16 +629,42 @@ export default function SecurityScreen() {
       <Modal
         visible={showPasswordModal}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle={isTablet ? "formSheet" : "pageSheet"}
         onRequestClose={handleClosePasswordModal}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView
+          style={[
+            styles.modalContainer,
+            isTablet && {
+              maxWidth: isLandscape ? 550 : 500,
+              alignSelf: "center",
+              width: "100%",
+            },
+          ]}
+        >
           {/* Modal Header */}
-          <View style={styles.modalHeader}>
+          <View
+            style={[
+              styles.modalHeader,
+              {
+                paddingHorizontal: config.horizontalPadding,
+                paddingVertical: isTablet ? 18 : 16,
+              },
+            ]}
+          >
             <DebouncedTouchable onPress={handleClosePasswordModal}>
-              <Text style={styles.modalCancelText}>Cancel</Text>
+              <Text
+                style={[
+                  styles.modalCancelText,
+                  { fontSize: config.subtitleFontSize },
+                ]}
+              >
+                Cancel
+              </Text>
             </DebouncedTouchable>
-            <Text style={styles.modalTitle}>Change Password</Text>
+            <Text style={[styles.modalTitle, { fontSize: isTablet ? 20 : 18 }]}>
+              Change Password
+            </Text>
             <DebouncedTouchable
               onPress={handlePasswordChange}
               disabled={isSavingPassword}
@@ -455,6 +672,7 @@ export default function SecurityScreen() {
               <Text
                 style={[
                   styles.modalSaveText,
+                  { fontSize: config.subtitleFontSize },
                   isSavingPassword && styles.modalSaveTextDisabled,
                 ]}
               >
@@ -466,20 +684,41 @@ export default function SecurityScreen() {
           {/* Modal Content */}
           <ScrollView
             style={styles.modalContent}
+            contentContainerStyle={{ padding: config.horizontalPadding }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
             {/* Current Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Current Password</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+            >
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                Current Password
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
+                  { borderRadius: inputBorderRadius },
                   passwordErrors.currentPassword && styles.inputContainerError,
                 ]}
               >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      fontSize: inputFontSize,
+                    },
+                  ]}
                   value={passwordData.currentPassword}
                   onChangeText={(text) => {
                     setPasswordData({ ...passwordData, currentPassword: text })
@@ -497,7 +736,7 @@ export default function SecurityScreen() {
                   autoCorrect={false}
                 />
                 <DebouncedTouchable
-                  style={styles.eyeButton}
+                  style={[styles.eyeButton, { padding: isTablet ? 16 : 14 }]}
                   onPress={() =>
                     setShowPasswords({
                       ...showPasswords,
@@ -509,29 +748,51 @@ export default function SecurityScreen() {
                     name={
                       showPasswords.current ? "eye-off-outline" : "eye-outline"
                     }
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.gray[500]}
                   />
                 </DebouncedTouchable>
               </View>
               {passwordErrors.currentPassword && (
-                <Text style={styles.errorText}>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
                   {passwordErrors.currentPassword}
                 </Text>
               )}
             </View>
 
             {/* New Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>New Password</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+            >
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                New Password
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
+                  { borderRadius: inputBorderRadius },
                   passwordErrors.newPassword && styles.inputContainerError,
                 ]}
               >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      fontSize: inputFontSize,
+                    },
+                  ]}
                   value={passwordData.newPassword}
                   onChangeText={(text) => {
                     setPasswordData({ ...passwordData, newPassword: text })
@@ -546,7 +807,7 @@ export default function SecurityScreen() {
                   autoCorrect={false}
                 />
                 <DebouncedTouchable
-                  style={styles.eyeButton}
+                  style={[styles.eyeButton, { padding: isTablet ? 16 : 14 }]}
                   onPress={() =>
                     setShowPasswords({
                       ...showPasswords,
@@ -556,26 +817,39 @@ export default function SecurityScreen() {
                 >
                   <Ionicons
                     name={showPasswords.new ? "eye-off-outline" : "eye-outline"}
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.gray[500]}
                   />
                 </DebouncedTouchable>
               </View>
               {passwordErrors.newPassword && (
-                <Text style={styles.errorText}>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
                   {passwordErrors.newPassword}
                 </Text>
               )}
 
               {/* Password Strength Indicator */}
               {passwordData.newPassword.length > 0 && (
-                <View style={styles.strengthContainer}>
-                  <View style={styles.strengthBarContainer}>
+                <View
+                  style={[
+                    styles.strengthContainer,
+                    { marginTop: isTablet ? 12 : 10, gap: isTablet ? 12 : 10 },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.strengthBarContainer,
+                      { gap: isTablet ? 6 : 4 },
+                    ]}
+                  >
                     {[1, 2, 3, 4, 5].map((level) => (
                       <View
                         key={level}
                         style={[
                           styles.strengthSegment,
+                          { height: isTablet ? 5 : 4 },
                           {
                             backgroundColor:
                               level <= passwordStrength.score
@@ -589,7 +863,10 @@ export default function SecurityScreen() {
                   <Text
                     style={[
                       styles.strengthLabel,
-                      { color: passwordStrength.color },
+                      {
+                        color: passwordStrength.color,
+                        fontSize: config.smallFontSize,
+                      },
                     ]}
                   >
                     {passwordStrength.label}
@@ -599,16 +876,36 @@ export default function SecurityScreen() {
             </View>
 
             {/* Confirm Password */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Confirm New Password</Text>
+            <View
+              style={[styles.inputGroup, { marginBottom: isTablet ? 22 : 20 }]}
+            >
+              <Text
+                style={[
+                  styles.inputLabel,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                Confirm New Password
+              </Text>
               <View
                 style={[
                   styles.inputContainer,
+                  { borderRadius: inputBorderRadius },
                   passwordErrors.confirmPassword && styles.inputContainerError,
                 ]}
               >
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      fontSize: inputFontSize,
+                    },
+                  ]}
                   value={passwordData.confirmPassword}
                   onChangeText={(text) => {
                     setPasswordData({ ...passwordData, confirmPassword: text })
@@ -626,7 +923,7 @@ export default function SecurityScreen() {
                   autoCorrect={false}
                 />
                 <DebouncedTouchable
-                  style={styles.eyeButton}
+                  style={[styles.eyeButton, { padding: isTablet ? 16 : 14 }]}
                   onPress={() =>
                     setShowPasswords({
                       ...showPasswords,
@@ -638,13 +935,15 @@ export default function SecurityScreen() {
                     name={
                       showPasswords.confirm ? "eye-off-outline" : "eye-outline"
                     }
-                    size={20}
+                    size={isTablet ? 22 : 20}
                     color={AppColors.gray[500]}
                   />
                 </DebouncedTouchable>
               </View>
               {passwordErrors.confirmPassword && (
-                <Text style={styles.errorText}>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
                   {passwordErrors.confirmPassword}
                 </Text>
               )}
@@ -652,7 +951,12 @@ export default function SecurityScreen() {
               {/* Password Match Indicator */}
               {passwordData.confirmPassword.length > 0 &&
                 passwordData.newPassword.length > 0 && (
-                  <View style={styles.matchIndicator}>
+                  <View
+                    style={[
+                      styles.matchIndicator,
+                      { marginTop: isTablet ? 10 : 8, gap: isTablet ? 8 : 6 },
+                    ]}
+                  >
                     <Ionicons
                       name={
                         passwordData.newPassword ===
@@ -660,7 +964,7 @@ export default function SecurityScreen() {
                           ? "checkmark-circle"
                           : "close-circle"
                       }
-                      size={16}
+                      size={isTablet ? 18 : 16}
                       color={
                         passwordData.newPassword ===
                         passwordData.confirmPassword
@@ -671,6 +975,7 @@ export default function SecurityScreen() {
                     <Text
                       style={[
                         styles.matchText,
+                        { fontSize: config.smallFontSize },
                         {
                           color:
                             passwordData.newPassword ===
@@ -689,26 +994,53 @@ export default function SecurityScreen() {
             </View>
 
             {/* Password Requirements */}
-            <View style={styles.requirementsCard}>
-              <Text style={styles.requirementsTitle}>
+            <View
+              style={[
+                styles.requirementsCard,
+                {
+                  padding: isTablet ? 18 : 16,
+                  borderRadius: isTablet ? 14 : 12,
+                  marginTop: isTablet ? 10 : 8,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.requirementsTitle,
+                  {
+                    fontSize: config.bodyFontSize,
+                    marginBottom: isTablet ? 14 : 12,
+                  },
+                ]}
+              >
                 Password Requirements
               </Text>
-              <View style={styles.requirementsList}>
+              <View
+                style={[styles.requirementsList, { gap: isTablet ? 10 : 8 }]}
+              >
                 <RequirementItem
                   text="At least 6 characters"
                   met={passwordData.newPassword.length >= 6}
+                  isTablet={isTablet}
+                  fontSize={config.bodyFontSize - 1}
                 />
                 <RequirementItem
                   text="One uppercase letter"
                   met={/[A-Z]/.test(passwordData.newPassword)}
+                  isTablet={isTablet}
+                  fontSize={config.bodyFontSize - 1}
                 />
                 <RequirementItem
                   text="One lowercase letter"
                   met={/[a-z]/.test(passwordData.newPassword)}
+                  isTablet={isTablet}
+                  fontSize={config.bodyFontSize - 1}
                 />
                 <RequirementItem
                   text="One number"
                   met={/\d/.test(passwordData.newPassword)}
+                  isTablet={isTablet}
+                  fontSize={config.bodyFontSize - 1}
                 />
               </View>
             </View>
@@ -722,17 +1054,25 @@ export default function SecurityScreen() {
 /**
  * Requirement Item Component
  */
-const RequirementItem: React.FC<{ text: string; met: boolean }> = ({
-  text,
-  met,
-}) => (
-  <View style={styles.requirementItem}>
+const RequirementItem: React.FC<{
+  text: string
+  met: boolean
+  isTablet: boolean
+  fontSize: number
+}> = ({ text, met, isTablet, fontSize }) => (
+  <View style={[styles.requirementItem, { gap: isTablet ? 10 : 8 }]}>
     <Ionicons
       name={met ? "checkmark-circle" : "ellipse-outline"}
-      size={16}
+      size={isTablet ? 18 : 16}
       color={met ? AppColors.success : AppColors.gray[400]}
     />
-    <Text style={[styles.requirementText, met && styles.requirementTextMet]}>
+    <Text
+      style={[
+        styles.requirementText,
+        { fontSize },
+        met && styles.requirementTextMet,
+      ]}
+    >
       {text}
     </Text>
   </View>
@@ -746,105 +1086,69 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-
+  scrollContent: {},
   // Section
-  section: {
-    marginBottom: 24,
-  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
-
   // Card
   card: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 16,
-    padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-
   // Setting Row
   settingRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   settingIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   settingInfo: {
     flex: 1,
-    marginRight: 12,
   },
   settingLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   settingHint: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginTop: 2,
-    lineHeight: 18,
   },
   switchContainer: {
-    width: 52,
     alignItems: "center",
     justifyContent: "center",
   },
-
   // Warning Banner
   warningBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 12,
-    marginTop: 16,
-    gap: 10,
   },
   warningText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: "#92400E",
-    lineHeight: 18,
   },
-
   // Test Button
   testButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: AppColors.primary[500],
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 16,
-    gap: 8,
   },
   testButtonText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: "white",
   },
-
   // Menu Item
   menuItem: {
     flexDirection: "row",
@@ -857,38 +1161,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   menuItemLabel: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   menuItemHint: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginTop: 2,
   },
-
   // Info Card
   infoCard: {
     flexDirection: "row",
     backgroundColor: AppColors.primary[50],
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
   },
   infoIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     backgroundColor: AppColors.primary[100],
     alignItems: "center",
     justifyContent: "center",
@@ -898,17 +1188,12 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.primary[700],
-    marginBottom: 4,
   },
   infoText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.primary[600],
-    lineHeight: 19,
   },
-
   // Modal
   modalContainer: {
     flex: 1,
@@ -918,24 +1203,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
   },
   modalTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 18,
     color: AppColors.text.primary,
   },
   modalCancelText: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.secondary,
   },
   modalSaveText: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.primary[600],
   },
   modalSaveTextDisabled: {
@@ -943,24 +1223,17 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     flex: 1,
-    padding: 20,
   },
-
   // Input Group
-  inputGroup: {
-    marginBottom: 20,
-  },
+  inputGroup: {},
   inputLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 8,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -969,82 +1242,56 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
-  eyeButton: {
-    padding: 14,
-  },
+  eyeButton: {},
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 6,
   },
-
   // Password Strength
   strengthContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 10,
-    gap: 10,
   },
   strengthBarContainer: {
     flex: 1,
     flexDirection: "row",
-    gap: 4,
   },
   strengthSegment: {
     flex: 1,
-    height: 4,
     borderRadius: 2,
   },
   strengthLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 12,
     width: 70,
     textAlign: "right",
   },
-
   // Match Indicator
   matchIndicator: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
-    gap: 6,
   },
   matchText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
   },
-
   // Requirements Card
   requirementsCard: {
     backgroundColor: AppColors.gray[50],
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
   },
   requirementsTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: AppColors.text.primary,
-    marginBottom: 12,
   },
-  requirementsList: {
-    gap: 8,
-  },
+  requirementsList: {},
   requirementItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   requirementText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
   },
   requirementTextMet: {

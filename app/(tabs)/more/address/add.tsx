@@ -1,13 +1,14 @@
-import { createAddress } from "@/src/api/addresses"
-import AddressForm from "@/src/components/addresses/AddressForm"
-import AppColors from "@/src/constants/Colors"
-import { useAuthStore } from "@/src/store/authStore"
-import { AddressFormData } from "@/src/types/address"
 import { useRouter } from "expo-router"
 import React, { useState } from "react"
 import { StyleSheet } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
+
+import { createAddress } from "@/src/api/addresses"
+import AddressForm from "@/src/components/addresses/AddressForm"
+import Wrapper from "@/src/components/common/Wrapper"
+import AppColors from "@/src/constants/Colors"
+import { useAuthStore } from "@/src/store/authStore"
+import { AddressFormData } from "@/src/types/address"
 
 export default function AddAddressScreen() {
   const router = useRouter()
@@ -57,14 +58,14 @@ export default function AddAddressScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom"]}>
+    <Wrapper style={styles.container} edges={[]}>
       <AddressForm
         onSubmit={handleSubmit}
         onCancel={handleCancel}
         isLoading={isLoading}
         submitLabel="Add Address"
       />
-    </SafeAreaView>
+    </Wrapper>
   )
 }
 

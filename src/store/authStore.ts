@@ -13,6 +13,7 @@ import {
 import { STORAGE_KEYS } from "@/src/config/constants"
 import { User } from "@/src/types"
 import {
+  getLoggedInUser,
   isAuthenticated,
   removeUserAuth,
   setUserAuth,
@@ -71,7 +72,8 @@ export interface AuthState {
     email: string,
     password: string,
     fName: string,
-    lName: string
+    lName: string,
+    agreedToPolicies: boolean
   ) => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
   updateUser: (
@@ -136,10 +138,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const { biometricAuthEnabled } = get()
 
+      // if (biometricAuthEnabled) {
+      //   await SecureStore.setItemAsync(
+      //     STORAGE_KEYS.STORED_CREDENTIALS,
+      //     JSON.stringify({ identifier, password })
+      //   )
+      // }
       if (biometricAuthEnabled) {
         await SecureStore.setItemAsync(
-          STORAGE_KEYS.STORED_CREDENTIALS,
-          JSON.stringify({ identifier, password })
+          STORAGE_KEYS.AUTH_TOKEN,
+          JSON.stringify(res.jwt)
         )
       }
 
@@ -181,13 +189,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }
 
-      const storedCredentials = await SecureStore.getItemAsync(
-        STORAGE_KEYS.STORED_CREDENTIALS
+      const storedToken = await SecureStore.getItemAsync(
+        STORAGE_KEYS.AUTH_TOKEN
       )
-      if (!storedCredentials) {
+      if (!storedToken) {
         set({ isLoading: false })
-        return { success: false, error: "No stored credentials found" }
+        return { success: false, error: "No stored token found" }
       }
+      // const storedCredentials = await SecureStore.getItemAsync(
+      //   STORAGE_KEYS.STORED_CREDENTIALS
+      // )
+      // if (!storedCredentials) {
+      //   set({ isLoading: false })
+      //   return { success: false, error: "No stored credentials found" }
+      // }
 
       const compatible = await LocalAuthentication.hasHardwareAsync()
       const enrolled = await LocalAuthentication.isEnrolledAsync()
@@ -207,16 +222,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         disableDeviceFallback: false,
       })
 
+      const token = JSON.parse(storedToken)
+
       if (result.success) {
-        const { identifier, password } = JSON.parse(storedCredentials)
+        // const { identifier, password } = JSON.parse(storedCredentials)
 
-        const loginRes = await signIn({ identifier, password })
+        // const loginRes = await signIn({ identifier, password })
 
-        await setUserAuth(loginRes.jwt || "")
+        if (!token) {
+          set({ isLoading: false })
+          return { success: false, error: "Stored token is invalid" }
+        }
+
+        await setUserAuth(token || "")
+        const { user } = await getLoggedInUser()
 
         set({
-          user: loginRes.user,
-          token: loginRes.jwt,
+          user: user,
+          token: token,
           isLoading: false,
           error: null,
         })
@@ -227,7 +250,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return {
           success: false,
           error:
-            result.error === "user_cancel"
+            result?.error === "user_cancel"
               ? "Authentication cancelled"
               : "Authentication failed",
         }
@@ -239,7 +262,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signup: async (username, email, password, fName, lName) => {
+  signup: async (username, email, password, fName, lName, agreedToPolicies) => {
     try {
       set({ isLoading: true, error: null })
       const res = await signUp({
@@ -249,6 +272,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         fName,
         lName,
         platform: "mobile",
+        agreedToPolicies,
       })
 
       if (res?.user) {

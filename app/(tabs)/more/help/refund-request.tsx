@@ -1,3 +1,5 @@
+// app/(tabs)/more/help/refund-request.tsx
+
 import { Ionicons } from "@expo/vector-icons"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { useLocalSearchParams, useRouter } from "expo-router"
@@ -21,40 +23,76 @@ import Wrapper from "@/src/components/common/Wrapper"
 import Button from "@/src/components/ui/Button"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { CreateRefundRequestParams, RefundReason } from "@/src/types/refund"
 
-// Refund reasons
+// Refund reasons - MUST match Strapi backend enum values exactly
 const REFUND_REASONS: { value: RefundReason; label: string }[] = [
-  { value: "damaged_product", label: "Product was damaged" },
-  { value: "wrong_product", label: "Received wrong product" },
-  { value: "quality_issue", label: "Quality not as expected" },
-  { value: "changed_mind", label: "Changed my mind" },
-  { value: "late_delivery", label: "Delivery was too late" },
-  { value: "other", label: "Other reason" },
+  { value: "Wrong product", label: "Wrong product" },
+  { value: "Quality issue", label: "Quality issue" },
+  { value: "Damaged", label: "Damaged" },
+  { value: "Never received", label: "Never received" },
+  { value: "Other", label: "Other" },
 ]
 
-// Questions based on reason
-const QUESTIONS_BY_REASON: Record<RefundReason, string[]> = {
-  damaged_product: [
-    "Please describe the damage",
-    "When did you notice the damage?",
-  ],
-  wrong_product: [
-    "What product did you receive?",
-    "What product did you order?",
-  ],
-  quality_issue: [
-    "What quality issues did you experience?",
-    "Was the product expired or close to expiry?",
-  ],
-  changed_mind: [],
-  late_delivery: [
-    "How many days late was the delivery?",
-    "Did late delivery cause any issues?",
-  ],
-  other: [],
+// Configuration for notes field based on reason
+const NOTES_CONFIG: Record<
+  RefundReason,
+  {
+    required: boolean
+    label: string
+    placeholder: string
+    maxLength: number
+  }
+> = {
+  "Wrong product": {
+    required: true,
+    label: "What product did you receive instead? *",
+    placeholder: "Please describe what product you received...",
+    maxLength: 300,
+  },
+  "Quality issue": {
+    required: true,
+    label: "Please describe the quality issue *",
+    placeholder: "Describe the quality issues you experienced...",
+    maxLength: 300,
+  },
+  Damaged: {
+    required: true,
+    label: "Please describe the damage *",
+    placeholder: "Describe the damage to the product...",
+    maxLength: 300,
+  },
+  "Never received": {
+    required: false,
+    label: "Additional notes (optional)",
+    placeholder: "Any additional information that might help us...",
+    maxLength: 500,
+  },
+  Other: {
+    required: false,
+    label: "Additional notes (optional)",
+    placeholder: "Any additional information that might help us...",
+    maxLength: 500,
+  },
 }
+
+// Yes/No questions matching web app
+const QUESTIONS = [
+  {
+    key: "proof",
+    question: "Do you have a proof of purchase / receipt?",
+  },
+  {
+    key: "policy",
+    question: "Have you read the refund policy?",
+  },
+  {
+    key: "eligibility",
+    question: "Based on the refund policy, are you eligible for a refund?",
+  },
+]
 
 interface FormData {
   fName: string
@@ -67,7 +105,10 @@ interface FormData {
   additionalNotes: string
   refundAccountAgreement: boolean
   purchaseDate: Date
-  answers: Record<string, string>
+  // Yes/No questions
+  proof: "Yes" | "No" | null
+  policy: "Yes" | "No" | null
+  eligibility: "Yes" | "No" | null
 }
 
 interface FormErrors {
@@ -77,14 +118,16 @@ interface FormErrors {
   orderNumber?: string
   reason?: string
   otherReason?: string
+  additionalNotes?: string
   requestedAmount?: string
   refundAccountAgreement?: string
   purchaseDate?: string
-  answers?: Record<string, string>
+  questions?: string
 }
 
 export default function RefundRequestScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape } = useResponsive()
   const { user } = useAuthStore()
   const { orderNumber: prefillOrderNumber } = useLocalSearchParams<{
     orderNumber?: string
@@ -101,7 +144,9 @@ export default function RefundRequestScreen() {
     additionalNotes: "",
     refundAccountAgreement: false,
     purchaseDate: new Date(),
-    answers: {},
+    proof: null,
+    policy: null,
+    eligibility: null,
   })
 
   const [errors, setErrors] = useState<FormErrors>({})
@@ -109,6 +154,21 @@ export default function RefundRequestScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [isCheckingOrder, setIsCheckingOrder] = useState(false)
   const [existingRequest, setExistingRequest] = useState<boolean>(false)
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const inputPaddingH = isTablet ? 16 : 14
+  const inputPaddingV = isTablet ? 14 : 12
+  const inputFontSize = isTablet ? 15 : 14
+  const inputBorderRadius = isTablet ? 12 : 10
+  const radioOuterSize = isTablet ? 22 : 20
+  const radioInnerSize = isTablet ? 12 : 10
+  const checkboxSize = isTablet ? 24 : 22
+
+  // Get notes config for selected reason
+  const notesConfig = formData.reason ? NOTES_CONFIG[formData.reason] : null
 
   // Check if refund already exists for this order
   useEffect(() => {
@@ -123,9 +183,15 @@ export default function RefundRequestScreen() {
               ...prev,
               orderNumber: "A refund request already exists for this order",
             }))
+          } else {
+            setErrors((prev) => ({
+              ...prev,
+              orderNumber: undefined,
+            }))
           }
         } catch (error) {
-          // Ignore error
+          // Ignore error - order might not exist yet
+          setExistingRequest(false)
         } finally {
           setIsCheckingOrder(false)
         }
@@ -136,9 +202,6 @@ export default function RefundRequestScreen() {
     return () => clearTimeout(debounce)
   }, [formData.orderNumber])
 
-  // Get questions for selected reason
-  const questions = formData.reason ? QUESTIONS_BY_REASON[formData.reason] : []
-
   // Update field
   const updateField = <K extends keyof FormData>(
     field: K,
@@ -146,14 +209,6 @@ export default function RefundRequestScreen() {
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: undefined }))
-  }
-
-  // Update answer
-  const updateAnswer = (question: string, answer: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      answers: { ...prev.answers, [question]: answer },
-    }))
   }
 
   // Validate form
@@ -186,8 +241,13 @@ export default function RefundRequestScreen() {
       newErrors.reason = "Please select a reason"
     }
 
-    if (formData.reason === "other" && !formData.otherReason.trim()) {
+    if (formData.reason === "Other" && !formData.otherReason.trim()) {
       newErrors.otherReason = "Please specify the reason"
+    }
+
+    // Validate notes based on reason config
+    if (notesConfig?.required && !formData.additionalNotes.trim()) {
+      newErrors.additionalNotes = "This field is required"
     }
 
     if (!formData.requestedAmount.trim()) {
@@ -204,15 +264,9 @@ export default function RefundRequestScreen() {
         "You must agree to receive the refund to your account"
     }
 
-    // Validate answers
-    const answerErrors: Record<string, string> = {}
-    questions.forEach((q) => {
-      if (!formData.answers[q]?.trim()) {
-        answerErrors[q] = "This field is required"
-      }
-    })
-    if (Object.keys(answerErrors).length > 0) {
-      newErrors.answers = answerErrors
+    // Validate questions are answered
+    if (!formData.proof || !formData.policy || !formData.eligibility) {
+      newErrors.questions = "Please answer all the questions"
     }
 
     setErrors(newErrors)
@@ -234,11 +288,12 @@ export default function RefundRequestScreen() {
     setIsSubmitting(true)
 
     try {
-      // Build questions array
-      const questionsArray = questions.map((q) => ({
-        question: q,
-        answer: formData.answers[q] || "",
-      }))
+      // Build questions JSON matching web app format
+      const questionsJson = {
+        proof: formData.proof,
+        policy: formData.policy,
+        eligibility: formData.eligibility,
+      }
 
       const params: CreateRefundRequestParams = {
         fName: formData.fName.trim(),
@@ -247,12 +302,12 @@ export default function RefundRequestScreen() {
         order_number: formData.orderNumber.trim(),
         reason: formData.reason!,
         other_reason:
-          formData.reason === "other" ? formData.otherReason.trim() : undefined,
+          formData.reason === "Other" ? formData.otherReason.trim() : undefined,
         requested_amount: parseFloat(formData.requestedAmount),
         additional_notes: formData.additionalNotes.trim() || undefined,
         refund_account_agreement: formData.refundAccountAgreement,
-        questions: questionsArray.length > 0 ? questionsArray : undefined,
-        purchase_date: formData.purchaseDate.toISOString().split("T")[0],
+        questions: questionsJson,
+        purchase_date: formatDateForAPI(formData.purchaseDate),
       }
 
       await submitRefundRequest(params)
@@ -285,143 +340,456 @@ export default function RefundRequestScreen() {
     })
   }
 
+  const formatDateForAPI = (date: Date): string => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
   return (
-    <Wrapper style={styles.container} edges={[]}>
+    <Wrapper
+      style={[styles.container, { paddingTop: isTablet ? 24 : 20 }]}
+      edges={[]}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingHorizontal: config.horizontalPadding,
+              paddingTop: config.horizontalPadding,
+              paddingBottom: isTablet ? 60 : 40,
+              maxWidth: contentMaxWidth,
+              alignSelf: contentMaxWidth ? "center" : undefined,
+              width: contentMaxWidth ? "100%" : undefined,
+            },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           {/* Info Banner */}
-          <View style={styles.infoBanner}>
+          <View
+            style={[
+              styles.infoBanner,
+              {
+                padding: isTablet ? 16 : 14,
+                borderRadius: isTablet ? 14 : 12,
+                marginBottom: isTablet ? 24 : 20,
+                gap: isTablet ? 12 : 10,
+              },
+            ]}
+          >
             <Ionicons
               name="information-circle"
-              size={20}
+              size={isTablet ? 22 : 20}
               color={AppColors.primary[600]}
             />
-            <Text style={styles.infoText}>
+            <Text
+              style={[
+                styles.infoText,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  lineHeight: (config.bodyFontSize - 1) * 1.4,
+                },
+              ]}
+            >
               Please provide accurate information to help us process your refund
               request quickly.
             </Text>
           </View>
 
           {/* Personal Information Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Information</Text>
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              Personal Information
+            </Text>
 
             {/* Name Row */}
-            <View style={styles.row}>
+            <View style={[styles.row, { gap: isTablet ? 14 : 12 }]}>
               <View style={styles.halfField}>
-                <Text style={styles.label}>First Name *</Text>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  First Name *
+                </Text>
                 <TextInput
-                  style={[styles.input, errors.fName && styles.inputError]}
+                  style={[
+                    styles.input,
+                    styles.inputReadOnly,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                    },
+                    errors.fName && styles.inputError,
+                  ]}
                   placeholder="First name"
                   placeholderTextColor={AppColors.gray[400]}
                   value={formData.fName}
-                  onChangeText={(text) => updateField("fName", text)}
-                  editable={!isSubmitting}
+                  editable={false}
                 />
                 {errors.fName && (
-                  <Text style={styles.errorText}>{errors.fName}</Text>
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    {errors.fName}
+                  </Text>
                 )}
               </View>
 
               <View style={styles.halfField}>
-                <Text style={styles.label}>Last Name *</Text>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  Last Name *
+                </Text>
                 <TextInput
-                  style={[styles.input, errors.lName && styles.inputError]}
+                  style={[
+                    styles.input,
+                    styles.inputReadOnly,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                    },
+                    errors.lName && styles.inputError,
+                  ]}
                   placeholder="Last name"
                   placeholderTextColor={AppColors.gray[400]}
                   value={formData.lName}
-                  onChangeText={(text) => updateField("lName", text)}
-                  editable={!isSubmitting}
+                  editable={false}
                 />
                 {errors.lName && (
-                  <Text style={styles.errorText}>{errors.lName}</Text>
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    {errors.lName}
+                  </Text>
                 )}
               </View>
             </View>
 
             {/* Email */}
             <View style={styles.field}>
-              <Text style={styles.label}>Email Address *</Text>
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    fontSize: config.bodyFontSize - 1,
+                    marginBottom: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                Email Address *
+              </Text>
               <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
+                style={[
+                  styles.input,
+                  styles.inputReadOnly,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  errors.email && styles.inputError,
+                ]}
                 placeholder="your@email.com"
                 placeholderTextColor={AppColors.gray[400]}
                 value={formData.email}
-                onChangeText={(text) => updateField("email", text)}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!isSubmitting}
+                editable={false}
               />
               {errors.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
+                <Text
+                  style={[styles.errorText, { fontSize: config.smallFontSize }]}
+                >
+                  {errors.email}
+                </Text>
               )}
             </View>
           </View>
 
-          {/* Order Information Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Order Information</Text>
+          {/* Reason Section */}
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              Reason for Refund
+            </Text>
 
-            {/* Order Number */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Order Number *</Text>
-              <View style={styles.inputWithIcon}>
+            {/* Reason Selection */}
+            <View
+              style={[styles.reasonsContainer, { gap: isTablet ? 12 : 10 }]}
+            >
+              {REFUND_REASONS.map((reason) => (
+                <DebouncedTouchable
+                  key={reason.value}
+                  style={[
+                    styles.reasonOption,
+                    {
+                      paddingVertical: isTablet ? 14 : 12,
+                      paddingHorizontal: isTablet ? 16 : 14,
+                      borderRadius: isTablet ? 12 : 10,
+                      gap: isTablet ? 14 : 12,
+                    },
+                    formData.reason === reason.value &&
+                      styles.reasonOptionSelected,
+                  ]}
+                  onPress={() => {
+                    updateField("reason", reason.value)
+                    if (reason.value !== "Other") {
+                      updateField("otherReason", "")
+                    }
+                    // Clear notes when reason changes
+                    updateField("additionalNotes", "")
+                    setErrors((prev) => ({
+                      ...prev,
+                      additionalNotes: undefined,
+                    }))
+                  }}
+                  disabled={isSubmitting}
+                >
+                  <View
+                    style={[
+                      styles.radioOuter,
+                      {
+                        width: radioOuterSize,
+                        height: radioOuterSize,
+                        borderRadius: radioOuterSize / 2,
+                      },
+                      formData.reason === reason.value &&
+                        styles.radioOuterSelected,
+                    ]}
+                  >
+                    {formData.reason === reason.value && (
+                      <View
+                        style={[
+                          styles.radioInner,
+                          {
+                            width: radioInnerSize,
+                            height: radioInnerSize,
+                            borderRadius: radioInnerSize / 2,
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.reasonLabel,
+                      { fontSize: inputFontSize },
+                      formData.reason === reason.value &&
+                        styles.reasonLabelSelected,
+                    ]}
+                  >
+                    {reason.label}
+                  </Text>
+                </DebouncedTouchable>
+              ))}
+            </View>
+            {errors.reason && (
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    fontSize: config.smallFontSize,
+                    marginTop: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                {errors.reason}
+              </Text>
+            )}
+
+            {/* Other Reason - Only shown when "Other" is selected */}
+            {formData.reason === "Other" && (
+              <View style={[styles.field, { marginTop: isTablet ? 18 : 16 }]}>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  Please specify the reason *
+                </Text>
                 <TextInput
                   style={[
                     styles.input,
-                    styles.inputFlex,
-                    errors.orderNumber && styles.inputError,
+                    styles.textArea,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                      minHeight: isTablet ? 80 : 70,
+                    },
+                    errors.otherReason && styles.inputError,
                   ]}
-                  placeholder="e.g., ORD-12345"
+                  placeholder="Please specify the reason..."
                   placeholderTextColor={AppColors.gray[400]}
-                  value={formData.orderNumber}
-                  onChangeText={(text) => {
-                    updateField("orderNumber", text)
-                    setExistingRequest(false)
-                  }}
-                  autoCapitalize="characters"
+                  value={formData.otherReason}
+                  onChangeText={(text) => updateField("otherReason", text)}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                  maxLength={100}
                   editable={!isSubmitting}
                 />
-                {isCheckingOrder && (
-                  <ActivityIndicator
-                    size="small"
-                    color={AppColors.primary[500]}
-                    style={styles.inputIcon}
-                  />
+                <Text
+                  style={[styles.charCount, { fontSize: config.smallFontSize }]}
+                >
+                  {100 - formData.otherReason.length} characters remaining
+                </Text>
+                {errors.otherReason && (
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    {errors.otherReason}
+                  </Text>
                 )}
               </View>
-              {errors.orderNumber && (
-                <Text style={styles.errorText}>{errors.orderNumber}</Text>
-              )}
-            </View>
+            )}
 
-            {/* Purchase Date */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Purchase Date *</Text>
-              <DebouncedTouchable
-                style={[styles.input, styles.dateInput]}
-                onPress={() => setShowDatePicker(true)}
-                disabled={isSubmitting}
-              >
-                <Text style={styles.dateText}>
-                  {formatDate(formData.purchaseDate)}
+            {/* Notes/Description Field - Shown after reason is selected */}
+            {formData.reason && notesConfig && (
+              <View style={[styles.field, { marginTop: isTablet ? 18 : 16 }]}>
+                <Text
+                  style={[
+                    styles.label,
+                    {
+                      fontSize: config.bodyFontSize - 1,
+                      marginBottom: isTablet ? 8 : 6,
+                    },
+                  ]}
+                >
+                  {notesConfig.label}
                 </Text>
-                <Ionicons
-                  name="calendar-outline"
-                  size={20}
-                  color={AppColors.gray[400]}
+                <TextInput
+                  style={[
+                    styles.input,
+                    styles.textArea,
+                    {
+                      paddingHorizontal: inputPaddingH,
+                      paddingVertical: inputPaddingV,
+                      borderRadius: inputBorderRadius,
+                      fontSize: inputFontSize,
+                      minHeight: isTablet ? 110 : 100,
+                    },
+                    errors.additionalNotes && styles.inputError,
+                  ]}
+                  placeholder={notesConfig.placeholder}
+                  placeholderTextColor={AppColors.gray[400]}
+                  value={formData.additionalNotes}
+                  onChangeText={(text) => updateField("additionalNotes", text)}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+                  maxLength={notesConfig.maxLength}
+                  editable={!isSubmitting}
                 />
-              </DebouncedTouchable>
-            </View>
+                <Text
+                  style={[styles.charCount, { fontSize: config.smallFontSize }]}
+                >
+                  {notesConfig.maxLength - formData.additionalNotes.length}{" "}
+                  characters remaining
+                </Text>
+                {errors.additionalNotes && (
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { fontSize: config.smallFontSize },
+                    ]}
+                  >
+                    {errors.additionalNotes}
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
 
+          {/* Purchase Date Section */}
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              When did you buy the product?
+            </Text>
+
+            <DebouncedTouchable
+              style={[
+                styles.input,
+                styles.dateInput,
+                {
+                  paddingHorizontal: inputPaddingH,
+                  paddingVertical: inputPaddingV,
+                  borderRadius: inputBorderRadius,
+                },
+              ]}
+              onPress={() => setShowDatePicker(true)}
+              disabled={isSubmitting}
+            >
+              <Text style={[styles.dateText, { fontSize: inputFontSize }]}>
+                {formatDate(formData.purchaseDate)}
+              </Text>
+              <Ionicons
+                name="calendar-outline"
+                size={isTablet ? 22 : 20}
+                color={AppColors.gray[400]}
+              />
+            </DebouncedTouchable>
+
+            {/* Date Picker Modal - iOS */}
             {showDatePicker && Platform.OS === "ios" && (
               <Modal
                 transparent
@@ -435,20 +803,60 @@ export default function RefundRequestScreen() {
                     activeOpacity={1}
                     onPress={() => setShowDatePicker(false)}
                   />
-                  <View style={styles.datePickerContainer}>
-                    <View style={styles.datePickerHeader}>
+                  <View
+                    style={[
+                      styles.datePickerContainer,
+                      {
+                        maxWidth: isTablet ? 500 : undefined,
+                        alignSelf: isTablet ? "center" : undefined,
+                        width: isTablet ? "90%" : undefined,
+                        borderTopLeftRadius: isTablet ? 24 : 20,
+                        borderTopRightRadius: isTablet ? 24 : 20,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.datePickerHeader,
+                        {
+                          paddingHorizontal: isTablet ? 18 : 16,
+                          paddingVertical: isTablet ? 16 : 14,
+                        },
+                      ]}
+                    >
                       <DebouncedTouchable
                         onPress={() => setShowDatePicker(false)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
-                        <Text style={styles.datePickerCancel}>Cancel</Text>
+                        <Text
+                          style={[
+                            styles.datePickerCancel,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
+                          Cancel
+                        </Text>
                       </DebouncedTouchable>
-                      <Text style={styles.datePickerTitle}>Purchase Date</Text>
+                      <Text
+                        style={[
+                          styles.datePickerTitle,
+                          { fontSize: isTablet ? 17 : 16 },
+                        ]}
+                      >
+                        Purchase Date
+                      </Text>
                       <DebouncedTouchable
                         onPress={() => setShowDatePicker(false)}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
-                        <Text style={styles.datePickerDone}>Done</Text>
+                        <Text
+                          style={[
+                            styles.datePickerDone,
+                            { fontSize: config.bodyFontSize },
+                          ]}
+                        >
+                          Done
+                        </Text>
                       </DebouncedTouchable>
                     </View>
                     <View style={styles.datePickerWrapper}>
@@ -473,6 +881,7 @@ export default function RefundRequestScreen() {
               </Modal>
             )}
 
+            {/* Date Picker - Android */}
             {showDatePicker && Platform.OS === "android" && (
               <DateTimePicker
                 value={formData.purchaseDate}
@@ -487,164 +896,275 @@ export default function RefundRequestScreen() {
                 }}
               />
             )}
+          </View>
 
-            {/* Requested Amount */}
-            <View style={styles.field}>
-              <Text style={styles.label}>Requested Refund Amount *</Text>
-              <View style={styles.amountInput}>
-                <Text style={styles.currencySymbol}>$</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.inputFlex,
-                    styles.amountField,
-                    errors.requestedAmount && styles.inputError,
-                    { paddingLeft: 10 },
-                  ]}
-                  placeholder="0.00"
-                  placeholderTextColor={AppColors.gray[400]}
-                  value={formData.requestedAmount}
-                  onChangeText={(text) => updateField("requestedAmount", text)}
-                  keyboardType="decimal-pad"
-                  editable={!isSubmitting}
+          {/* Order Number Section */}
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              Order Number
+            </Text>
+
+            <View style={styles.inputWithIcon}>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputFlex,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  errors.orderNumber && styles.inputError,
+                ]}
+                placeholder="Enter your order number"
+                placeholderTextColor={AppColors.gray[400]}
+                value={formData.orderNumber}
+                onChangeText={(text) => {
+                  updateField("orderNumber", text)
+                  setExistingRequest(false)
+                }}
+                autoCapitalize="characters"
+                editable={!isSubmitting}
+              />
+              {isCheckingOrder && (
+                <ActivityIndicator
+                  size="small"
+                  color={AppColors.primary[500]}
+                  style={[styles.inputIcon, { right: isTablet ? 16 : 14 }]}
                 />
-              </View>
-              {errors.requestedAmount && (
-                <Text style={styles.errorText}>{errors.requestedAmount}</Text>
               )}
             </View>
+            {errors.orderNumber && (
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.orderNumber}
+              </Text>
+            )}
+            <Text
+              style={[
+                styles.helperText,
+                {
+                  fontSize: config.smallFontSize,
+                  marginTop: isTablet ? 8 : 6,
+                },
+              ]}
+            >
+              You can find your order number in your order history page under
+              the specific order.
+            </Text>
           </View>
 
-          {/* Reason Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reason for Refund</Text>
+          {/* Questions Section - Yes/No Table */}
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              Please answer the following
+            </Text>
 
-            {/* Reason Selection */}
-            <View style={styles.reasonsContainer}>
-              {REFUND_REASONS.map((reason) => (
-                <DebouncedTouchable
-                  key={reason.value}
-                  style={[
-                    styles.reasonOption,
-                    formData.reason === reason.value &&
-                      styles.reasonOptionSelected,
-                  ]}
-                  onPress={() => {
-                    updateField("reason", reason.value)
-                    updateField("answers", {})
-                  }}
-                  disabled={isSubmitting}
+            {/* Table Header */}
+            <View
+              style={[styles.tableHeader, { borderRadius: isTablet ? 10 : 8 }]}
+            >
+              <View style={styles.tableQuestionCell}>
+                <Text
+                  style={[styles.tableHeaderText, { fontSize: inputFontSize }]}
                 >
-                  <View
-                    style={[
-                      styles.radioOuter,
-                      formData.reason === reason.value &&
-                        styles.radioOuterSelected,
-                    ]}
-                  >
-                    {formData.reason === reason.value && (
-                      <View style={styles.radioInner} />
-                    )}
-                  </View>
+                  Question
+                </Text>
+              </View>
+              <View style={styles.tableAnswerCell}>
+                <Text
+                  style={[styles.tableHeaderText, { fontSize: inputFontSize }]}
+                >
+                  Yes
+                </Text>
+              </View>
+              <View style={styles.tableAnswerCell}>
+                <Text
+                  style={[styles.tableHeaderText, { fontSize: inputFontSize }]}
+                >
+                  No
+                </Text>
+              </View>
+            </View>
+
+            {/* Table Rows */}
+            {QUESTIONS.map((q, index) => (
+              <View
+                key={q.key}
+                style={[
+                  styles.tableRow,
+                  index === QUESTIONS.length - 1 && styles.tableRowLast,
+                ]}
+              >
+                <View style={styles.tableQuestionCell}>
                   <Text
                     style={[
-                      styles.reasonLabel,
-                      formData.reason === reason.value &&
-                        styles.reasonLabelSelected,
+                      styles.tableQuestionText,
+                      { fontSize: inputFontSize - 1 },
                     ]}
                   >
-                    {reason.label}
+                    {q.question}
                   </Text>
-                </DebouncedTouchable>
-              ))}
-            </View>
-            {errors.reason && (
-              <Text style={styles.errorText}>{errors.reason}</Text>
-            )}
-
-            {/* Other Reason */}
-            {formData.reason === "other" && (
-              <View style={styles.field}>
-                <Text style={styles.label}>Please specify *</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.textArea,
-                    errors.otherReason && styles.inputError,
-                  ]}
-                  placeholder="Describe your reason..."
-                  placeholderTextColor={AppColors.gray[400]}
-                  value={formData.otherReason}
-                  onChangeText={(text) => updateField("otherReason", text)}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  editable={!isSubmitting}
-                />
-                {errors.otherReason && (
-                  <Text style={styles.errorText}>{errors.otherReason}</Text>
-                )}
-              </View>
-            )}
-
-            {/* Dynamic Questions */}
-            {questions.length > 0 && (
-              <View style={styles.questionsContainer}>
-                <Text style={styles.questionsTitle}>
-                  Please answer the following:
-                </Text>
-                {questions.map((question, index) => (
-                  <View key={index} style={styles.field}>
-                    <Text style={styles.label}>{question} *</Text>
-                    <TextInput
-                      style={[
-                        styles.input,
-                        styles.textArea,
-                        errors.answers?.[question] && styles.inputError,
-                      ]}
-                      placeholder="Your answer..."
-                      placeholderTextColor={AppColors.gray[400]}
-                      value={formData.answers[question] || ""}
-                      onChangeText={(text) => updateAnswer(question, text)}
-                      multiline
-                      numberOfLines={2}
-                      textAlignVertical="top"
-                      editable={!isSubmitting}
-                    />
-                    {errors.answers?.[question] && (
-                      <Text style={styles.errorText}>
-                        {errors.answers[question]}
-                      </Text>
+                </View>
+                <View style={styles.tableAnswerCell}>
+                  <DebouncedTouchable
+                    style={[
+                      styles.radioButton,
+                      {
+                        width: radioOuterSize,
+                        height: radioOuterSize,
+                        borderRadius: radioOuterSize / 2,
+                      },
+                      formData[q.key as keyof FormData] === "Yes" &&
+                        styles.radioButtonSelected,
+                    ]}
+                    onPress={() =>
+                      updateField(q.key as keyof FormData, "Yes" as any)
+                    }
+                    disabled={isSubmitting}
+                  >
+                    {formData[q.key as keyof FormData] === "Yes" && (
+                      <View
+                        style={[
+                          styles.radioInner,
+                          {
+                            width: radioInnerSize,
+                            height: radioInnerSize,
+                            borderRadius: radioInnerSize / 2,
+                          },
+                        ]}
+                      />
                     )}
-                  </View>
-                ))}
+                  </DebouncedTouchable>
+                </View>
+                <View style={styles.tableAnswerCell}>
+                  <DebouncedTouchable
+                    style={[
+                      styles.radioButton,
+                      {
+                        width: radioOuterSize,
+                        height: radioOuterSize,
+                        borderRadius: radioOuterSize / 2,
+                      },
+                      formData[q.key as keyof FormData] === "No" &&
+                        styles.radioButtonSelected,
+                    ]}
+                    onPress={() =>
+                      updateField(q.key as keyof FormData, "No" as any)
+                    }
+                    disabled={isSubmitting}
+                  >
+                    {formData[q.key as keyof FormData] === "No" && (
+                      <View
+                        style={[
+                          styles.radioInner,
+                          {
+                            width: radioInnerSize,
+                            height: radioInnerSize,
+                            borderRadius: radioInnerSize / 2,
+                          },
+                        ]}
+                      />
+                    )}
+                  </DebouncedTouchable>
+                </View>
               </View>
+            ))}
+
+            {errors.questions && (
+              <Text
+                style={[
+                  styles.errorText,
+                  {
+                    fontSize: config.smallFontSize,
+                    marginTop: isTablet ? 8 : 6,
+                  },
+                ]}
+              >
+                {errors.questions}
+              </Text>
             )}
           </View>
 
-          {/* Additional Notes */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Information</Text>
+          {/* Requested Amount Section */}
+          <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+            <Text
+              style={[
+                styles.sectionTitle,
+                {
+                  fontSize: isTablet ? 17 : 16,
+                  marginBottom: isTablet ? 16 : 14,
+                },
+              ]}
+            >
+              Requested Amount
+            </Text>
 
-            <View style={styles.field}>
-              <Text style={styles.label}>Additional Notes (Optional)</Text>
+            <View style={styles.amountInput}>
+              <Text
+                style={[
+                  styles.currencySymbol,
+                  {
+                    fontSize: isTablet ? 17 : 16,
+                    marginRight: isTablet ? 10 : 8,
+                  },
+                ]}
+              >
+                $
+              </Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Any other details that might help us process your request..."
+                style={[
+                  styles.input,
+                  styles.inputFlex,
+                  {
+                    paddingHorizontal: inputPaddingH,
+                    paddingVertical: inputPaddingV,
+                    borderRadius: inputBorderRadius,
+                    fontSize: inputFontSize,
+                  },
+                  errors.requestedAmount && styles.inputError,
+                ]}
+                placeholder="0.00"
                 placeholderTextColor={AppColors.gray[400]}
-                value={formData.additionalNotes}
-                onChangeText={(text) => updateField("additionalNotes", text)}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
+                value={formData.requestedAmount}
+                onChangeText={(text) => updateField("requestedAmount", text)}
+                keyboardType="decimal-pad"
                 editable={!isSubmitting}
               />
             </View>
+            {errors.requestedAmount && (
+              <Text
+                style={[styles.errorText, { fontSize: config.smallFontSize }]}
+              >
+                {errors.requestedAmount}
+              </Text>
+            )}
           </View>
 
           {/* Agreement */}
           <DebouncedTouchable
-            style={styles.agreementContainer}
+            style={[
+              styles.agreementContainer,
+              { gap: isTablet ? 14 : 12, marginBottom: isTablet ? 10 : 8 },
+            ]}
             onPress={() =>
               updateField(
                 "refundAccountAgreement",
@@ -657,28 +1177,58 @@ export default function RefundRequestScreen() {
             <View
               style={[
                 styles.checkbox,
+                {
+                  width: checkboxSize,
+                  height: checkboxSize,
+                  borderRadius: isTablet ? 7 : 6,
+                  marginTop: isTablet ? 3 : 2,
+                },
                 formData.refundAccountAgreement && styles.checkboxChecked,
                 errors.refundAccountAgreement && styles.checkboxError,
               ]}
             >
               {formData.refundAccountAgreement && (
-                <Ionicons name="checkmark" size={16} color="#fff" />
+                <Ionicons
+                  name="checkmark"
+                  size={isTablet ? 18 : 16}
+                  color="#fff"
+                />
               )}
             </View>
-            <Text style={styles.agreementText}>
-              I agree to receive the refund to my original payment method.*
+            <Text
+              style={[
+                styles.agreementText,
+                {
+                  fontSize: config.bodyFontSize - 1,
+                  lineHeight: (config.bodyFontSize - 1) * 1.4,
+                },
+              ]}
+            >
+              I agree the refunded money to be sent back to the account that I
+              made the initial payment from. *
             </Text>
           </DebouncedTouchable>
           {errors.refundAccountAgreement && (
-            <Text style={[styles.errorText, styles.agreementError]}>
+            <Text
+              style={[
+                styles.errorText,
+                styles.agreementError,
+                {
+                  fontSize: config.smallFontSize,
+                  marginLeft: checkboxSize + (isTablet ? 14 : 12),
+                },
+              ]}
+            >
               {errors.refundAccountAgreement}
             </Text>
           )}
 
           {/* Submit Button */}
-          <View style={styles.buttonContainer}>
+          <View
+            style={[styles.buttonContainer, { marginTop: isTablet ? 28 : 24 }]}
+          >
             <Button
-              title={isSubmitting ? "Submitting..." : "Submit Refund Request"}
+              title={isSubmitting ? "Submitting..." : "Submit"}
               onPress={handleSubmit}
               disabled={isSubmitting}
               loading={isSubmitting}
@@ -687,13 +1237,32 @@ export default function RefundRequestScreen() {
           </View>
 
           {/* Help Text */}
-          <View style={styles.helpContainer}>
+          <View
+            style={[
+              styles.helpContainer,
+              {
+                marginTop: isTablet ? 24 : 20,
+                paddingHorizontal: isTablet ? 14 : 12,
+                paddingVertical: isTablet ? 16 : 14,
+                borderRadius: isTablet ? 12 : 10,
+                gap: isTablet ? 12 : 10,
+              },
+            ]}
+          >
             <Ionicons
               name="time-outline"
-              size={18}
+              size={isTablet ? 20 : 18}
               color={AppColors.text.tertiary}
             />
-            <Text style={styles.helpText}>
+            <Text
+              style={[
+                styles.helpText,
+                {
+                  fontSize: config.smallFontSize,
+                  lineHeight: config.smallFontSize * 1.5,
+                },
+              ]}
+            >
               Refund requests are typically reviewed within 2-3 business days.
               You'll receive an email notification once your request has been
               processed.
@@ -706,71 +1275,56 @@ export default function RefundRequestScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    paddingTop: 20,
-  },
+  container: {},
   keyboardView: {
     flex: 1,
   },
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 40,
-  },
+  scrollContent: {},
+  // Info Banner
   infoBanner: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
     backgroundColor: AppColors.primary[50],
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 20,
   },
   infoText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.primary[700],
-    lineHeight: 18,
   },
-  section: {
-    marginBottom: 24,
-  },
+  // Section
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 14,
   },
+  // Row
   row: {
     flexDirection: "row",
-    gap: 12,
+    marginBottom: 16,
   },
   halfField: {
     flex: 1,
   },
-  field: {
-    marginBottom: 16,
-  },
+  field: {},
+  // Label
   label: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 6,
   },
+  // Input
   input: {
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
-    paddingHorizontal: 14,
-    paddingVertical: 12,
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.primary,
+  },
+  inputReadOnly: {
+    backgroundColor: AppColors.gray[100],
+    color: AppColors.gray[500],
   },
   inputFlex: {
     flex: 1,
@@ -784,12 +1338,22 @@ const styles = StyleSheet.create({
   },
   inputIcon: {
     position: "absolute",
-    right: 14,
   },
   textArea: {
-    minHeight: 80,
     paddingTop: 12,
   },
+  // Helper text
+  helperText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.gray[400],
+    fontStyle: "italic",
+  },
+  charCount: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.gray[500],
+    marginTop: 4,
+  },
+  // Date Input
   dateInput: {
     flexDirection: "row",
     alignItems: "center",
@@ -797,33 +1361,23 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
+  // Amount Input
   amountInput: {
     flexDirection: "row",
     alignItems: "center",
   },
   currencySymbol: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginRight: 8,
   },
-  amountField: {
-    paddingLeft: 0,
-  },
-  reasonsContainer: {
-    gap: 10,
-  },
+  // Reasons
+  reasonsContainer: {},
   reasonOption: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
     backgroundColor: AppColors.background.secondary,
-    borderRadius: 10,
     borderWidth: 1,
     borderColor: AppColors.gray[200],
   },
@@ -832,9 +1386,6 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primary[500],
   },
   radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
     borderWidth: 2,
     borderColor: AppColors.gray[300],
     alignItems: "center",
@@ -844,47 +1395,79 @@ const styles = StyleSheet.create({
     borderColor: AppColors.primary[500],
   },
   radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
     backgroundColor: AppColors.primary[500],
   },
   reasonLabel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.primary,
   },
   reasonLabelSelected: {
     fontFamily: "Poppins_500Medium",
     color: AppColors.primary[700],
   },
-  questionsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: AppColors.gray[200],
-  },
-  questionsTitle: {
-    fontFamily: "Poppins_500Medium",
-    fontSize: 14,
-    color: AppColors.text.secondary,
-    marginBottom: 12,
-  },
-  agreementContainer: {
+  // Table styles
+  tableHeader: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 8,
+    backgroundColor: AppColors.gray[200],
+    overflow: "hidden",
   },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+  tableHeaderText: {
+    fontFamily: "Poppins_600SemiBold",
+    color: AppColors.text.primary,
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: AppColors.gray[200],
+    backgroundColor: AppColors.background.primary,
+  },
+  tableRowLast: {
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    overflow: "hidden",
+  },
+  tableQuestionCell: {
+    flex: 3,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: AppColors.gray[100],
+    justifyContent: "center",
+  },
+  tableQuestionText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.text.primary,
+  },
+  tableAnswerCell: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderLeftWidth: 1,
+    borderColor: AppColors.gray[200],
+  },
+  radioButton: {
     borderWidth: 2,
     borderColor: AppColors.gray[300],
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+  },
+  radioButtonSelected: {
+    borderColor: AppColors.primary[500],
+  },
+  // Agreement
+  agreementContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  checkbox: {
+    borderWidth: 2,
+    borderColor: AppColors.gray[300],
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
     backgroundColor: AppColors.primary[500],
@@ -896,42 +1479,31 @@ const styles = StyleSheet.create({
   agreementText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    lineHeight: 18,
   },
   agreementError: {
-    marginLeft: 34,
     marginBottom: 16,
   },
+  // Error
   errorText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.error,
     marginTop: 4,
   },
-  buttonContainer: {
-    marginTop: 24,
-  },
+  // Button
+  buttonContainer: {},
+  // Help
   helpContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 10,
-    marginTop: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 14,
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
   },
   helpText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
-    lineHeight: 18,
   },
-
-  // datepicker
+  // Date Picker
   datePickerOverlay: {
     flex: 1,
     justifyContent: "flex-end",
@@ -942,34 +1514,27 @@ const styles = StyleSheet.create({
   },
   datePickerContainer: {
     backgroundColor: "#ffffff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
     overflow: "hidden",
   },
   datePickerHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: AppColors.gray[200],
     backgroundColor: "#ffffff",
   },
   datePickerTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
   },
   datePickerCancel: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 15,
     color: AppColors.text.secondary,
     paddingVertical: 4,
   },
   datePickerDone: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 15,
     color: AppColors.primary[500],
     paddingVertical: 4,
   },

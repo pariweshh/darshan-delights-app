@@ -1,44 +1,59 @@
-import { Ionicons } from "@expo/vector-icons"
-import { useRouter } from "expo-router"
-import React from "react"
-import { FlatList, StyleSheet, Text, View } from "react-native"
-
+import { getUserOrders } from "@/src/api/orders"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
-import { useRecentlyViewedStore } from "@/src/store/recentlyViewedStore"
-import { RecentlyViewedProduct } from "@/src/types/recentlyViewed"
+import { useAuthStore } from "@/src/store/authStore"
+import { CartItem, Order } from "@/src/types"
+import { Ionicons } from "@expo/vector-icons"
 import { Image } from "expo-image"
+import { useRouter } from "expo-router"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { FlatList, StyleSheet, Text, View } from "react-native"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
-
-interface RecentlyViewedProps {
-  excludeProductId?: number
-  maxDisplay?: number
-  showHeader?: boolean
-}
-
-const MAX_DISPLAY = 10
-
-const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
-  excludeProductId,
-  maxDisplay = MAX_DISPLAY,
-  showHeader = true,
-}) => {
+const PurchasedBeforeList = () => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { products, clearAll } = useRecentlyViewedStore()
+  const { user, token } = useAuthStore()
+  const [loading, setLoading] = useState(false)
+  const [orders, setOrders] = useState<Order[]>([])
 
-  const displayProducts = products
-    .filter((p) => p.id !== excludeProductId)
-    .slice(0, maxDisplay)
+  // Extract unique products from all orders
+  const products = useMemo(() => {
+    if (!orders.length) return []
 
-  if (products.length === 0) {
-    return null
-  }
+    const allProducts = orders.flatMap((order) => order?.orders?.products || [])
 
-  const handleProductPress = (product: RecentlyViewedProduct) => {
+    // Remove duplicates based on product_id
+    const uniqueProducts = allProducts.filter(
+      (product, index, self) =>
+        index === self.findIndex((p) => p.product_id === product.product_id)
+    )
+
+    return uniqueProducts
+  }, [orders])
+
+  const fetchOrders = useCallback(async () => {
+    if (!user?.id || !token) return
+
+    setLoading(true)
+    try {
+      const data = await getUserOrders(token)
+      setOrders(data?.orders || [])
+    } catch (error) {
+      console.error("Error fetching orders:", error)
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id, token])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
+
+  const handleProductPress = (item: CartItem) => {
     router.push({
       pathname: "/product/[id]",
-      params: { id: product.id.toString() },
+      params: { id: item.product_id.toString() },
     })
   }
 
@@ -49,10 +64,8 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
   const cardWidth = isTablet ? 160 : 140
   const imageHeight = isTablet ? 140 : 120
 
-  const renderProduct = ({ item }: { item: RecentlyViewedProduct }) => {
-    const hasDiscount = item.sale_price && item.sale_price < item.rrp
-
-    return (
+  const renderProduct = useCallback(
+    ({ item }: { item: CartItem }) => (
       <DebouncedTouchable
         style={[
           styles.productCard,
@@ -72,18 +85,6 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
             style={styles.productImage}
             contentFit="contain"
           />
-          {hasDiscount && (
-            <View style={styles.saleBadge}>
-              <Text
-                style={[
-                  styles.saleBadgeText,
-                  { fontSize: config.smallFontSize - 2 },
-                ]}
-              >
-                Sale
-              </Text>
-            </View>
-          )}
         </View>
         <View style={[styles.productInfo, { padding: isTablet ? 12 : 10 }]}>
           <Text
@@ -92,43 +93,21 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
           >
             {item.name}
           </Text>
-          <View style={styles.priceContainer}>
-            {hasDiscount ? (
-              <>
-                <Text
-                  style={[styles.salePrice, { fontSize: config.bodyFontSize }]}
-                >
-                  {formatPrice(item.sale_price!)}
-                </Text>
-                <Text
-                  style={[
-                    styles.originalPrice,
-                    { fontSize: config.smallFontSize - 1 },
-                  ]}
-                >
-                  {formatPrice(item.rrp)}
-                </Text>
-              </>
-            ) : (
-              <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
-                {formatPrice(item.rrp)}
-              </Text>
-            )}
-          </View>
+          {/* <View style={styles.priceContainer}>
+            <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
+              {formatPrice(item.unit_price)}
+            </Text>
+          </View> */}
         </View>
       </DebouncedTouchable>
-    )
-  }
+    ),
+    [router]
+  )
 
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View
-        style={[
-          styles.header,
-          { paddingHorizontal: excludeProductId ? 16 : 0 },
-        ]}
-      >
+      <View style={[styles.header]}>
         <View style={styles.headerLeft}>
           <Ionicons
             name="time-outline"
@@ -138,43 +117,30 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
           <Text
             style={[styles.headerTitle, { fontSize: config.titleFontSize }]}
           >
-            Recently Viewed
+            Purchased Before
           </Text>
         </View>
-        {!excludeProductId && (
-          <DebouncedTouchable onPress={clearAll} activeOpacity={0.7}>
-            <Text
-              style={[styles.seeAllText, { fontSize: config.subtitleFontSize }]}
-            >
-              Clear All
-            </Text>
-          </DebouncedTouchable>
-        )}
       </View>
 
-      {/* Products List */}
+      {/* Product list */}
       <FlatList
-        data={displayProducts}
-        keyExtractor={(item) => item.id.toString()}
+        data={products}
+        keyExtractor={(item) => item.product_id.toString()}
         renderItem={renderProduct}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: excludeProductId ? 16 : 0,
-          paddingBottom: 10,
-        }}
+        contentContainerStyle={{ paddingBottom: 10 }}
         ItemSeparatorComponent={() => <View style={{ width: config.gap }} />}
       />
     </View>
   )
 }
-
-export default RecentlyViewed
-
+export default PurchasedBeforeList
 const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
   },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -191,10 +157,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_600SemiBold",
     color: AppColors.text.primary,
   },
-  seeAllText: {
-    fontFamily: "Poppins_500Medium",
-    color: AppColors.primary[600],
-  },
   productCard: {
     backgroundColor: AppColors.background.primary,
     overflow: "hidden",
@@ -203,6 +165,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: AppColors.gray[100],
   },
   imageContainer: {
     width: "100%",

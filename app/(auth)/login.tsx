@@ -236,16 +236,12 @@ export default function LoginScreen() {
                   Don't have an account?{" "}
                 </Text>
                 <Link href="/(auth)/signup" asChild>
-                  <DebouncedTouchable>
-                    <Text
-                      style={[
-                        styles.linkHighlight,
-                        { fontSize: config.bodyFontSize },
-                      ]}
-                    >
-                      Sign Up
-                    </Text>
-                  </DebouncedTouchable>
+                  <Text
+                    style={[{ fontSize: config.bodyFontSize }]}
+                    className="text-orange-600 font-bold"
+                  >
+                    Sign Up
+                  </Text>
                 </Link>
               </View>
 

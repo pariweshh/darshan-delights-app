@@ -1,18 +1,11 @@
-// src/components/home/banners/BrandPromoBanner.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
-import {
-  Image,
-  ImageSourcePropType,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { ImageSourcePropType, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import { Image } from "expo-image"
 import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface BrandPromoBannerProps {
@@ -217,7 +210,7 @@ export default function BrandPromoBanner({
               <Image
                 source={localImage || { uri: imageUrl }}
                 style={styles.productImage}
-                resizeMode="contain"
+                contentFit="contain"
               />
             )}
           </View>

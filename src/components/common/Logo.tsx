@@ -1,5 +1,6 @@
+import { Image } from "expo-image"
 import { usePathname, useRouter } from "expo-router"
-import { Image, StyleSheet } from "react-native"
+import { StyleSheet } from "react-native"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface LogoProps {
@@ -19,7 +20,7 @@ const Logo: React.FC<LogoProps> = ({ size = 60 }) => {
       <Image
         source={require("@/assets/images/logo.png")}
         style={{ width: size, height: size }}
-        resizeMode="contain"
+        contentFit="contain"
       />
     </DebouncedTouchable>
   )

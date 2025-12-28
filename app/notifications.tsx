@@ -1,6 +1,6 @@
 import * as Notifications from "expo-notifications"
 import { Stack, useRouter } from "expo-router"
-import React, { useCallback, useEffect, useState } from "react"
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -29,27 +29,104 @@ import { Notification } from "@/src/types/notifications"
 
 const PAGE_SIZE = 20
 
+interface NotificationItemProps {
+  item: Notification
+  onPress: (notification: Notification) => void
+  onDelete: (notification: Notification) => void
+}
+
+const NotificationItem = memo(
+  ({ item, onPress, onDelete }: NotificationItemProps) => {
+    const handlePress = useCallback(() => onPress(item), [onPress, item])
+    const handleDelete = useCallback(() => onDelete(item), [onDelete, item])
+
+    return (
+      <NotificationCard
+        notification={item}
+        onPress={handlePress}
+        onDelete={handleDelete}
+      />
+    )
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.isRead === nextProps.item.isRead
+    )
+  }
+)
+
+// ==========================================
+// Memoized Header Component
+// ==========================================
+
+interface ListHeaderProps {
+  unreadCount: number
+  hasNotifications: boolean
+  onMarkAllRead: () => void
+}
+
+const ListHeader = memo(
+  ({ unreadCount, hasNotifications, onMarkAllRead }: ListHeaderProps) => {
+    if (!hasNotifications) return null
+
+    return (
+      <View style={styles.listHeader}>
+        <Text style={styles.listHeaderText}>
+          {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
+        </Text>
+        {unreadCount > 0 && (
+          <DebouncedTouchable onPress={onMarkAllRead} activeOpacity={0.7}>
+            <Text style={styles.markAllText}>Mark all as read</Text>
+          </DebouncedTouchable>
+        )}
+      </View>
+    )
+  }
+)
+
+// ==========================================
+// Memoized Footer Component
+// ==========================================
+
+const ListFooter = memo(({ isLoadingMore }: { isLoadingMore: boolean }) => {
+  if (!isLoadingMore) return null
+
+  return (
+    <View style={styles.loadingFooter}>
+      <ActivityIndicator size="small" color={AppColors.primary[500]} />
+    </View>
+  )
+})
+
 export default function NotificationsScreen() {
   const router = useRouter()
-  const { token } = useAuthStore()
-  const {
-    notifications,
-    unreadCount,
-    isLoading,
-    hasMore,
-    page,
-    setNotifications,
-    addNotifications,
-    setUnreadCount,
-    decrementUnreadCount,
-    markAsRead,
-    markAllAsRead,
-    removeNotification,
-    setLoading,
-    setHasMore,
-    setPage,
-    incrementPage,
-  } = useNotificationStore()
+  const token = useAuthStore((state) => state.token)
+
+  const notifications = useNotificationStore((state) => state.notifications)
+  const unreadCount = useNotificationStore((state) => state.unreadCount)
+  const isLoading = useNotificationStore((state) => state.isLoading)
+  const hasMore = useNotificationStore((state) => state.hasMore)
+  const page = useNotificationStore((state) => state.page)
+  const setNotifications = useNotificationStore(
+    (state) => state.setNotifications
+  )
+  const addNotifications = useNotificationStore(
+    (state) => state.addNotifications
+  )
+  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount)
+  const decrementUnreadCount = useNotificationStore(
+    (state) => state.decrementUnreadCount
+  )
+  const markAsRead = useNotificationStore((state) => state.markAsRead)
+  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
+  const removeNotification = useNotificationStore(
+    (state) => state.removeNotification
+  )
+  const setLoading = useNotificationStore((state) => state.setLoading)
+  const setHasMore = useNotificationStore((state) => state.setHasMore)
+  const setPage = useNotificationStore((state) => state.setPage)
+  const incrementPage = useNotificationStore((state) => state.incrementPage)
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -95,12 +172,17 @@ export default function NotificationsScreen() {
         setIsLoadingMore(false)
       }
     },
-    [token]
+    [
+      token,
+      setLoading,
+      setNotifications,
+      setPage,
+      addNotifications,
+      setUnreadCount,
+      setHasMore,
+    ]
   )
 
-  /**
-   * Initial fetch
-   */
   useEffect(() => {
     fetchNotifications(1)
   }, [])
@@ -112,94 +194,93 @@ export default function NotificationsScreen() {
   /**
    * Handle refresh
    */
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     fetchNotifications(1, true)
-  }
+  }, [fetchNotifications])
 
-  /**
-   * Handle load more
-   */
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !isLoading) {
       const nextPage = page + 1
       incrementPage()
       fetchNotifications(nextPage)
     }
-  }
+  }, [
+    isLoadingMore,
+    hasMore,
+    isLoading,
+    page,
+    incrementPage,
+    fetchNotifications,
+  ])
 
-  /**
-   * Handle notification press
-   */
-  const handleNotificationPress = async (notification: Notification) => {
-    // Mark as read if unread
-    if (!notification.isRead && token) {
-      try {
-        await markNotificationAsRead(notification.id, token)
-        await Notifications.setBadgeCountAsync(unreadCount - 1)
-        markAsRead(notification.id)
-        decrementUnreadCount()
-      } catch (error) {
-        console.error("Error marking notification as read:", error)
+  const handleNotificationPress = useCallback(
+    async (notification: Notification) => {
+      if (!notification.isRead && token) {
+        try {
+          await markNotificationAsRead(notification.id, token)
+          await Notifications.setBadgeCountAsync(unreadCount - 1)
+          markAsRead(notification.id)
+          decrementUnreadCount()
+        } catch (error) {
+          console.error("Error marking notification as read:", error)
+        }
       }
-    }
 
-    // Navigate based on notification type
-    if (notification.actionUrl) {
-      router.push(notification.actionUrl as any)
-    } else if (notification.order) {
-      router.push(`/(tabs)/more/orders?orderId=${notification.order.id}`)
-    }
-  }
+      if (notification.actionUrl) {
+        router.push(notification.actionUrl as any)
+      } else if (notification.order) {
+        router.push(`/(tabs)/more/orders?orderId=${notification.order.id}`)
+      }
+    },
+    [token, unreadCount, router, markAsRead, decrementUnreadCount]
+  )
 
-  /**
-   * Handle delete notification
-   */
-  const handleDeleteNotification = (notification: Notification) => {
-    Alert.alert(
-      "Delete Notification",
-      "Are you sure you want to delete this notification?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            if (!token) return
+  const handleDeleteNotification = useCallback(
+    (notification: Notification) => {
+      Alert.alert(
+        "Delete Notification",
+        "Are you sure you want to delete this notification?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete",
+            style: "destructive",
+            onPress: async () => {
+              if (!token) return
 
-            try {
-              await deleteNotification(notification.id, token)
-              removeNotification(notification.id)
+              try {
+                await deleteNotification(notification.id, token)
+                removeNotification(notification.id)
 
-              if (!notification.isRead) {
-                decrementUnreadCount()
-                await Notifications.setBadgeCountAsync(unreadCount - 1)
+                if (!notification.isRead) {
+                  decrementUnreadCount()
+                  await Notifications.setBadgeCountAsync(unreadCount - 1)
+                }
+
+                Toast.show({
+                  type: "success",
+                  text1: "Deleted",
+                  text2: "Notification removed",
+                  visibilityTime: 1500,
+                })
+              } catch (error) {
+                console.error("Error deleting notification:", error)
+                Toast.show({
+                  type: "error",
+                  text1: "Error",
+                  text2: "Failed to delete notification",
+                  visibilityTime: 2000,
+                })
               }
-
-              Toast.show({
-                type: "success",
-                text1: "Deleted",
-                text2: "Notification removed",
-                visibilityTime: 1500,
-              })
-            } catch (error) {
-              console.error("Error deleting notification:", error)
-              Toast.show({
-                type: "error",
-                text1: "Error",
-                text2: "Failed to delete notification",
-                visibilityTime: 2000,
-              })
-            }
+            },
           },
-        },
-      ]
-    )
-  }
+        ]
+      )
+    },
+    [token, unreadCount, removeNotification, decrementUnreadCount]
+  )
 
-  /**
-   * Handle mark all as read
-   */
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllAsRead = useCallback(async () => {
     if (!token || unreadCount === 0) return
 
     try {
@@ -222,58 +303,42 @@ export default function NotificationsScreen() {
         visibilityTime: 2000,
       })
     }
-  }
+  }, [token, unreadCount, markAllAsRead])
 
-  /**
-   * Render notification item
-   */
-  const renderItem = ({ item }: { item: Notification }) => (
-    <NotificationCard
-      notification={item}
-      onPress={() => handleNotificationPress(item)}
-      onDelete={() => handleDeleteNotification(item)}
-    />
+  const renderItem = useCallback(
+    ({ item }: { item: Notification }) => (
+      <NotificationItem
+        item={item}
+        onPress={handleNotificationPress}
+        onDelete={handleDeleteNotification}
+      />
+    ),
+    [handleNotificationPress, handleDeleteNotification]
   )
 
-  /**
-   * Render header
-   */
-  const renderHeader = () => {
-    if (notifications.length === 0) return null
+  const keyExtractor = useCallback(
+    (item: Notification) => item.id.toString(),
+    []
+  )
 
-    return (
-      <View style={styles.listHeader}>
-        <Text style={styles.listHeaderText}>
-          {unreadCount > 0 ? `${unreadCount} unread` : "All caught up!"}
-        </Text>
-        {unreadCount > 0 && (
-          <DebouncedTouchable onPress={handleMarkAllAsRead} activeOpacity={0.7}>
-            <Text style={styles.markAllText}>Mark all as read</Text>
-          </DebouncedTouchable>
-        )}
-      </View>
-    )
-  }
+  const ListHeaderComponent = useMemo(
+    () => (
+      <ListHeader
+        unreadCount={unreadCount}
+        hasNotifications={notifications.length > 0}
+        onMarkAllRead={handleMarkAllAsRead}
+      />
+    ),
+    [unreadCount, notifications.length, handleMarkAllAsRead]
+  )
 
-  /**
-   * Render footer
-   */
-  const renderFooter = () => {
-    if (!isLoadingMore) return null
+  const ListFooterComponent = useMemo(
+    () => <ListFooter isLoadingMore={isLoadingMore} />,
+    [isLoadingMore]
+  )
 
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={AppColors.primary[500]} />
-      </View>
-    )
-  }
-
-  /**
-   * Render empty state
-   */
-  const renderEmpty = () => {
+  const ListEmptyComponent = useMemo(() => {
     if (isLoading) return null
-
     return (
       <EmptyState
         icon="notifications-outline"
@@ -281,7 +346,7 @@ export default function NotificationsScreen() {
         subMessage="You're all caught up! We'll notify you when there's something new."
       />
     )
-  }
+  }, [isLoading])
 
   return (
     <>
@@ -296,11 +361,11 @@ export default function NotificationsScreen() {
         ) : (
           <FlatList
             data={notifications}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={keyExtractor}
             renderItem={renderItem}
-            ListHeaderComponent={renderHeader}
-            ListFooterComponent={renderFooter}
-            ListEmptyComponent={renderEmpty}
+            ListHeaderComponent={ListHeaderComponent}
+            ListFooterComponent={ListFooterComponent}
+            ListEmptyComponent={ListEmptyComponent}
             contentContainerStyle={
               notifications.length === 0 ? styles.emptyContainer : undefined
             }
@@ -315,6 +380,12 @@ export default function NotificationsScreen() {
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             showsVerticalScrollIndicator={false}
+            // Performance optimizations
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            initialNumToRender={10}
+            windowSize={5}
+            updateCellsBatchingPeriod={50}
           />
         )}
       </Wrapper>

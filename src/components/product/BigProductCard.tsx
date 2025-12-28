@@ -1,14 +1,7 @@
 import { FontAwesome } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { useState } from "react"
-import {
-  Image,
-  StyleProp,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-} from "react-native"
+import { memo, useCallback, useMemo, useState } from "react"
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native"
 import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
@@ -22,6 +15,7 @@ import {
   windowWidth,
 } from "@/src/themes/app.constants"
 import { Product } from "@/src/types"
+import { Image } from "expo-image"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface BigProductCardProps {
@@ -36,41 +30,48 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
   customStyle,
 }) => {
   const router = useRouter()
-  const { user, token } = useAuthStore()
-  const { addItem, error, getItemQuantityInCart } = useCartStore()
-  const { toggleFavorite, isFavorite } = useFavoritesStore()
   const [loading, setLoading] = useState(false)
 
-  const isFav = isFavorite(product.id)
+  // Auth store - individual selectors
+  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.token)
+
+  // Cart store - individual selectors
+  const addItem = useCartStore((state) => state.addItem)
+  const error = useCartStore((state) => state.error)
+  const getItemQuantityInCart = useCartStore(
+    (state) => state.getItemQuantityInCart
+  )
+
+  // Favorites store - subscribe to favorites list for proper re-renders
+  const favoriteProducts = useFavoritesStore(
+    (state) => state.favoriteList?.products
+  )
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
+
+  // Calculate isFav from the favorites array
+  const isFav = useMemo(
+    () => favoriteProducts?.some((p) => p.id === product.id) ?? false,
+    [favoriteProducts, product.id]
+  )
+
+  // Memoize computed values
   const currentQuantityInCart = getItemQuantityInCart?.(product.id) || 0
   const isOutOfStock = product?.stock === 0
   const isMaxQuantityInCart = currentQuantityInCart >= (product?.stock || 0)
   const canAddToCart = !isOutOfStock && !isMaxQuantityInCart
 
-  const savings = product?.sale_price
-    ? (Number(product.rrp) - Number(product.sale_price)).toFixed(2)
-    : null
+  const savings = useMemo(
+    () =>
+      product?.sale_price
+        ? (Number(product.rrp) - Number(product.sale_price)).toFixed(2)
+        : null,
+    [product?.sale_price, product?.rrp]
+  )
 
   const displayPrice = product?.sale_price || product?.rrp
 
-  const createItemData = (prod: Product) => {
-    const price = prod?.sale_price || prod?.rrp
-    return {
-      product_id: prod?.id,
-      user_id: parseInt(user?.id?.toString() ?? "0"),
-      quantity: 1,
-      amount: price,
-      name: prod?.name,
-      cover: prod?.cover?.url,
-      slug: prod?.slug,
-      unit_price: price,
-      publishedAt: new Date(),
-      brand: prod?.brand?.name,
-      weight: prod?.weight_in_grams,
-    }
-  }
-
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     if (!token) {
       Toast.show({
         type: "error",
@@ -94,8 +95,20 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
     }
 
     setLoading(true)
-    const data = createItemData(product)
-
+    const price = product?.sale_price || product?.rrp
+    const data = {
+      product_id: product?.id,
+      user_id: parseInt(user?.id?.toString() ?? "0"),
+      quantity: 1,
+      amount: price,
+      name: product?.name,
+      cover: product?.cover?.url,
+      slug: product?.slug,
+      unit_price: price,
+      publishedAt: new Date(),
+      brand: product?.brand?.name,
+      weight: product?.weight_in_grams,
+    }
     try {
       const result = await addItem(data as any, token)
 
@@ -125,9 +138,9 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, canAddToCart, isOutOfStock, product, user?.id, addItem, error])
 
-  const handleToggleFavorite = () => {
+  const handleToggleFavorite = useCallback(() => {
     if (!token) {
       Toast.show({
         type: "info",
@@ -138,18 +151,18 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
       return
     }
     toggleFavorite({ product_id: product.id }, token)
-  }
+  }, [token, toggleFavorite, product.id])
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     router.push(`/product/${product?.id}`)
-  }
+  }, [router, product?.id])
 
-  const getButtonText = () => {
+  const getButtonText = useCallback(() => {
     if (loading) return "Adding..."
     if (isOutOfStock) return "Out of Stock"
     if (isMaxQuantityInCart) return "Max in Cart"
     return "Add to Cart"
-  }
+  }, [loading, isOutOfStock, isMaxQuantityInCart])
 
   return (
     <View style={[styles.wrapper, linkStyle]}>
@@ -165,7 +178,10 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
               <Image
                 source={{ uri: product?.cover?.url }}
                 style={styles.image}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
+                cachePolicy="memory-disk"
+                recyclingKey={`big-product-${product?.id}`}
               />
 
               {/* Out of Stock Overlay */}
@@ -239,7 +255,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
   )
 }
 
-export default BigProductCard
+export default memo(BigProductCard)
 
 const styles = StyleSheet.create({
   wrapper: {

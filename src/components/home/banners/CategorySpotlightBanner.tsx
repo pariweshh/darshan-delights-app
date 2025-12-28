@@ -1,17 +1,10 @@
-// src/components/home/banners/CategorySpotlightBanner.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import {
-  Image,
-  ImageSourcePropType,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native"
+import { ImageSourcePropType, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import { Image } from "expo-image"
 import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface CategorySpotlightBannerProps {
@@ -67,7 +60,7 @@ export default function CategorySpotlightBanner({
         styles.container,
         {
           backgroundColor,
-          marginBottom: config.sectionSpacing,
+          marginBottom: config.sectionSpacing + 2,
           borderRadius: config.cardBorderRadius + 4,
           maxWidth,
           alignSelf: maxWidth ? "center" : undefined,
@@ -126,7 +119,7 @@ export default function CategorySpotlightBanner({
             <Image
               source={localImage || { uri: imageUrl }}
               style={styles.image}
-              resizeMode="contain"
+              contentFit="contain"
             />
           )}
         </View>

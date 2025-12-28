@@ -222,10 +222,28 @@ export default function MoreScreen() {
   }
 
   const handleGoToFavorites = () => {
+    if (!token || !user) {
+      Toast.show({
+        type: "info",
+        text1: "Login Required",
+        text2: "Please login to manage addresses",
+        visibilityTime: 2000,
+      })
+      return
+    }
     router.push("/(tabs)/more/favorites")
   }
 
   const handleGoToReviews = () => {
+    if (!token || !user) {
+      Toast.show({
+        type: "info",
+        text1: "Login Required",
+        text2: "Please login to manage addresses",
+        visibilityTime: 2000,
+      })
+      return
+    }
     router.push("/(tabs)/more/reviews")
   }
 

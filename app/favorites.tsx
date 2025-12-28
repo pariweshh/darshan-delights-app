@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router"
-import { useCallback, useState } from "react"
+import { memo, useCallback, useMemo, useState } from "react"
 import {
   Alert,
   FlatList,
@@ -22,16 +22,63 @@ import Wrapper from "@/src/components/common/Wrapper"
 import ProductCard from "@/src/components/product/ProductCard"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
+interface ProductItemProps {
+  item: Product
+}
+
+const ProductItem = memo(
+  ({ item }: ProductItemProps) => (
+    <View style={styles.productContainer}>
+      <ProductCard product={item} customStyle={styles.productCard} />
+    </View>
+  ),
+  (prevProps, nextProps) => {
+    return (
+      prevProps.item.id === nextProps.item.id &&
+      prevProps.item.stock === nextProps.item.stock &&
+      prevProps.item.sale_price === nextProps.item.sale_price
+    )
+  }
+)
+
+interface ListHeaderProps {
+  favoriteCount: number
+  onClearAll: () => void
+}
+
+const ListHeader = memo(({ favoriteCount, onClearAll }: ListHeaderProps) => (
+  <View style={styles.listHeader}>
+    <Text style={styles.itemCount}>
+      {favoriteCount} {favoriteCount === 1 ? "item" : "items"}
+    </Text>
+    {favoriteCount > 0 && (
+      <DebouncedTouchable
+        onPress={onClearAll}
+        activeOpacity={0.7}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text style={styles.clearAllText}>Clear All</Text>
+      </DebouncedTouchable>
+    )}
+  </View>
+))
+
 export default function FavoritesScreen() {
   const router = useRouter()
   const [refreshing, setRefreshing] = useState(false)
 
-  const { token } = useAuthStore()
-  const { favoriteList, isLoading, fetchFavorites, resetFavorites } =
-    useFavoritesStore()
+  const token = useAuthStore((state) => state.token)
+  const favoriteList = useFavoritesStore((state) => state.favoriteList)
+  const isLoading = useFavoritesStore((state) => state.isLoading)
+  const fetchFavorites = useFavoritesStore((state) => state.fetchFavorites)
+  const resetFavorites = useFavoritesStore((state) => state.resetFavorites)
 
-  const favorites = favoriteList?.products || []
+  const favorites = useMemo(
+    () => favoriteList?.products || [],
+    [favoriteList?.products]
+  )
   const favoriteCount = favorites.length
+  const numColumns = IsIPAD ? 3 : 2
 
   // Pull to refresh
   const onRefresh = useCallback(async () => {
@@ -48,15 +95,12 @@ export default function FavoritesScreen() {
   }, [token, fetchFavorites])
 
   // Clear all favorites with confirmation
-  const handleClearAll = () => {
+  const handleClearAll = useCallback(() => {
     Alert.alert(
       "Clear Favorites",
       "Are you sure you want to remove all items from your favorites?",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Clear All",
           style: "destructive",
@@ -72,44 +116,32 @@ export default function FavoritesScreen() {
         },
       ]
     )
-  }
+  }, [resetFavorites])
 
-  // Navigate to shop
-  const navigateToShop = () => {
+  const navigateToShop = useCallback(() => {
     router.push("/shop")
-  }
+  }, [router])
 
-  // Navigate to login
-  const navigateToLogin = () => {
-    router.push("/(auth)/login")
-  }
-
-  // Render product item
+  // Memoize renderItem
   const renderProduct = useCallback(
-    ({ item }: { item: Product }) => (
-      <View style={styles.productContainer}>
-        <ProductCard product={item} customStyle={styles.productCard} />
-      </View>
-    ),
+    ({ item }: { item: Product }) => <ProductItem item={item} />,
     []
   )
 
-  // Render header
-  const renderHeader = () => (
-    <View style={styles.listHeader}>
-      <Text style={styles.itemCount}>
-        {favoriteCount} {favoriteCount === 1 ? "item" : "items"}
-      </Text>
-      {favoriteCount > 0 && (
-        <DebouncedTouchable
-          onPress={handleClearAll}
-          activeOpacity={0.7}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.clearAllText}>Clear All</Text>
-        </DebouncedTouchable>
-      )}
-    </View>
+  const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
+
+  // Memoize ListHeaderComponent
+  const ListHeaderComponent = useMemo(
+    () => (
+      <ListHeader favoriteCount={favoriteCount} onClearAll={handleClearAll} />
+    ),
+    [favoriteCount, handleClearAll]
+  )
+
+  // Memoize ListFooterComponent
+  const ListFooterComponent = useMemo(
+    () => <View style={{ height: 100 }} />,
+    []
   )
 
   // Loading state
@@ -141,15 +173,16 @@ export default function FavoritesScreen() {
       <Wrapper style={styles.container} edges={[]}>
         {/* Favorites List */}
         <FlatList
+          key={`favorites-${numColumns}`}
           data={favorites}
           renderItem={renderProduct}
-          keyExtractor={(item) => item.id.toString()}
-          numColumns={IsIPAD ? 3 : 2}
+          keyExtractor={keyExtractor}
+          numColumns={numColumns}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListHeaderComponent={ListHeaderComponent}
+          ListFooterComponent={ListFooterComponent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -163,6 +196,7 @@ export default function FavoritesScreen() {
           maxToRenderPerBatch={10}
           initialNumToRender={10}
           windowSize={5}
+          updateCellsBatchingPeriod={50}
         />
       </Wrapper>
     </>

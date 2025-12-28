@@ -1,4 +1,5 @@
 import { Link, useRouter } from "expo-router"
+import * as WebBrowser from "expo-web-browser"
 import { useState } from "react"
 import {
   Alert,
@@ -18,6 +19,7 @@ import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
+import { Ionicons } from "@expo/vector-icons"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -32,6 +34,8 @@ export default function SignupScreen() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [agreedToPolicies, setAgreedToPolicies] = useState(false)
+  const [policyError, setPolicyError] = useState(false)
 
   const handleSignup = async () => {
     const trimmedFirstName = firstName.trim()
@@ -39,6 +43,9 @@ export default function SignupScreen() {
     const trimmedEmail = email.trim()
     const trimmedPassword = password.trim()
     const trimmedConfirmPassword = confirmPassword.trim()
+
+    // Clear previous policy error
+    setPolicyError(false)
 
     if (!trimmedFirstName || !trimmedEmail || !trimmedPassword) {
       Alert.alert("Error", "Please fill in all required fields")
@@ -60,6 +67,17 @@ export default function SignupScreen() {
       return
     }
 
+    // Check policy agreement
+    if (!agreedToPolicies) {
+      setPolicyError(true)
+      Toast.show({
+        type: "error",
+        text1: "Agreement Required",
+        text2: "Please agree to the Privacy Policy and Terms of Service",
+      })
+      return
+    }
+
     clearError()
 
     try {
@@ -69,13 +87,14 @@ export default function SignupScreen() {
         trimmedEmail,
         trimmedPassword,
         trimmedFirstName,
-        trimmedLastName
+        trimmedLastName,
+        agreedToPolicies
       )
 
       if (result?.success) {
         router.push({
           pathname: "/(auth)/verify-email",
-          params: { trimmedEmail },
+          params: { email: trimmedEmail },
         })
       }
     } catch (error: any) {
@@ -89,9 +108,44 @@ export default function SignupScreen() {
     }
   }
 
+  // Handle policy checkbox toggle
+  const handlePolicyToggle = () => {
+    setAgreedToPolicies(!agreedToPolicies)
+    if (policyError) {
+      setPolicyError(false)
+    }
+  }
+
+  const handleOpenPrivacyPolicy = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(
+        "https://darshandelights.com.au/policies/privacy-policy"
+      )
+    } catch (error) {
+      console.error("Error opening privacy policy:", error)
+      Alert.alert("Error", "Unable to open privacy policy")
+    }
+  }
+
+  const handleOpenTermsOfService = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(
+        "https://darshandelights.com.au/policies/terms-of-service"
+      )
+    } catch (error) {
+      console.error("Error opening terms of service:", error)
+      Alert.alert("Error", "Unable to open terms of service")
+    }
+  }
+
+  const handleGoHome = () => {
+    router.replace("/")
+  }
+
   // For tablet, constrain form width
   const formMaxWidth = isTablet ? (isLandscape ? 500 : 450) : undefined
   const contentPadding = isTablet ? 32 : 24
+  const checkboxSize = isTablet ? 22 : 20
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,14 +178,29 @@ export default function SignupScreen() {
           >
             {/* Header */}
             <View style={[styles.header, { marginBottom: isTablet ? 40 : 32 }]}>
-              <Text style={[styles.title, { fontSize: isTablet ? 36 : 30 }]}>
-                Create Account
-              </Text>
-              <Text
-                style={[styles.subtitle, { fontSize: config.subtitleFontSize }]}
+              <View>
+                <Text style={[styles.title, { fontSize: isTablet ? 36 : 30 }]}>
+                  Create Account
+                </Text>
+                <Text
+                  style={[
+                    styles.subtitle,
+                    { fontSize: config.subtitleFontSize },
+                  ]}
+                >
+                  Sign up to start shopping
+                </Text>
+              </View>
+              <DebouncedTouchable
+                onPress={handleGoHome}
+                style={styles.iconContainer}
               >
-                Sign up to start shopping
-              </Text>
+                <Ionicons
+                  name="home-outline"
+                  size={isTablet ? 44 : 28}
+                  color={AppColors.primary[500]}
+                />
+              </DebouncedTouchable>
             </View>
 
             {/* Error Message */}
@@ -330,12 +399,102 @@ export default function SignupScreen() {
                 <Text
                   style={[
                     styles.showPasswordLabel,
-                    { fontSize: config.bodyFontSize },
+                    { fontSize: config.bodyFontSize - 2 },
                   ]}
                 >
                   Show passwords
                 </Text>
               </DebouncedTouchable>
+
+              {/* Policy Agreement Checkbox */}
+              <View style={styles.policyContainer}>
+                <DebouncedTouchable
+                  style={styles.policyToggle}
+                  onPress={handlePolicyToggle}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      {
+                        width: checkboxSize,
+                        height: checkboxSize,
+                        borderRadius: isTablet ? 5 : 4,
+                      },
+                      agreedToPolicies && styles.checkboxChecked,
+                      policyError && styles.checkboxError,
+                    ]}
+                  >
+                    {agreedToPolicies && (
+                      <Ionicons
+                        name="checkmark"
+                        size={checkboxSize - 6}
+                        color="#fff"
+                      />
+                    )}
+                  </View>
+                  <Text
+                    style={[
+                      styles.policyText,
+                      { fontSize: config.bodyFontSize - 2 },
+                    ]}
+                  >
+                    I agree to the
+                  </Text>
+                </DebouncedTouchable>
+                <View style={styles.policyLinks}>
+                  <DebouncedTouchable onPress={handleOpenPrivacyPolicy}>
+                    <Text
+                      style={[
+                        styles.policyLink,
+                        { fontSize: config.bodyFontSize - 2 },
+                      ]}
+                    >
+                      Privacy Policy
+                    </Text>
+                  </DebouncedTouchable>
+                  <Text
+                    style={[
+                      styles.policyText,
+                      { fontSize: config.bodyFontSize - 1 },
+                    ]}
+                  >
+                    {" "}
+                    and{" "}
+                  </Text>
+                  <DebouncedTouchable onPress={handleOpenTermsOfService}>
+                    <Text
+                      style={[
+                        styles.policyLink,
+                        { fontSize: config.bodyFontSize - 1 },
+                      ]}
+                    >
+                      Terms of Service
+                    </Text>
+                  </DebouncedTouchable>
+                  <Text
+                    style={[
+                      styles.policyText,
+                      { fontSize: config.bodyFontSize - 1 },
+                    ]}
+                  >
+                    {" "}
+                    *
+                  </Text>
+                </View>
+              </View>
+
+              {/* Policy Error Message */}
+              {policyError && (
+                <Text
+                  style={[
+                    styles.policyErrorText,
+                    { fontSize: config.bodyFontSize - 2 },
+                  ]}
+                >
+                  You must agree to the Privacy Policy and Terms of Service
+                </Text>
+              )}
 
               {/* Signup Button */}
               <View style={{ marginTop: isTablet ? 16 : 12 }}>
@@ -359,16 +518,12 @@ export default function SignupScreen() {
                   Already have an account?{" "}
                 </Text>
                 <Link href="/(auth)/login" asChild>
-                  <DebouncedTouchable>
-                    <Text
-                      style={[
-                        styles.linkHighlight,
-                        { fontSize: config.bodyFontSize },
-                      ]}
-                    >
-                      Sign In
-                    </Text>
-                  </DebouncedTouchable>
+                  <Text
+                    className="text-orange-600 font-bold"
+                    style={[{ fontSize: config.bodyFontSize }]}
+                  >
+                    Sign In
+                  </Text>
                 </Link>
               </View>
             </View>
@@ -391,7 +546,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   formContainer: {},
-  header: {},
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  iconContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: AppColors.primary[300],
+    backgroundColor: AppColors.primary[50],
+    padding: 8,
+    borderRadius: "100%",
+  },
   title: {
     fontFamily: "Poppins_700Bold",
     color: AppColors.text.primary,
@@ -442,9 +611,43 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.primary[500],
     borderColor: AppColors.primary[500],
   },
+  checkboxError: {
+    borderColor: AppColors.error,
+    borderWidth: 2,
+  },
   showPasswordLabel: {
     fontFamily: "Poppins_400Regular",
     color: AppColors.text.secondary,
+  },
+  policyContainer: {
+    flexDirection: "row",
+  },
+  policyToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  policyLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginLeft: 3, // Align with text after checkbox
+    marginTop: -0.5,
+  },
+  policyText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.text.secondary,
+    lineHeight: 20,
+  },
+  policyLink: {
+    fontFamily: "Poppins_600SemiBold",
+    color: AppColors.primary[500],
+    textDecorationLine: "underline",
+    lineHeight: 20,
+  },
+  policyErrorText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.error,
+    marginTop: -8,
+    marginLeft: 30,
   },
   linkContainer: {
     flexDirection: "row",

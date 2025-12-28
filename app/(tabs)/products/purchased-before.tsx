@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { FlatList, Image, StyleSheet, Text, View } from "react-native"
+import { FlatList, StyleSheet, Text, View } from "react-native"
 
 import { getUserOrders } from "@/src/api/orders"
 import EmptyState from "@/src/components/common/EmptyState"
@@ -9,6 +9,7 @@ import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useAuthStore } from "@/src/store/authStore"
 import { CartItem, Order } from "@/src/types"
+import { Image } from "expo-image"
 
 export default function PurchasedBeforeScreen() {
   const router = useRouter()
@@ -60,7 +61,7 @@ export default function PurchasedBeforeScreen() {
         <Image
           source={{ uri: item.cover }}
           style={styles.productImage}
-          resizeMode="contain"
+          contentFit="contain"
         />
         <Text style={styles.productName} numberOfLines={2}>
           {item.name}

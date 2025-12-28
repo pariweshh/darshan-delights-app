@@ -46,6 +46,7 @@ export interface SignUpProps {
   lName: string
   phone?: string
   platform: "mobile"
+  agreedToPolicies: boolean
 }
 
 export interface AuthResponse {

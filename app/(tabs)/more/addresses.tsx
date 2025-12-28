@@ -1,3 +1,9 @@
+import { Ionicons } from "@expo/vector-icons"
+import { useFocusEffect, useRouter } from "expo-router"
+import React, { useCallback, useState } from "react"
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native"
+import Toast from "react-native-toast-message"
+
 import {
   deleteAddress,
   getUserAddresses,
@@ -5,25 +11,40 @@ import {
 } from "@/src/api/addresses"
 import AddressCard from "@/src/components/addresses/AddressCard"
 import EmptyState from "@/src/components/common/EmptyState"
-import Loader from "@/src/components/common/Loader"
 import Wrapper from "@/src/components/common/Wrapper"
+import { AddressCardSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Address } from "@/src/types/address"
-import { Ionicons } from "@expo/vector-icons"
-import { useFocusEffect, useRouter } from "expo-router"
-import React, { useCallback, useState } from "react"
-import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native"
-import Toast from "react-native-toast-message"
 
 export default function AddressesScreen() {
   const router = useRouter()
+  const { config, isTablet, isLandscape, width } = useResponsive()
   const { user, token } = useAuthStore()
 
   const [addresses, setAddresses] = useState<Address[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  // Layout configuration
+  const useColumnsLayout = isTablet && isLandscape
+  const numColumns = useColumnsLayout ? 2 : 1
+  const contentMaxWidth = isTablet && !isLandscape ? 600 : undefined
+
+  // Calculate item width for grid
+  const gap = config.gap
+  const containerPadding = config.horizontalPadding
+  const itemWidth = useColumnsLayout
+    ? (width - containerPadding * 2 - gap) / 2
+    : undefined
+
+  // FAB sizes
+  const fabSize = isTablet ? 64 : 56
+  const fabIconSize = isTablet ? 32 : 28
+  const fabBottom = isTablet ? 28 : 24
+  const fabRight = isTablet ? 24 : 20
 
   /**
    * Fetch addresses from API
@@ -36,7 +57,6 @@ export default function AddressesScreen() {
 
     try {
       const data = await getUserAddresses(token)
-      // Sort addresses: default first, then by updatedAt
       const sortedAddresses = data.sort((a, b) => {
         if (a.is_default && !b.is_default) return -1
         if (!a.is_default && b.is_default) return 1
@@ -87,8 +107,6 @@ export default function AddressesScreen() {
 
       try {
         await deleteAddress(addressId, token)
-
-        // Remove from local state
         setAddresses((prev) => prev.filter((a) => a.id !== addressId))
 
         Toast.show({
@@ -119,8 +137,6 @@ export default function AddressesScreen() {
 
       try {
         await setDefaultAddress(addressId, token)
-
-        // Update local state
         setAddresses((prev) =>
           prev.map((a) => ({
             ...a,
@@ -144,7 +160,7 @@ export default function AddressesScreen() {
         })
       }
     },
-    [token]
+    [token, user?.id]
   )
 
   /**
@@ -158,15 +174,41 @@ export default function AddressesScreen() {
    * Render address item
    */
   const renderAddressItem = useCallback(
-    ({ item }: { item: Address }) => (
-      <AddressCard
-        address={item}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onSetDefault={handleSetDefault}
-      />
-    ),
-    [handleEdit, handleDelete, handleSetDefault]
+    ({ item, index }: { item: Address; index: number }) => {
+      if (useColumnsLayout) {
+        const isLastInRow = (index + 1) % numColumns === 0
+        const marginRight = isLastInRow ? 0 : gap
+
+        return (
+          <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
+            <AddressCard
+              address={item}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSetDefault={handleSetDefault}
+            />
+          </View>
+        )
+      }
+
+      return (
+        <AddressCard
+          address={item}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onSetDefault={handleSetDefault}
+        />
+      )
+    },
+    [
+      handleEdit,
+      handleDelete,
+      handleSetDefault,
+      useColumnsLayout,
+      numColumns,
+      itemWidth,
+      gap,
+    ]
   )
 
   /**
@@ -176,10 +218,86 @@ export default function AddressesScreen() {
     if (addresses.length === 0) return null
 
     return (
-      <View style={styles.listHeader}>
-        <Text style={styles.addressCount}>
+      <View style={[styles.listHeader, { marginBottom: isTablet ? 14 : 12 }]}>
+        <Text style={[styles.addressCount, { fontSize: config.bodyFontSize }]}>
           {addresses.length} {addresses.length === 1 ? "address" : "addresses"}
         </Text>
+      </View>
+    )
+  }
+
+  /**
+   * Render skeleton loading
+   */
+  const renderSkeleton = () => {
+    const skeletonCount = isTablet ? 4 : 3
+
+    if (useColumnsLayout) {
+      const rows: number[][] = []
+      for (let i = 0; i < skeletonCount; i += numColumns) {
+        const row: number[] = []
+        for (let j = 0; j < numColumns && i + j < skeletonCount; j++) {
+          row.push(i + j)
+        }
+        rows.push(row)
+      }
+
+      return (
+        <View
+          style={[
+            styles.skeletonContainer,
+            { padding: config.horizontalPadding },
+          ]}
+        >
+          {/* Header skeleton */}
+          <View
+            style={[styles.listHeader, { marginBottom: isTablet ? 14 : 12 }]}
+          >
+            <SkeletonBase width={100} height={config.bodyFontSize + 2} />
+          </View>
+
+          {rows.map((row, rowIndex) => (
+            <View key={`skeleton-row-${rowIndex}`} style={styles.skeletonRow}>
+              {row.map((_, colIndex) => {
+                const isLastInRow = colIndex === numColumns - 1
+                return (
+                  <View
+                    key={`skeleton-${rowIndex}-${colIndex}`}
+                    style={{
+                      width: itemWidth,
+                      marginRight: isLastInRow ? 0 : gap,
+                    }}
+                  >
+                    <AddressCardSkeleton />
+                  </View>
+                )
+              })}
+            </View>
+          ))}
+        </View>
+      )
+    }
+
+    return (
+      <View
+        style={[
+          styles.skeletonContainer,
+          {
+            padding: config.horizontalPadding,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
+      >
+        {/* Header skeleton */}
+        <View style={[styles.listHeader, { marginBottom: isTablet ? 14 : 12 }]}>
+          <SkeletonBase width={100} height={config.bodyFontSize + 2} />
+        </View>
+
+        {Array.from({ length: skeletonCount }).map((_, index) => (
+          <AddressCardSkeleton key={`skeleton-${index}`} />
+        ))}
       </View>
     )
   }
@@ -191,11 +309,11 @@ export default function AddressesScreen() {
     }, [fetchAddresses])
   )
 
-  // Loading state
+  // Loading state with skeleton
   if (isLoading) {
     return (
       <Wrapper style={styles.container} edges={[]}>
-        <Loader fullScreen text="Loading addresses..." />
+        {renderSkeleton()}
       </Wrapper>
     )
   }
@@ -215,13 +333,28 @@ export default function AddressesScreen() {
     )
   }
 
+  // Create a key for FlatList to force re-render when columns change
+  const flatListKey = `addresses-${numColumns}`
+
   return (
     <Wrapper style={styles.container} edges={[]}>
       <FlatList
+        key={flatListKey}
         data={addresses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderAddressItem}
-        contentContainerStyle={styles.listContent}
+        numColumns={numColumns}
+        contentContainerStyle={[
+          styles.listContent,
+          {
+            padding: config.horizontalPadding,
+            paddingBottom: isTablet ? 120 : 100,
+            maxWidth: !useColumnsLayout ? contentMaxWidth : undefined,
+            alignSelf:
+              !useColumnsLayout && contentMaxWidth ? "center" : undefined,
+            width: !useColumnsLayout && contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={renderHeader}
         refreshControl={
@@ -236,11 +369,20 @@ export default function AddressesScreen() {
 
       {/* Floating Add Button */}
       <DebouncedTouchable
-        style={styles.fab}
+        style={[
+          styles.fab,
+          {
+            bottom: fabBottom,
+            right: fabRight,
+            width: fabSize,
+            height: fabSize,
+            borderRadius: fabSize / 2,
+          },
+        ]}
         onPress={handleAddAddress}
         activeOpacity={0.8}
       >
-        <Ionicons name="add" size={28} color="white" />
+        <Ionicons name="add" size={fabIconSize} color="white" />
       </DebouncedTouchable>
     </Wrapper>
   )
@@ -252,25 +394,20 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  listHeader: {
-    marginBottom: 12,
-  },
+  listContent: {},
+  listHeader: {},
   addressCount: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 14,
     color: AppColors.text.secondary,
+  },
+  skeletonContainer: {
+    flex: 1,
+  },
+  skeletonRow: {
+    flexDirection: "row",
   },
   fab: {
     position: "absolute",
-    bottom: 24,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
     backgroundColor: AppColors.primary[500],
     alignItems: "center",
     justifyContent: "center",

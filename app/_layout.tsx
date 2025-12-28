@@ -1,8 +1,10 @@
+import ConnectionStatusBanner from "@/src/components/common/ConnectionStatusBanner"
 import ErrorBoundary from "@/src/components/common/ErrorBoundary"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
+import { useNetworkInit } from "@/src/hooks/useNetworkStatus"
 import { usePushNotifications } from "@/src/hooks/usePushNotifications"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
@@ -69,6 +71,8 @@ export default function RootLayout() {
   const [appIsReady, setAppIsReady] = useState(false)
   const [showCustomSplash, setShowCustomSplash] = useState(true)
 
+  useNetworkInit()
+
   const {
     isLoading,
     checkSession,
@@ -76,8 +80,6 @@ export default function RootLayout() {
     loadBiometricPreference,
     setInitialising,
     logout,
-    user,
-    token,
   } = useAuthStore()
 
   const { expoPushToken, error: pushError } = usePushNotifications()
@@ -154,7 +156,6 @@ export default function RootLayout() {
     async function prepare() {
       try {
         if (fontsLoaded) {
-          // Small delay for smoother transition
           await new Promise((resolve) => setTimeout(resolve, 100))
 
           // Hide native splash screen
@@ -215,8 +216,6 @@ export default function RootLayout() {
       "change",
       async (nextAppState: AppStateStatus) => {
         if (nextAppState === "active") {
-          // When app comes to foreground, sync badge with actual unread count
-          // You could fetch the actual count or just clear it
           const { unreadCount } = useNotificationStore.getState()
           await Notifications.setBadgeCountAsync(unreadCount)
         }
@@ -226,7 +225,6 @@ export default function RootLayout() {
     return () => subscription.remove()
   }, [])
 
-  // Don't render anything until fonts are loaded
   if (!fontsLoaded || !appIsReady) {
     return null
   }
@@ -264,6 +262,7 @@ export default function RootLayout() {
       <StripeProvider publishableKey={publishableKey}>
         <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
+            <ConnectionStatusBanner />
             <Stack
               screenOptions={{
                 headerShown: false,

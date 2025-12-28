@@ -13,7 +13,6 @@ import {
   Text,
   View,
 } from "react-native"
-
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
@@ -25,6 +24,7 @@ import {
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { usePushNotifications } from "@/src/hooks/usePushNotifications"
+import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -35,6 +35,7 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 }
 
 export default function NotificationSettingsScreen() {
+  const { config, isTablet, isLandscape } = useResponsive()
   const { token } = useAuthStore()
   const { refreshPreferences, refreshUnreadCount } = usePushNotifications()
 
@@ -44,8 +45,15 @@ export default function NotificationSettingsScreen() {
   const [preferences, setPreferences] =
     useState<NotificationPreferences>(DEFAULT_PREFERENCES)
 
-  // Track pending updates to prevent race conditions
   const pendingUpdates = useRef<Partial<NotificationPreferences>>({})
+
+  // Layout configuration
+  const contentMaxWidth = isTablet ? (isLandscape ? 600 : 550) : undefined
+
+  // Responsive sizes
+  const iconContainerSize = isTablet ? 44 : 40
+  const iconSize = isTablet ? 22 : 20
+  const warningIconContainerSize = isTablet ? 44 : 40
 
   /**
    * Check system notification permission
@@ -117,7 +125,6 @@ export default function NotificationSettingsScreen() {
   ) => {
     if (!token) return
 
-    // Store the pending update
     pendingUpdates.current[key] = value
     setSavingKey(key)
 
@@ -127,14 +134,8 @@ export default function NotificationSettingsScreen() {
         token
       )
       setPreferences(result.preferences)
-
-      // Clear the pending update for this key
       delete pendingUpdates.current[key]
-
-      // Refresh the hook's preferences so other components get updated
       await refreshPreferences()
-
-      // Refresh unread count in case badge needs updating
       await refreshUnreadCount()
 
       Toast.show({
@@ -145,7 +146,6 @@ export default function NotificationSettingsScreen() {
       })
     } catch (error) {
       console.error("Error saving preference:", error)
-      // Revert the change
       setPreferences((prev) => ({ ...prev, [key]: !value }))
       Toast.show({
         type: "error",
@@ -159,11 +159,10 @@ export default function NotificationSettingsScreen() {
   }
 
   /**
-   * Handle master toggle (push notifications on/off)
+   * Handle master toggle
    */
   const handlePushToggle = async (enabled: boolean) => {
     if (enabled && !systemPermission) {
-      // First try to request permission
       const granted = await requestSystemPermission()
 
       if (!granted) {
@@ -199,7 +198,6 @@ export default function NotificationSettingsScreen() {
     category: keyof Omit<NotificationPreferences, "pushEnabled">,
     enabled: boolean
   ) => {
-    //Prevent toggling while another save is in progress for the same key
     if (savingKey === category) return
 
     setPreferences((prev) => ({ ...prev, [category]: enabled }))
@@ -218,7 +216,7 @@ export default function NotificationSettingsScreen() {
   }
 
   /**
-   * Refresh system permission status (e.g., when returning from settings)
+   * Refresh system permission status
    */
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -235,68 +233,141 @@ export default function NotificationSettingsScreen() {
       <SafeAreaView style={styles.container} edges={["bottom"]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={AppColors.primary[500]} />
-          <Text style={styles.loadingText}>Loading settings...</Text>
+          <Text style={[styles.loadingText, { fontSize: config.bodyFontSize }]}>
+            Loading settings...
+          </Text>
         </View>
       </SafeAreaView>
     )
   }
 
-  // Check if categories should be disabled
   const categoriesDisabled = !preferences.pushEnabled || !systemPermission
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            padding: config.horizontalPadding,
+            maxWidth: contentMaxWidth,
+            alignSelf: contentMaxWidth ? "center" : undefined,
+            width: contentMaxWidth ? "100%" : undefined,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* System Permission Warning */}
         {systemPermission === false && (
           <DebouncedTouchable
-            style={styles.warningCard}
+            style={[
+              styles.warningCard,
+              {
+                padding: isTablet ? 16 : 14,
+                borderRadius: isTablet ? 14 : 12,
+                marginBottom: isTablet ? 24 : 20,
+              },
+            ]}
             onPress={openSystemSettings}
             activeOpacity={0.7}
           >
-            <View style={styles.warningIconContainer}>
+            <View
+              style={[
+                styles.warningIconContainer,
+                {
+                  width: warningIconContainerSize,
+                  height: warningIconContainerSize,
+                  borderRadius: warningIconContainerSize / 2,
+                  marginRight: isTablet ? 14 : 12,
+                },
+              ]}
+            >
               <Ionicons
                 name="warning-outline"
-                size={24}
+                size={isTablet ? 26 : 24}
                 color={AppColors.warning}
               />
             </View>
             <View style={styles.warningContent}>
-              <Text style={styles.warningTitle}>
+              <Text
+                style={[styles.warningTitle, { fontSize: config.bodyFontSize }]}
+              >
                 Notifications are disabled
               </Text>
-              <Text style={styles.warningText}>
+              <Text
+                style={[
+                  styles.warningText,
+                  {
+                    fontSize: config.smallFontSize,
+                    marginTop: isTablet ? 4 : 2,
+                  },
+                ]}
+              >
                 Tap here to enable notifications in your device settings
               </Text>
             </View>
             <Ionicons
               name="chevron-forward"
-              size={20}
+              size={isTablet ? 22 : 20}
               color={AppColors.gray[400]}
             />
           </DebouncedTouchable>
         )}
 
         {/* Master Toggle */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Push Notifications</Text>
-          <View style={styles.card}>
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
-                <View style={styles.settingIconContainer}>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 6 : 4 },
+            ]}
+          >
+            Push Notifications
+          </Text>
+          <View style={[styles.card, { borderRadius: isTablet ? 14 : 12 }]}>
+            <View style={[styles.settingRow, { padding: isTablet ? 18 : 16 }]}>
+              <View
+                style={[
+                  styles.settingInfo,
+                  { marginRight: isTablet ? 14 : 12 },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.settingIconContainer,
+                    {
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      marginRight: isTablet ? 14 : 12,
+                    },
+                  ]}
+                >
                   <Ionicons
                     name="notifications"
-                    size={22}
+                    size={iconSize}
                     color={AppColors.primary[600]}
                   />
                 </View>
                 <View style={styles.settingTextContainer}>
-                  <Text style={styles.settingLabel}>Push Notifications</Text>
-                  <Text style={styles.settingDescription}>
+                  <Text
+                    style={[
+                      styles.settingLabel,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    Push Notifications
+                  </Text>
+                  <Text
+                    style={[
+                      styles.settingDescription,
+                      {
+                        fontSize: config.smallFontSize,
+                        marginTop: isTablet ? 4 : 2,
+                      },
+                    ]}
+                  >
                     Receive notifications on your device
                   </Text>
                 </View>
@@ -306,7 +377,10 @@ export default function NotificationSettingsScreen() {
                   <ActivityIndicator
                     size="small"
                     color={AppColors.primary[500]}
-                    style={styles.switchLoader}
+                    style={[
+                      styles.switchLoader,
+                      { marginRight: isTablet ? 10 : 8 },
+                    ]}
                   />
                 )}
                 <Switch
@@ -330,28 +404,58 @@ export default function NotificationSettingsScreen() {
         </View>
 
         {/* Notification Categories */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notification Types</Text>
-          <Text style={styles.sectionSubtitle}>
+        <View style={[styles.section, { marginBottom: isTablet ? 28 : 24 }]}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              { fontSize: isTablet ? 17 : 16, marginBottom: isTablet ? 6 : 4 },
+            ]}
+          >
+            Notification Types
+          </Text>
+          <Text
+            style={[
+              styles.sectionSubtitle,
+              {
+                fontSize: config.bodyFontSize - 1,
+                marginBottom: isTablet ? 14 : 12,
+              },
+            ]}
+          >
             Choose which notifications you'd like to receive
           </Text>
 
           <View
-            style={[styles.card, categoriesDisabled && styles.cardDisabled]}
+            style={[
+              styles.card,
+              { borderRadius: isTablet ? 14 : 12 },
+              categoriesDisabled && styles.cardDisabled,
+            ]}
           >
             {/* Order Updates */}
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
+            <View style={[styles.settingRow, { padding: isTablet ? 18 : 16 }]}>
+              <View
+                style={[
+                  styles.settingInfo,
+                  { marginRight: isTablet ? 14 : 12 },
+                ]}
+              >
                 <View
                   style={[
                     styles.settingIconContainer,
-                    { backgroundColor: AppColors.primary[50] },
+                    {
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      marginRight: isTablet ? 14 : 12,
+                      backgroundColor: AppColors.primary[50],
+                    },
                     categoriesDisabled && styles.iconDisabled,
                   ]}
                 >
                   <Ionicons
                     name="cube-outline"
-                    size={20}
+                    size={iconSize}
                     color={
                       categoriesDisabled
                         ? AppColors.gray[400]
@@ -363,6 +467,7 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingLabel,
+                      { fontSize: config.bodyFontSize },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -371,6 +476,10 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingDescription,
+                      {
+                        fontSize: config.smallFontSize,
+                        marginTop: isTablet ? 4 : 2,
+                      },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -383,7 +492,10 @@ export default function NotificationSettingsScreen() {
                   <ActivityIndicator
                     size="small"
                     color={AppColors.primary[500]}
-                    style={styles.switchLoader}
+                    style={[
+                      styles.switchLoader,
+                      { marginRight: isTablet ? 10 : 8 },
+                    ]}
                   />
                 )}
                 <Switch
@@ -406,21 +518,37 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
 
-            <View style={styles.settingDivider} />
+            <View
+              style={[
+                styles.settingDivider,
+                { marginLeft: isTablet ? 76 : 68 },
+              ]}
+            />
 
             {/* Promotions */}
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
+            <View style={[styles.settingRow, { padding: isTablet ? 18 : 16 }]}>
+              <View
+                style={[
+                  styles.settingInfo,
+                  { marginRight: isTablet ? 14 : 12 },
+                ]}
+              >
                 <View
                   style={[
                     styles.settingIconContainer,
-                    { backgroundColor: "#FEF3C7" },
+                    {
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      marginRight: isTablet ? 14 : 12,
+                      backgroundColor: "#FEF3C7",
+                    },
                     categoriesDisabled && styles.iconDisabled,
                   ]}
                 >
                   <Ionicons
                     name="pricetag-outline"
-                    size={20}
+                    size={iconSize}
                     color={categoriesDisabled ? AppColors.gray[400] : "#D97706"}
                   />
                 </View>
@@ -428,6 +556,7 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingLabel,
+                      { fontSize: config.bodyFontSize },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -436,6 +565,10 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingDescription,
+                      {
+                        fontSize: config.smallFontSize,
+                        marginTop: isTablet ? 4 : 2,
+                      },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -448,7 +581,10 @@ export default function NotificationSettingsScreen() {
                   <ActivityIndicator
                     size="small"
                     color={AppColors.primary[500]}
-                    style={styles.switchLoader}
+                    style={[
+                      styles.switchLoader,
+                      { marginRight: isTablet ? 10 : 8 },
+                    ]}
                   />
                 )}
                 <Switch
@@ -471,21 +607,37 @@ export default function NotificationSettingsScreen() {
               </View>
             </View>
 
-            <View style={styles.settingDivider} />
+            <View
+              style={[
+                styles.settingDivider,
+                { marginLeft: isTablet ? 76 : 68 },
+              ]}
+            />
 
             {/* Reminders */}
-            <View style={styles.settingRow}>
-              <View style={styles.settingInfo}>
+            <View style={[styles.settingRow, { padding: isTablet ? 18 : 16 }]}>
+              <View
+                style={[
+                  styles.settingInfo,
+                  { marginRight: isTablet ? 14 : 12 },
+                ]}
+              >
                 <View
                   style={[
                     styles.settingIconContainer,
-                    { backgroundColor: "#DBEAFE" },
+                    {
+                      width: iconContainerSize,
+                      height: iconContainerSize,
+                      borderRadius: isTablet ? 12 : 10,
+                      marginRight: isTablet ? 14 : 12,
+                      backgroundColor: "#DBEAFE",
+                    },
                     categoriesDisabled && styles.iconDisabled,
                   ]}
                 >
                   <Ionicons
                     name="alarm-outline"
-                    size={20}
+                    size={iconSize}
                     color={categoriesDisabled ? AppColors.gray[400] : "#2563EB"}
                   />
                 </View>
@@ -493,6 +645,7 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingLabel,
+                      { fontSize: config.bodyFontSize },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -501,6 +654,10 @@ export default function NotificationSettingsScreen() {
                   <Text
                     style={[
                       styles.settingDescription,
+                      {
+                        fontSize: config.smallFontSize,
+                        marginTop: isTablet ? 4 : 2,
+                      },
                       categoriesDisabled && styles.textDisabled,
                     ]}
                   >
@@ -513,7 +670,10 @@ export default function NotificationSettingsScreen() {
                   <ActivityIndicator
                     size="small"
                     color={AppColors.primary[500]}
-                    style={styles.switchLoader}
+                    style={[
+                      styles.switchLoader,
+                      { marginRight: isTablet ? 10 : 8 },
+                    ]}
                   />
                 )}
                 <Switch
@@ -539,20 +699,45 @@ export default function NotificationSettingsScreen() {
 
           {/* Disabled explanation */}
           {categoriesDisabled && (
-            <Text style={styles.disabledExplanation}>
+            <Text
+              style={[
+                styles.disabledExplanation,
+                {
+                  fontSize: config.smallFontSize,
+                  marginTop: isTablet ? 10 : 8,
+                },
+              ]}
+            >
               Enable push notifications above to customize notification types
             </Text>
           )}
         </View>
 
         {/* Info Card */}
-        <View style={styles.infoCard}>
+        <View
+          style={[
+            styles.infoCard,
+            {
+              padding: isTablet ? 16 : 14,
+              borderRadius: isTablet ? 12 : 10,
+              gap: isTablet ? 12 : 10,
+            },
+          ]}
+        >
           <Ionicons
             name="information-circle-outline"
-            size={20}
+            size={isTablet ? 22 : 20}
             color={AppColors.text.tertiary}
           />
-          <Text style={styles.infoText}>
+          <Text
+            style={[
+              styles.infoText,
+              {
+                fontSize: config.smallFontSize,
+                lineHeight: config.smallFontSize * 1.5,
+              },
+            ]}
+          >
             Even with push notifications disabled, you can still view your
             notifications in the app by tapping the bell icon.
           </Text>
@@ -574,70 +759,50 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 14,
     color: AppColors.text.secondary,
     marginTop: 12,
   },
   scrollView: {
     flex: 1,
   },
-  scrollContent: {
-    padding: 16,
-  },
+  scrollContent: {},
   // Warning Card
   warningCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: "#FDE68A",
   },
   warningIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     backgroundColor: "#FDE68A",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   warningContent: {
     flex: 1,
   },
   warningTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 14,
     color: "#92400E",
   },
   warningText: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: "#B45309",
-    marginTop: 2,
   },
   // Section
-  section: {
-    marginBottom: 24,
-  },
+  section: {},
   sectionTitle: {
     fontFamily: "Poppins_600SemiBold",
-    fontSize: 16,
     color: AppColors.text.primary,
-    marginBottom: 4,
   },
   sectionSubtitle: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 13,
     color: AppColors.text.secondary,
-    marginBottom: 12,
   },
   // Card
   card: {
     backgroundColor: AppColors.background.primary,
-    borderRadius: 12,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -653,22 +818,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 16,
   },
   settingInfo: {
     flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    marginRight: 12,
   },
   settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
     backgroundColor: AppColors.primary[50],
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   iconDisabled: {
     backgroundColor: AppColors.gray[100],
@@ -678,14 +837,11 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     fontFamily: "Poppins_500Medium",
-    fontSize: 15,
     color: AppColors.text.primary,
   },
   settingDescription: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.secondary,
-    marginTop: 2,
   },
   textDisabled: {
     color: AppColors.gray[400],
@@ -693,13 +849,10 @@ const styles = StyleSheet.create({
   settingDivider: {
     height: 1,
     backgroundColor: AppColors.gray[100],
-    marginLeft: 68,
   },
   disabledExplanation: {
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
-    marginTop: 8,
     textAlign: "center",
     fontStyle: "italic",
   },
@@ -708,39 +861,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  switchLoader: {
-    marginRight: 8,
-  },
+  switchLoader: {},
   // Info Card
   infoCard: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: AppColors.gray[50],
-    borderRadius: 10,
-    padding: 14,
-    gap: 10,
   },
   infoText: {
     flex: 1,
     fontFamily: "Poppins_400Regular",
-    fontSize: 12,
     color: AppColors.text.tertiary,
-    lineHeight: 18,
-  },
-  // Saving Overlay
-  savingOverlay: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: AppColors.primary[50],
-    borderRadius: 8,
-  },
-  savingText: {
-    fontFamily: "Poppins_500Medium",
-    fontSize: 13,
-    color: AppColors.primary[600],
   },
 })
