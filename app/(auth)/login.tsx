@@ -1,6 +1,7 @@
 import { Link, useRouter } from "expo-router"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -12,13 +13,25 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
+import { resendConfirmation } from "@/src/api/auth"
 import Button from "@/src/components/ui/Button"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
+import { Ionicons } from "@expo/vector-icons"
+import Toast from "react-native-toast-message"
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const UNCONFIRMED_EMAIL_ERRORS = [
+  "your account email is not confirmed",
+  "email is not confirmed",
+  "please confirm your email",
+  "account not confirmed",
+  "email not verified",
+  "please verify your email",
+]
 
 export default function LoginScreen() {
   const router = useRouter()
@@ -29,9 +42,28 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
 
+  const [showResendOption, setShowResendOption] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
+
+  // Check if error is related to unconfirmed email
+  const isUnconfirmedEmailError = useCallback(
+    (errorMessage: string | null): boolean => {
+      if (!errorMessage) return false
+      const lowerError = errorMessage.toLowerCase()
+      return UNCONFIRMED_EMAIL_ERRORS.some((msg) => lowerError.includes(msg))
+    },
+    []
+  )
+
   const handleLogin = async () => {
     const trimmedEmail = email.trim()
     const trimmedPassword = password.trim()
+
+    // Reset states
+    setShowResendOption(false)
+    setResendSuccess(false)
+
     if (!trimmedEmail || !trimmedPassword) {
       Alert.alert("Error", "Please enter your email and password")
       return
@@ -47,12 +79,84 @@ export default function LoginScreen() {
 
     if (result?.user) {
       router.replace("/(tabs)/home")
+    } else {
+      setTimeout(() => {
+        const currentError = useAuthStore.getState().error
+        if (isUnconfirmedEmailError(currentError)) {
+          setShowResendOption(true)
+        }
+      }, 100)
+    }
+  }
+
+  const handleResendConfirmation = async () => {
+    const trimmedEmail = email.trim()
+
+    if (!trimmedEmail) {
+      Alert.alert("Error", "Please enter your email")
+      return
+    }
+
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      Alert.alert("Invalid Email", "Please enter a valid email address")
+      return
+    }
+
+    setIsResending(true)
+
+    try {
+      const result = await resendConfirmation(trimmedEmail)
+
+      if (result.ok) {
+        setResendSuccess(true)
+        setShowResendOption(false)
+
+        Toast.show({
+          type: "success",
+          text1: "Confirmation Email Sent",
+          text2: "Please check your inbox and spam folder",
+          visibilityTime: 4000,
+        })
+
+        router.push({
+          pathname: "/(auth)/verify-email",
+          params: { email: trimmedEmail },
+        })
+      }
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.error?.message ||
+        error?.message ||
+        "Failed to send confirmation email"
+
+      // check if email is already confirmed
+      if (errorMessage.toLowerCase().includes("already confirmed")) {
+        Toast.show({
+          type: "info",
+          text1: "Email Already Confirmed",
+          text2: "Please login to continue",
+          visibilityTime: 3000,
+        })
+        setShowResendOption(false)
+        clearError()
+      } else {
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: errorMessage,
+          visibilityTime: 3000,
+        })
+      }
+    } finally {
+      setIsResending(false)
     }
   }
 
   // For tablet, constrain form width
   const formMaxWidth = isTablet ? (isLandscape ? 450 : 400) : undefined
   const contentPadding = isTablet ? 32 : 24
+
+  const isEmailNotConfirmed = isUnconfirmedEmailError(error)
 
   return (
     <SafeAreaView style={styles.container}>
@@ -99,6 +203,7 @@ export default function LoginScreen() {
               <View
                 style={[
                   styles.errorContainer,
+                  isEmailNotConfirmed && styles.warningContainer,
                   {
                     padding: isTablet ? 18 : 16,
                     borderRadius: config.cardBorderRadius,
@@ -106,10 +211,99 @@ export default function LoginScreen() {
                   },
                 ]}
               >
+                <View style={styles.errorContent}>
+                  {isEmailNotConfirmed && (
+                    <Ionicons
+                      name="mail-unread-outline"
+                      size={isTablet ? 24 : 20}
+                      color={AppColors.warning}
+                      style={styles.errorIcon}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.errorText,
+                      isEmailNotConfirmed && styles.warningText,
+                      { fontSize: config.bodyFontSize },
+                    ]}
+                  >
+                    {error}
+                  </Text>
+                </View>
+
+                {/* Resend Confirmation Button */}
+                {(isEmailNotConfirmed || showResendOption) && (
+                  <DebouncedTouchable
+                    style={[
+                      styles.resendButton,
+                      { marginTop: isTablet ? 14 : 12 },
+                    ]}
+                    onPress={handleResendConfirmation}
+                    disabled={isResending}
+                    activeOpacity={0.7}
+                  >
+                    {isResending ? (
+                      <View style={styles.resendingContainer}>
+                        <ActivityIndicator
+                          size="small"
+                          color={AppColors.primary[500]}
+                        />
+                        <Text
+                          style={[
+                            styles.resendButtonText,
+                            { fontSize: config.bodyFontSize, marginLeft: 8 },
+                          ]}
+                        >
+                          Sending...
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.resendingContainer}>
+                        <Ionicons
+                          name="send-outline"
+                          size={isTablet ? 18 : 16}
+                          color={AppColors.primary[500]}
+                        />
+                        <Text
+                          style={[
+                            styles.resendButtonText,
+                            { fontSize: config.bodyFontSize, marginLeft: 6 },
+                          ]}
+                        >
+                          Resend Confirmation Email
+                        </Text>
+                      </View>
+                    )}
+                  </DebouncedTouchable>
+                )}
+              </View>
+            )}
+
+            {/* Success Message */}
+            {resendSuccess && (
+              <View
+                style={[
+                  styles.successContainer,
+                  {
+                    padding: isTablet ? 18 : 16,
+                    borderRadius: config.cardBorderRadius,
+                    marginBottom: isTablet ? 28 : 24,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="checkmark-circle-outline"
+                  size={isTablet ? 24 : 20}
+                  color={AppColors.success}
+                  style={styles.errorIcon}
+                />
                 <Text
-                  style={[styles.errorText, { fontSize: config.bodyFontSize }]}
+                  style={[
+                    styles.successText,
+                    { fontSize: config.bodyFontSize },
+                  ]}
                 >
-                  {error}
+                  Confirmation email sent! Please check your inbox.
                 </Text>
               </View>
             )}
@@ -145,7 +339,14 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(text) => {
+                    setEmail(text)
+                    // Reset resend states when email changes
+                    if (showResendOption || resendSuccess) {
+                      setShowResendOption(false)
+                      setResendSuccess(false)
+                    }
+                  }}
                 />
               </View>
 
@@ -291,10 +492,54 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FECACA",
   },
+  warningContainer: {
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FCD34D",
+  },
+  errorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  errorIcon: {
+    marginRight: 10,
+  },
   errorText: {
     fontFamily: "Poppins_400Regular",
     color: AppColors.error,
-    textAlign: "center",
+    // textAlign: "center",
+    flex: 1,
+  },
+  warningText: {
+    color: "#B45309", // amber-700
+  },
+  successContainer: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  successText: {
+    fontFamily: "Poppins_400Regular",
+    color: AppColors.success,
+    flex: 1,
+  },
+  resendButton: {
+    backgroundColor: AppColors.primary[50],
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resendingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  resendButtonText: {
+    fontFamily: "Poppins_500Medium",
+    color: AppColors.primary[500],
   },
   form: {},
   label: {

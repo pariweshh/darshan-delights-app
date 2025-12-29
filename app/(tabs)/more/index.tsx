@@ -167,12 +167,12 @@ export default function MoreScreen() {
 
   // Memoize user data
   const initials = useMemo(() => {
-    if (!user?.fName || !user?.lName) return "?"
+    if (!user?.fName && !user?.lName) return "?"
     return `${user.fName.charAt(0)}${user.lName.charAt(0)}`.toUpperCase()
   }, [user?.fName, user?.lName])
 
   const displayName = useMemo(() => {
-    if (!user?.fName || !user?.lName) return "User"
+    if (!user?.fName && !user?.lName) return "User"
     return `${user.fName} ${user.lName}`
   }, [user?.fName, user?.lName])
 
@@ -226,7 +226,7 @@ export default function MoreScreen() {
       Toast.show({
         type: "info",
         text1: "Login Required",
-        text2: "Please login to manage addresses",
+        text2: "Please login to manage your favorites",
         visibilityTime: 2000,
       })
       return
@@ -239,7 +239,7 @@ export default function MoreScreen() {
       Toast.show({
         type: "info",
         text1: "Login Required",
-        text2: "Please login to manage addresses",
+        text2: "Please login to view your reviews",
         visibilityTime: 2000,
       })
       return
@@ -701,6 +701,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontFamily: "Poppins_600SemiBold",
     color: AppColors.text.primary,
+    textTransform: "capitalize",
   },
   profileEmail: {
     fontFamily: "Poppins_400Regular",

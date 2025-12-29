@@ -138,12 +138,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const { biometricAuthEnabled } = get()
 
-      // if (biometricAuthEnabled) {
-      //   await SecureStore.setItemAsync(
-      //     STORAGE_KEYS.STORED_CREDENTIALS,
-      //     JSON.stringify({ identifier, password })
-      //   )
-      // }
       if (biometricAuthEnabled) {
         await SecureStore.setItemAsync(
           STORAGE_KEYS.AUTH_TOKEN,
@@ -196,13 +190,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ isLoading: false })
         return { success: false, error: "No stored token found" }
       }
-      // const storedCredentials = await SecureStore.getItemAsync(
-      //   STORAGE_KEYS.STORED_CREDENTIALS
-      // )
-      // if (!storedCredentials) {
-      //   set({ isLoading: false })
-      //   return { success: false, error: "No stored credentials found" }
-      // }
 
       const compatible = await LocalAuthentication.hasHardwareAsync()
       const enrolled = await LocalAuthentication.isEnrolledAsync()
@@ -225,10 +212,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const token = JSON.parse(storedToken)
 
       if (result.success) {
-        // const { identifier, password } = JSON.parse(storedCredentials)
-
-        // const loginRes = await signIn({ identifier, password })
-
         if (!token) {
           set({ isLoading: false })
           return { success: false, error: "Stored token is invalid" }

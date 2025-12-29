@@ -1,5 +1,3 @@
-// app/(tabs)/more/profile.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect, useMemo, useState } from "react"
@@ -69,7 +67,7 @@ export default function ProfileScreen() {
 
   // Memoized values
   const initials = useMemo(() => {
-    if (!profileData.fName || !profileData.lName) return "?"
+    if (!profileData.fName && !profileData.lName) return "?"
     return `${profileData.fName.charAt(0)}${profileData.lName.charAt(
       0
     )}`.toUpperCase()
@@ -992,6 +990,7 @@ const styles = StyleSheet.create({
   profileName: {
     fontFamily: "Poppins_600SemiBold",
     color: AppColors.text.primary,
+    textTransform: "capitalize",
   },
   profileEmail: {
     fontFamily: "Poppins_400Regular",
