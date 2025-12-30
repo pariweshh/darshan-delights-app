@@ -19,6 +19,8 @@ export default {
         NSFaceIDUsageDescription:
           "This app uses Face ID to provide secure and convenient authentication for accessing your account.",
         ITSAppUsesNonExemptEncryption: false,
+        NSCameraUsageDescription:
+          "This app may use the camera to scan barcodes or take photos for product reviews.",
       },
       supportsTablet: true,
       bundleIdentifier: "com.darshandelights.identifier",
