@@ -1,7 +1,10 @@
+// src/api/client.ts
+
 import NetInfo from "@react-native-community/netinfo"
 import axios, {
   AxiosError,
   AxiosInstance,
+  AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios"
 import * as SecureStore from "expo-secure-store"
@@ -40,6 +43,42 @@ export class TimeoutError extends Error {
   }
 }
 
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 1000, // 1 second
+  retryableStatuses: [408, 500, 502, 503, 504], // Statuses worth retrying
+}
+
+// Track consecutive failures for smarter error handling
+let consecutiveFailures = 0
+const MAX_FAILURES_BEFORE_UNAVAILABLE = 5
+const FAILURE_RESET_TIMEOUT = 30000
+let failureResetTimer: NodeJS.Timeout | number | null = null
+
+const resetFailureCounter = () => {
+  consecutiveFailures = 0
+  if (failureResetTimer) {
+    clearTimeout(failureResetTimer)
+    failureResetTimer = null
+  }
+}
+
+const incrementFailureCounter = (): number => {
+  consecutiveFailures++
+
+  if (failureResetTimer) {
+    clearTimeout(failureResetTimer)
+  }
+  failureResetTimer = setTimeout(resetFailureCounter, FAILURE_RESET_TIMEOUT)
+
+  return consecutiveFailures
+}
+
+// Sleep helper for retry delay
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms))
+
 // Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: `${API_CONFIG.BASE_URL}/api`,
@@ -49,22 +88,32 @@ export const api: AxiosInstance = axios.create({
   },
 })
 
-// Request interceptor to add auth token
+// Request interceptor
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    try {
-      // Check network connectivity before making request
-      const netInfo = await NetInfo.fetch()
-      if (!netInfo.isConnected || netInfo.isInternetReachable === false) {
-        useNetworkStore.getState().setServerReachable(false)
-        throw new NetworkError()
-      }
-    } catch (error) {
-      if (error instanceof NetworkError) {
-        throw error
+    // Add retry count to config if not present
+    if (config.headers["x-retry-count"] === undefined) {
+      config.headers["x-retry-count"] = "0"
+    }
+
+    // Only check network on first attempt
+    if (config.headers["x-retry-count"] === "0") {
+      try {
+        const netInfo = await NetInfo.fetch()
+        if (!netInfo.isConnected) {
+          throw new NetworkError()
+        }
+      } catch (error) {
+        if (error instanceof NetworkError) {
+          useNetworkStore
+            .getState()
+            .setServerReachable(false, "No internet connection")
+          throw error
+        }
       }
     }
 
+    // Add auth token
     try {
       const tokenString = await SecureStore.getItemAsync(
         STORAGE_KEYS.AUTH_TOKEN
@@ -78,6 +127,7 @@ api.interceptors.request.use(
     } catch (error) {
       console.error("Error retrieving auth token:", error)
     }
+
     return config
   },
   (error) => {
@@ -85,39 +135,108 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor for error handling
+// Response interceptor with retry logic
 api.interceptors.response.use(
-  (response) => {
-    // Server responded successfully - mark as reachable
-    useNetworkStore.getState().setServerReachable(true)
+  (response: AxiosResponse) => {
+    // Success! Reset failure counter and mark server as reachable
+    resetFailureCounter()
+
+    const { isServerReachable } = useNetworkStore.getState()
+    if (!isServerReachable) {
+      useNetworkStore.getState().setServerReachable(true)
+    }
+
     return response
   },
   async (error: AxiosError) => {
-    // Handle network errors (no response received)
-    if (!error.response) {
-      if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
-        // Check if it's actually a network issue or server issue
-        const netInfo = await NetInfo.fetch()
+    const config = error.config as InternalAxiosRequestConfig & {
+      headers: { "x-retry-count": string }
+    }
 
-        if (!netInfo.isConnected || netInfo.isInternetReachable === false) {
-          useNetworkStore
-            .getState()
-            .setServerReachable(false, "No internet connection")
-          return Promise.reject(new NetworkError())
-        } else {
-          // Internet works but server didn't respond
-          useNetworkStore
-            .getState()
-            .setServerReachable(false, "Server unavailable")
-          return Promise.reject(new ServerUnavailableError())
+    // Get current retry count
+    const retryCount = parseInt(config?.headers?.["x-retry-count"] || "0", 10)
+
+    // Determine if we should retry
+    const shouldRetry = (): boolean => {
+      if (!config || retryCount >= RETRY_CONFIG.maxRetries) {
+        return false
+      }
+
+      // Retry on network errors (no response)
+      if (!error.response) {
+        if (
+          error.message === "Network Error" ||
+          error.code === "ERR_NETWORK" ||
+          error.code === "ECONNABORTED"
+        ) {
+          return true
         }
       }
 
-      // Timeout
-      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+      // Retry on specific status codes
+      if (
+        error.response &&
+        RETRY_CONFIG.retryableStatuses.includes(error.response.status)
+      ) {
+        return true
+      }
+
+      return false
+    }
+
+    // Attempt retry
+    if (shouldRetry()) {
+      // Increment retry count
+      config.headers["x-retry-count"] = String(retryCount + 1)
+
+      // Wait before retrying
+      await sleep(RETRY_CONFIG.retryDelay * (retryCount + 1)) // Exponential backoff
+
+      console.log(
+        `[API] Retrying request (attempt ${retryCount + 2}/${
+          RETRY_CONFIG.maxRetries + 1
+        }): ${config.url}`
+      )
+
+      // Retry the request
+      return api.request(config)
+    }
+
+    // No more retries - handle the error
+
+    // Handle network errors (no response received)
+    if (!error.response) {
+      const netInfo = await NetInfo.fetch()
+
+      if (!netInfo.isConnected || netInfo.isInternetReachable === false) {
         useNetworkStore
           .getState()
-          .setServerReachable(false, "Request timed out")
+          .setServerReachable(false, "No internet connection")
+        return Promise.reject(new NetworkError())
+      }
+
+      if (error.message === "Network Error" || error.code === "ERR_NETWORK") {
+        const failures = incrementFailureCounter()
+
+        // Only mark server as unavailable after multiple consecutive failures
+        if (failures >= MAX_FAILURES_BEFORE_UNAVAILABLE) {
+          useNetworkStore
+            .getState()
+            .setServerReachable(false, "Server unavailable")
+        }
+
+        return Promise.reject(new ServerUnavailableError())
+      }
+
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        const failures = incrementFailureCounter()
+
+        if (failures >= MAX_FAILURES_BEFORE_UNAVAILABLE) {
+          useNetworkStore
+            .getState()
+            .setServerReachable(false, "Request timed out")
+        }
+
         return Promise.reject(
           new TimeoutError("Request timed out. Please try again.")
         )
@@ -128,14 +247,27 @@ api.interceptors.response.use(
     if (error.response) {
       const status = error.response.status
 
-      // 5xx errors - server issues
+      // 5xx errors - server issues (already retried if configured)
       if (status >= 500) {
-        useNetworkStore.getState().setServerReachable(false, "Server error")
+        const failures = incrementFailureCounter()
+
+        if (failures >= MAX_FAILURES_BEFORE_UNAVAILABLE) {
+          useNetworkStore.getState().setServerReachable(false, "Server error")
+        }
+
         return Promise.reject(
           new ServerUnavailableError(
             "Server is experiencing issues. Please try again later."
           )
         )
+      }
+
+      // 4xx errors are NOT server failures - server responded!
+      resetFailureCounter()
+
+      const { isServerReachable } = useNetworkStore.getState()
+      if (!isServerReachable) {
+        useNetworkStore.getState().setServerReachable(true)
       }
 
       // 401 - Unauthorized
@@ -151,14 +283,14 @@ api.interceptors.response.use(
         )
       }
 
-      // 404 - Not found (this is often expected, not a server error)
+      // 404 - Not found
       if (status === 404) {
         const message =
           (error.response.data as any)?.error?.message || "Resource not found"
         return Promise.reject(new ServerError(message, 404))
       }
 
-      // Other 4xx errors
+      // Other 4xx errors (including 400 - bad request, wrong credentials, etc.)
       const message =
         (error.response.data as any)?.error?.message ||
         (error.response.data as any)?.message ||
@@ -195,9 +327,6 @@ export function getErrorMessage(error: unknown): string {
   return "Something went wrong. Please try again."
 }
 
-/**
- * Check if error is a network error
- */
 export function isNetworkError(error: unknown): boolean {
   return error instanceof NetworkError
 }
@@ -206,9 +335,6 @@ export function isServerUnavailableError(error: unknown): boolean {
   return error instanceof ServerUnavailableError
 }
 
-/**
- * Check if error is a timeout error
- */
 export function isTimeoutError(error: unknown): boolean {
   return error instanceof TimeoutError
 }

@@ -28,7 +28,8 @@
         "simulator": true
       },
       "env": {
-        "APP_ENV": "development"
+        "APP_ENV": "development",
+        "API_URL": "http://localhost:1337"
       }
     },
     "preview": {
@@ -50,6 +51,9 @@
       "ios": {
         "resourceClass": "m-medium"
       },
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
         "APP_ENV": "production",
         "API_URL": "https://admino.darshandelights.com.au"
@@ -61,8 +65,8 @@
     "production": {
       "ios": {
         "appleId": "contact@darshandelights.com.au",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
+        "ascAppId": "6757019626",
+        "appleTeamId": "KR456N5K46"
       },
       "android": {
         "serviceAccountKeyPath": "./play-store-credentials.json",

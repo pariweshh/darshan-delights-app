@@ -24,6 +24,8 @@ interface PaymentIntentResponse {
   order_id: number
   order_number: string
   customer_id: string
+  ephemeralKey: string
+  freeOrder?: boolean
 }
 
 export default function PaymentScreen() {
@@ -32,8 +34,10 @@ export default function PaymentScreen() {
   const { orderData } = useLocalSearchParams()
   const parsedOrderData = JSON.parse(orderData as string)
 
-  const { user, token } = useAuthStore()
-  const { clearCart } = useCartStore()
+  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.token)
+  const clearCart = useCartStore((state) => state.clearCart)
+
   const { initPaymentSheet, presentPaymentSheet } = useStripe()
 
   const [loading, setLoading] = useState(false)
@@ -140,16 +144,16 @@ export default function PaymentScreen() {
           platform: "mobile",
         })
 
-        if (!data?.paymentIntent?.clientSecret) {
-          Toast.show({
-            type: "error",
-            text1: "Payment intent failed",
-            text2: "Failed to create payment intent",
-            position: "bottom",
-            visibilityTime: 2000,
-          })
-          return null
-        }
+        // if (!data?.paymentIntent?.clientSecret) {
+        //   Toast.show({
+        //     type: "error",
+        //     text1: "Payment intent failed",
+        //     text2: "Failed to create payment intent",
+        //     position: "bottom",
+        //     visibilityTime: 2000,
+        //   })
+        //   return null
+        // }
 
         return data
       } catch (error: any) {
@@ -183,16 +187,54 @@ export default function PaymentScreen() {
     try {
       const paymentData = await createPaymentIntent()
 
+      console.log({ paymentData })
+
       if (!paymentData) {
         setLoading(false)
         return
       }
-      const { paymentIntent, order_id, order_number, customer_id } = paymentData
+      const {
+        paymentIntent,
+        order_id,
+        order_number,
+        customer_id,
+        ephemeralKey,
+        freeOrder,
+      } = paymentData
+
+      if (freeOrder) {
+        await handlePaymentSuccess(order_id, order_number || "")
+        return
+      }
+      // Check if paymentIntent exists (should always exist if not freeOrder)
+      if (!paymentIntent?.clientSecret) {
+        Toast.show({
+          type: "error",
+          text1: "Payment Error",
+          text2: "Unable to process payment. Please try again.",
+          visibilityTime: 3000,
+        })
+        setLoading(false)
+        return
+      }
 
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: "Darshan Delights",
         customerId: customer_id,
+        customerEphemeralKeySecret: ephemeralKey,
         paymentIntentClientSecret: paymentIntent.clientSecret,
+
+        applePay: {
+          merchantCountryCode: "AU",
+        },
+
+        googlePay: {
+          merchantCountryCode: "AU",
+          testEnv: false,
+        },
+
+        returnURL: "darshandelights://payment-success",
+
         allowsDelayedPaymentMethods: true,
         defaultBillingDetails: {
           name: parsedOrderData.billingDetails?.name,
@@ -315,7 +357,7 @@ export default function PaymentScreen() {
         router.replace("/(tabs)/home")
       }
     },
-    [token, clearCart, router, coupon]
+    [token, clearCart, router, coupon, discountAmount]
   )
 
   const formatShippingAddress = useCallback((shippingDetails: any): string => {

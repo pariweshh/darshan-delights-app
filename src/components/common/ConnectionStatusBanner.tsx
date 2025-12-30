@@ -1,7 +1,7 @@
 import AppColors from "@/src/constants/Colors"
 import { ConnectionStatus, useNetworkStore } from "@/src/store/networkStore"
 import { Ionicons } from "@expo/vector-icons"
-import React, { useEffect, useRef } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { Animated, StyleSheet, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
@@ -31,6 +31,9 @@ const BANNER_CONFIGS: Record<
   },
 }
 
+const SHOW_DELAY_OFFLINE = 1000 // 1 second for offline
+const SHOW_DELAY_SERVER = 2000 // 2 seconds for server unavailable
+
 export default function ConnectionStatusBanner() {
   const insets = useSafeAreaInsets()
   const connectionStatus = useNetworkStore((state) => state.connectionStatus)
@@ -41,24 +44,69 @@ export default function ConnectionStatusBanner() {
 
   const slideAnim = useRef(new Animated.Value(-100)).current
   const isRetrying = useRef(false)
+  const showDelayTimer = useRef<NodeJS.Timeout | number | null>(null)
 
-  const shouldShow =
+  // Track whether we should actually display the banner
+  const [shouldDisplay, setShouldDisplay] = useState(false)
+
+  // Determine if status indicates a problem
+  const hasConnectionIssue =
     !isLoading &&
     (connectionStatus === "offline" ||
       connectionStatus === "server_unavailable")
 
+  // Handle delayed showing of banner
+  useEffect(() => {
+    // Clear any existing timer
+    if (showDelayTimer.current) {
+      clearTimeout(showDelayTimer.current)
+      showDelayTimer.current = null
+    }
+
+    if (hasConnectionIssue) {
+      // Set delay based on connection type
+      const delay =
+        connectionStatus === "offline" ? SHOW_DELAY_OFFLINE : SHOW_DELAY_SERVER
+
+      // Wait before showing banner
+      showDelayTimer.current = setTimeout(() => {
+        // Re-check status before showing (might have recovered)
+        const currentStatus = useNetworkStore.getState().connectionStatus
+        if (
+          currentStatus === "offline" ||
+          currentStatus === "server_unavailable"
+        ) {
+          setShouldDisplay(true)
+        }
+      }, delay)
+    } else {
+      // Connection restored - hide immediately
+      setShouldDisplay(false)
+    }
+
+    return () => {
+      if (showDelayTimer.current) {
+        clearTimeout(showDelayTimer.current)
+        showDelayTimer.current = null
+      }
+    }
+  }, [hasConnectionIssue, connectionStatus])
+
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: shouldShow ? 0 : -100,
+      toValue: shouldDisplay ? 0 : -100,
       useNativeDriver: true,
       tension: 50,
       friction: 8,
     }).start()
-  }, [shouldShow, slideAnim])
+  }, [shouldDisplay, slideAnim])
 
   const handleRetry = async () => {
     if (isRetrying.current) return
     isRetrying.current = true
+
+    // Hide banner immediately on retry
+    setShouldDisplay(false)
 
     await checkFullConnectivity()
 
@@ -68,15 +116,15 @@ export default function ConnectionStatusBanner() {
     }, 2000)
   }
 
-  if (
-    isLoading ||
-    connectionStatus === "connected" ||
-    connectionStatus === "checking"
-  ) {
+  // Don't render if nothing to show
+  if (!shouldDisplay) {
     return null
   }
 
-  const config = BANNER_CONFIGS[connectionStatus]
+  // Get config for current status (with fallback)
+  const config =
+    BANNER_CONFIGS[connectionStatus as keyof typeof BANNER_CONFIGS] ||
+    BANNER_CONFIGS.server_unavailable
 
   return (
     <Animated.View

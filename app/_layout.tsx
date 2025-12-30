@@ -259,7 +259,10 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary onError={logErrorToService}>
-      <StripeProvider publishableKey={publishableKey}>
+      <StripeProvider
+        publishableKey={publishableKey}
+        merchantIdentifier="merchant.com.darshandelights"
+      >
         <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <ConnectionStatusBanner />

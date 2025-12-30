@@ -1,5 +1,3 @@
-// src/components/product/ImageCarousel.tsx
-
 import React, { useRef, useState } from "react"
 import {
   FlatList,

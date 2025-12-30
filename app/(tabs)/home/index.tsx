@@ -1,5 +1,3 @@
-// app/(tabs)/home/index.tsx
-
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
@@ -381,7 +379,7 @@ export default function HomeScreen() {
   const navigateToAllProducts = useCallback(() => {
     setCategory(null)
     router.push({
-      pathname: "/(tabs)/products",
+      pathname: "/shop",
       params: {},
     })
   }, [router, setCategory])

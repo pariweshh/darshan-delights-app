@@ -36,6 +36,7 @@ interface NetworkState {
 // Debounce helper
 let serverCheckTimeout: NodeJS.Timeout | null = null
 const SERVER_CHECK_DEBOUNCE = 5000 // 5 seconds between server checks
+const SERVER_CHECK_TIMEOUT = 8000
 
 export const useNetworkStore = create<NetworkState>((set, get) => ({
   isConnected: true,
@@ -43,7 +44,7 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   isServerReachable: true,
   connectionStatus: "checking",
   connectionType: "unknown",
-  isLoading: true,
+  isLoading: false,
   lastCheckedAt: null,
   lastServerCheckAt: null,
   serverErrorMessage: null,
@@ -58,16 +59,14 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
         isInternetReachable: state.isInternetReachable,
         connectionType: state.type,
         lastCheckedAt: Date.now(),
+        // Only set offline if definitely offline
+        connectionStatus: isOnline ? "connected" : "offline",
+        isLoading: false,
       })
 
       // If online, check server health
       if (isOnline) {
         await get().checkServerHealth()
-      } else {
-        set({
-          connectionStatus: "offline",
-          isLoading: false,
-        })
       }
     })
 
@@ -89,8 +88,9 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
         // Connection state changed
         if (!wasOnline && nowOnline) {
-          // Just came online - check server
-          await get().checkServerHealth()
+          // Just came online - optimistically set connected, then verify
+          set({ connectionStatus: "connected", isServerReachable: true })
+          get().checkServerHealth()
         } else if (wasOnline && !nowOnline) {
           // Just went offline
           set({
@@ -124,18 +124,21 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   },
 
   checkServerHealth: async () => {
-    const { lastServerCheckAt } = get()
+    const { lastServerCheckAt, isServerReachable } = get()
     const now = Date.now()
 
     // Debounce server checks
     if (lastServerCheckAt && now - lastServerCheckAt < SERVER_CHECK_DEBOUNCE) {
-      return get().isServerReachable
+      return isServerReachable
     }
 
     try {
       // Use a lightweight endpoint or create a /health endpoint
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        SERVER_CHECK_TIMEOUT
+      )
 
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/api/categories?pagination[limit]=1`,
@@ -156,32 +159,41 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
           ? null
           : "Server is temporarily unavailable",
         lastServerCheckAt: now,
-        isLoading: false,
       })
 
       return isReachable
     } catch (error: any) {
-      // Determine if it's a network error or server error
-      const isNetworkError =
-        error.name === "AbortError" ||
-        error.message?.includes("Network") ||
-        error.message?.includes("fetch")
+      // Only mark as server_unavailable if we're sure we're online
+      const netInfo = await NetInfo.fetch()
+      const isOnline =
+        netInfo.isConnected && netInfo.isInternetReachable !== false
 
-      set({
-        isServerReachable: false,
-        connectionStatus: isNetworkError ? "offline" : "server_unavailable",
-        serverErrorMessage: isNetworkError
-          ? "Unable to connect to the internet"
-          : "Server is temporarily unavailable",
-        lastServerCheckAt: now,
-        isLoading: false,
-      })
+      if (!isOnline) {
+        set({
+          isServerReachable: false,
+          connectionStatus: "offline",
+          serverErrorMessage: "No internet connection",
+          lastServerCheckAt: now,
+        })
+      } else {
+        // We're online but server didn't respond
+        // Don't immediately mark as unavailable - could be transient
+        set({
+          lastServerCheckAt: now,
+          // Keep current status unless it was "checking"
+          connectionStatus:
+            get().connectionStatus === "checking"
+              ? "connected"
+              : get().connectionStatus,
+        })
+      }
 
       return false
     }
   },
 
   checkFullConnectivity: async () => {
+    set({ isLoading: true })
     const isOnline = await get().checkConnection()
 
     if (!isOnline) {
@@ -191,13 +203,9 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
     const isServerUp = await get().checkServerHealth()
 
-    if (!isServerUp) {
-      set({ connectionStatus: "server_unavailable", isLoading: false })
-      return "server_unavailable"
-    }
-
-    set({ connectionStatus: "connected", isLoading: false })
-    return "connected"
+    const status = isServerUp ? "connected" : "server_unavailable"
+    set({ connectionStatus: status, isLoading: false })
+    return status
   },
 
   requireNetwork: async (customMessage?: string) => {
@@ -206,10 +214,25 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   },
 
   setServerReachable: (reachable: boolean, errorMessage?: string) => {
-    set({
-      isServerReachable: reachable,
-      connectionStatus: reachable ? "connected" : "server_unavailable",
-      serverErrorMessage: errorMessage || null,
-    })
+    const currentStatus = get().connectionStatus
+
+    // If going from unreachable to reachable, update immediately
+    if (reachable) {
+      set({
+        isServerReachable: true,
+        connectionStatus: "connected",
+        serverErrorMessage: null,
+      })
+      return
+    }
+
+    // If going from reachable to unreachable, only update if we're not already offline
+    if (currentStatus !== "offline") {
+      set({
+        isServerReachable: false,
+        connectionStatus: "server_unavailable",
+        serverErrorMessage: errorMessage || null,
+      })
+    }
   },
 }))
