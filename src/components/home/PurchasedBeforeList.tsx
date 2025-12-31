@@ -6,13 +6,16 @@ import { CartItem, Order } from "@/src/types"
 import { Ionicons } from "@expo/vector-icons"
 import { Image } from "expo-image"
 import { useRouter } from "expo-router"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import { FlatList, StyleSheet, Text, View } from "react-native"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 const PurchasedBeforeList = () => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { user, token } = useAuthStore()
+
+  const user = useAuthStore((state) => state.user)
+  const token = useAuthStore((state) => state.token)
+
   const [loading, setLoading] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
 
@@ -57,10 +60,6 @@ const PurchasedBeforeList = () => {
     })
   }
 
-  const formatPrice = (price: number) => {
-    return `$${price.toFixed(2)}`
-  }
-
   const cardWidth = isTablet ? 160 : 140
   const imageHeight = isTablet ? 140 : 120
 
@@ -93,16 +92,24 @@ const PurchasedBeforeList = () => {
           >
             {item.name}
           </Text>
-          {/* <View style={styles.priceContainer}>
-            <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
-              {formatPrice(item.unit_price)}
-            </Text>
-          </View> */}
         </View>
       </DebouncedTouchable>
     ),
-    [router]
+    [
+      cardWidth,
+      imageHeight,
+      config.cardBorderRadius,
+      config.smallFontSize,
+      isTablet,
+      handleProductPress,
+    ]
   )
+
+  if (!token || !user) return null
+
+  if (products.length === 0) return null
+
+  if (loading) return null
 
   return (
     <View style={styles.container}>
@@ -135,10 +142,11 @@ const PurchasedBeforeList = () => {
     </View>
   )
 }
-export default PurchasedBeforeList
+export default memo(PurchasedBeforeList)
 const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
+    marginBottom: 12,
   },
 
   header: {

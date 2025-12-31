@@ -14,7 +14,6 @@ import ConnectionErrorScreen from "@/src/components/common/ConnectionErrorScreen
 import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import BrandPromoBanner from "@/src/components/home/banners/BrandPromoBanner"
-import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
 import CategoryList from "@/src/components/home/CategoryList"
 import ProductGrid from "@/src/components/home/ProductGrid"
 import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
@@ -525,7 +524,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Dynamic Category Spotlight Banner */}
-        {spotlightCategory && spotlightCategory.productCount > 0 && (
+        {/* {spotlightCategory && spotlightCategory.productCount > 0 && (
           <CategorySpotlightBanner
             categoryName={spotlightCategory.category.name}
             itemCount={spotlightCategory.productCount}
@@ -534,11 +533,9 @@ export default function HomeScreen() {
             imageUrl={spotlightCategory.category.cover?.url}
             onPress={handleSpotlightPress}
           />
-        )}
+        )} */}
 
-        <View style={{ marginBottom: 12 }}>
-          <PurchasedBeforeList />
-        </View>
+        <PurchasedBeforeList />
 
         {/* Weekly Sale Section */}
         {onSaleProducts.length > 0 && (
