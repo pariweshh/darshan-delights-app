@@ -133,7 +133,7 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
           {/* Order ID & Date */}
           <View style={styles.orderHeader}>
             <Text style={styles.orderId}>
-              Order #{order.id || order.order_number}
+              Order #{order.order_number || order.id}
             </Text>
             <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
           </View>

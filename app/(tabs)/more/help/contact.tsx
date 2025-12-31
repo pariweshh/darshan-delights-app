@@ -68,10 +68,10 @@ export default function ContactScreen() {
     {
       icon: "mail-outline" as const,
       title: "Email Us",
-      subtitle: "support@darshandelights.com.au",
+      subtitle: "contact@darshandelights.com.au",
       description: "We typically reply within 2-4 hours",
       action: "Send Email",
-      onPress: () => Linking.openURL("mailto:support@darshandelights.com.au"),
+      onPress: () => Linking.openURL("mailto:contact@darshandelights.com.au"),
     },
     {
       icon: "logo-whatsapp" as const,

@@ -290,7 +290,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "r2",
         question: "How do I initiate a return?",
         answer:
-          "Contact our customer service team via the Contact Us page, email (support@darshandelights.com.au), or phone. Provide your order number and reason for return. We'll guide you through the process.",
+          "Contact our customer service team via the Contact Us page, email (contact@darshandelights.com.au), or phone. Provide your order number and reason for return. We'll guide you through the process.",
       },
       {
         id: "r3",
@@ -354,7 +354,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "t4",
         question: "How do I report a bug or issue?",
         answer:
-          "Go to More > Contact Us and select 'Report a Bug' or email us at support@darshandelights.com.au. Please include details about your device, app version, and steps to reproduce the issue.",
+          "Go to More > Contact Us and select 'Report a Bug' or email us at contact@darshandelights.com.au. Please include details about your device, app version, and steps to reproduce the issue.",
       },
       {
         id: "t5",
