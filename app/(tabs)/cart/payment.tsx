@@ -187,8 +187,6 @@ export default function PaymentScreen() {
     try {
       const paymentData = await createPaymentIntent()
 
-      console.log({ paymentData })
-
       if (!paymentData) {
         setLoading(false)
         return

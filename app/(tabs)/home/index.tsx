@@ -379,7 +379,7 @@ export default function HomeScreen() {
   const navigateToAllProducts = useCallback(() => {
     setCategory(null)
     router.push({
-      pathname: "/shop",
+      pathname: "/(tabs)/products",
       params: {},
     })
   }, [router, setCategory])

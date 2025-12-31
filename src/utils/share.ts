@@ -3,6 +3,16 @@ import { Platform, Share } from "react-native"
 
 const WEB_URL = "https://darshandelights.com.au"
 
+// App Store URLs
+const APP_STORE_ID = process.env.EXPO_PUBLIC_APP_STORE_ID || "6757019672"
+const APP_STORE_URL = `https://apps.apple.com/app/darshan-delights/id${APP_STORE_ID}`
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.darshandelights.app"
+
+// Check if app is published based on environment variable
+// Set EXPO_PUBLIC_APP_PUBLISHED=true in production once app is live
+const IS_APP_PUBLISHED = process.env.EXPO_PUBLIC_APP_PUBLISHED === "true"
+
 interface ShareProductParams {
   productId: number
   productName: string
@@ -17,16 +27,6 @@ interface ShareResult {
   action?: string
   error?: string
 }
-
-// App Store URLs - Update these once your app is published
-const APP_STORE_URL = "https://apps.apple.com/app/darshan-delights/id0000000000" // Replace with actual ID
-const PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.darshandelights.app" // Replace with actual package name
-
-// Set to true once app is published to stores
-const IS_APP_PUBLISHED = false
-
-// ... (keep all existing functions: shareProduct, shareCategory, shareOrderConfirmation)
 
 /**
  * Get the appropriate app download link based on platform
