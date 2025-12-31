@@ -13,7 +13,7 @@ import { getProducts } from "@/src/api/products"
 import ConnectionErrorScreen from "@/src/components/common/ConnectionErrorScreen"
 import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
-import BrandPromoBanner from "@/src/components/home/banners/BrandPromoBanner"
+import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
 import CategoryList from "@/src/components/home/CategoryList"
 import ProductGrid from "@/src/components/home/ProductGrid"
 import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
@@ -501,7 +501,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        <BrandPromoBanner
+        {/* <BrandPromoBanner
           brandName="Katoomba"
           tagline="Authentic Indian spices for every kitchen"
           discount="20% off"
@@ -509,7 +509,7 @@ export default function HomeScreen() {
             [AppColors.primary[400], AppColors.primary[300]] as const
           }
           accentColor="#fff"
-        />
+        /> */}
 
         {/* Popular Products Section */}
         <View style={{ marginBottom: config.sectionSpacing }}>
@@ -524,7 +524,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Dynamic Category Spotlight Banner */}
-        {/* {spotlightCategory && spotlightCategory.productCount > 0 && (
+        {spotlightCategory && spotlightCategory.productCount > 0 && (
           <CategorySpotlightBanner
             categoryName={spotlightCategory.category.name}
             itemCount={spotlightCategory.productCount}
@@ -533,7 +533,7 @@ export default function HomeScreen() {
             imageUrl={spotlightCategory.category.cover?.url}
             onPress={handleSpotlightPress}
           />
-        )} */}
+        )}
 
         <PurchasedBeforeList />
 
