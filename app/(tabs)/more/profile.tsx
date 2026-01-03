@@ -878,7 +878,9 @@ export default function ProfileScreen() {
                   "Your profile information",
                   "Order history",
                   "Saved addresses",
+                  "Your Reviews",
                   "Favorites list",
+                  "All account data",
                 ].map((item, index) => (
                   <Text
                     key={index}

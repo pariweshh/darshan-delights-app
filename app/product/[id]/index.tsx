@@ -416,8 +416,6 @@ export default function ProductDetailScreen() {
     }
   }, [availableStock, quantity])
 
-  console.log({ canReview, userReview })
-
   // Handlers
   const handleIncreaseQuantity = useCallback(() => {
     if (quantity < availableStock) {
