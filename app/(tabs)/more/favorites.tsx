@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { memo, useCallback, useMemo, useState } from "react"
+import { useFavorites, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
 import {
   Alert,
   FlatList,
@@ -20,7 +21,6 @@ import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { Product } from "@/src/types"
 
 interface ProductItemProps {
@@ -215,15 +215,16 @@ export default function FavoritesScreenTab() {
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
-  const favoriteList = useFavoritesStore((state) => state.favoriteList)
-  const isLoading = useFavoritesStore((state) => state.isLoading)
-  const fetchFavorites = useFavoritesStore((state) => state.fetchFavorites)
-  const resetFavorites = useFavoritesStore((state) => state.resetFavorites)
 
-  const favorites = useMemo(
-    () => favoriteList?.products || [],
-    [favoriteList?.products]
-  )
+  const {
+    data: favoritesData,
+    isLoading,
+    refetch,
+  } = useFavorites({ token, enabled: !!token })
+
+  const toggleFavoriteMutation = useToggleFavorite()
+
+  const favorites = favoritesData?.products ?? []
   const favoriteCount = favorites.length
 
   // Calculate grid columns based on device and orientation
@@ -260,18 +261,16 @@ export default function FavoritesScreenTab() {
   // Pull to refresh
   const onRefresh = useCallback(async () => {
     if (!token) return
-
     setRefreshing(true)
     try {
-      await fetchFavorites(token)
-    } catch (error) {
-      console.error("Error refreshing favorites:", error)
+      await refetch()
     } finally {
       setRefreshing(false)
     }
-  }, [token, fetchFavorites])
+  }, [token, refetch])
 
   // Clear all favorites with confirmation
+  const { mutateAsync: toggleMutateAsync } = toggleFavoriteMutation
   const handleClearAll = useCallback(() => {
     Alert.alert(
       "Clear Favorites",
@@ -281,19 +280,32 @@ export default function FavoritesScreenTab() {
         {
           text: "Clear All",
           style: "destructive",
-          onPress: () => {
-            resetFavorites()
-            Toast.show({
-              type: "success",
-              text1: "Favorites cleared",
-              text2: "All items have been removed from your favorites",
-              visibilityTime: 2000,
-            })
+          onPress: async () => {
+            if (!token) return
+            try {
+              for (const product of favorites) {
+                await toggleMutateAsync({ productId: product.id, token })
+              }
+              Toast.show({
+                type: "success",
+                text1: "Favorites cleared",
+                text2: "All items have been removed from your favorites",
+                visibilityTime: 2000,
+              })
+            } catch {
+              await refetch()
+              Toast.show({
+                type: "error",
+                text1: "Partial failure",
+                text2: "Some items may not have been removed. Pull to refresh.",
+                visibilityTime: 3000,
+              })
+            }
           },
         },
       ]
     )
-  }, [resetFavorites])
+  }, [token, favorites, toggleMutateAsync, refetch])
 
   const navigateToShop = useCallback(() => {
     router.push("/shop")

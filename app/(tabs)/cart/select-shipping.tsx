@@ -809,6 +809,49 @@ export default function SelectShippingScreen() {
   // Main form content
   const renderFormContent = () => (
     <>
+      {/* Shipping Delay Notice */}
+      <View
+        style={{
+          backgroundColor: "#FEF3C7",
+          borderWidth: 1,
+          borderColor: "#FCD34D",
+          borderRadius: config.cardBorderRadius,
+          padding: isTablet ? 16 : 14,
+          marginBottom: isTablet ? 20 : 16,
+          flexDirection: "row",
+          alignItems: "flex-start",
+          gap: 12,
+        }}
+      >
+        <Ionicons name="bus-outline" size={24} color="#B45309" />
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              fontFamily: "Poppins_600SemiBold",
+              color: "#92400E",
+              fontSize: config.bodyFontSize,
+            }}
+          >
+            Dispatch Schedule Notice
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Poppins_400Regular",
+              color: "#78350F",
+              fontSize: config.smallFontSize,
+              marginTop: 2,
+              lineHeight: 18,
+            }}
+          >
+            All orders placed today will begin dispatching from{" "}
+            <Text style={{ fontFamily: "Poppins_700Bold", textDecorationLine: "underline" }}>
+              5th August
+            </Text>
+            . Thank you for your patience!
+          </Text>
+        </View>
+      </View>
+
       {/* Delivery Options */}
       <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
         <Text style={[styles.sectionTitle, { fontSize: config.titleFontSize }]}>

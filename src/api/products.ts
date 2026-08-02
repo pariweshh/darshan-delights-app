@@ -44,6 +44,7 @@ export const getProductBySlug = async (slug: string): Promise<Product> => {
     const { data } = await api.get<{ products: Product[] }>("/products", {
       params: { slug },
     })
+    if (!data.products[0]) throw new Error(`Product not found: ${slug}`)
     return data.products[0]
   } catch (error) {
     console.error("[PRODUCTS ERROR - getProductBySlug]:", error)

@@ -21,6 +21,7 @@ import Animated, {
 import Wrapper from "@/src/components/common/Wrapper"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useCategories } from "@/src/hooks/queries/useProducts"
 import { useAuthStore } from "@/src/store/authStore"
 import { useProductsStore } from "@/src/store/productStore"
 import { Category } from "@/src/types"
@@ -516,12 +517,11 @@ export default function ProductsScreen() {
 
   // Use individual selectors
   const user = useAuthStore((state) => state.user)
-  const fetchCategories = useProductsStore((state) => state.fetchCategories)
-  const categories = useProductsStore((state) => state.categories)
-  const categoriesLoading = useProductsStore((state) => state.categoriesLoading)
   const setCategory = useProductsStore((state) => state.setCategory)
 
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const { data: categoriesData, isLoading: categoriesLoading, refetch } = useCategories()
+  const categories = categoriesData ?? []
+
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [dimensions, setDimensions] = useState(() => Dimensions.get("window"))
 
@@ -558,30 +558,15 @@ export default function ProductsScreen() {
     return Math.min(calculated, gridConfig.maxItemWidth)
   }, [dimensions.width, gridConfig])
 
-  // Fetch once on mount
-  useEffect(() => {
-    const loadCategories = async () => {
-      // If categories already exist, skip showing skeleton
-      if (categories?.length > 0) {
-        setIsInitialLoad(false)
-        return
-      }
-
-      await fetchCategories()
-      setIsInitialLoad(false)
-    }
-    loadCategories()
-  }, [fetchCategories, categories?.length])
-
   // Memoize handlers
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await fetchCategories()
+      await refetch()
     } finally {
       setIsRefreshing(false)
     }
-  }, [fetchCategories])
+  }, [refetch])
 
   const navigateToCategory = useCallback(
     (categoryName: string) => {
@@ -702,7 +687,7 @@ export default function ProductsScreen() {
     )
   }, [categoriesLoading, handleRefresh])
 
-  const showSkeleton = isInitialLoad && categoriesLoading && !categories?.length
+  const showSkeleton = categoriesLoading && !categories.length
 
   if (showSkeleton) {
     return (

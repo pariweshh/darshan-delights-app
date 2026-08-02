@@ -43,3 +43,7 @@ yarn-error.*
 
 
 *-firebase-adminsdk-*.json
+
+# IDE and AI Tool local files
+.superpowers/
+.vscode/

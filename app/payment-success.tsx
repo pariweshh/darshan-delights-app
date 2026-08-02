@@ -54,7 +54,7 @@ export default function PaymentSuccessScreen() {
       () => {
         router.replace("/(tabs)/home")
         return true
-      }
+      },
     )
 
     return () => backHandler.remove()
@@ -72,7 +72,7 @@ export default function PaymentSuccessScreen() {
       withSpring(1, {
         damping: 10,
         stiffness: 100,
-      })
+      }),
     )
 
     checkmarkRotate.value = withDelay(
@@ -80,13 +80,13 @@ export default function PaymentSuccessScreen() {
       withSpring(0, {
         damping: 10,
         stiffness: 100,
-      })
+      }),
     )
 
     const startPulse = () => {
       pulseScale.value = withSequence(
         withTiming(1.15, { duration: 800 }),
-        withTiming(1, { duration: 800 })
+        withTiming(1, { duration: 800 }),
       )
     }
 
@@ -224,7 +224,7 @@ export default function PaymentSuccessScreen() {
                   { fontSize: config.bodyFontSize },
                 ]}
               >
-                Order Number
+                Order ID
               </Text>
               <Text
                 style={[

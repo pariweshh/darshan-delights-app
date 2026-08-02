@@ -76,8 +76,7 @@ const Slider = ({
           {
             velocity: velocityX,
             overshootClamping: isTransitionLeft.value ? true : false,
-            restSpeedThreshold: isTransitionLeft.value ? 100 : 0.01,
-            restDisplacementThreshold: isTransitionLeft.value ? 100 : 0.01,
+            energyThreshold: isTransitionLeft.value ? 1e-3 : 6e-9,
           },
           () => {
             if (isTransitionLeft.value) {
@@ -97,8 +96,7 @@ const Slider = ({
           {
             velocity: velocityX,
             overshootClamping: isTransitionRight.value ? true : false,
-            restSpeedThreshold: isTransitionRight.value ? 100 : 0.01,
-            restDisplacementThreshold: isTransitionRight.value ? 100 : 0.01,
+            energyThreshold: isTransitionRight.value ? 1e-3 : 6e-9,
           },
           () => {
             if (isTransitionRight.value) {

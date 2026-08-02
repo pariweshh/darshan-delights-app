@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
+import { searchProducts } from "@/src/api/products"
 import EmptyState from "@/src/components/common/EmptyState"
 import ProductCard from "@/src/components/product/ProductCard"
 import RecentSearches from "@/src/components/search/RecentSearches"
@@ -20,7 +21,6 @@ import AppColors from "@/src/constants/Colors"
 import { useDebounce } from "@/src/hooks/useDebounce"
 import { useRecentSearches } from "@/src/hooks/useRecentSearches"
 import { useResponsive } from "@/src/hooks/useResponsive"
-import { useProductsStore } from "@/src/store/productStore"
 import { Product } from "@/src/types"
 
 const MIN_SEARCH_LENGTH = 2
@@ -169,13 +169,27 @@ export default function SearchScreen() {
     clearRecentSearches,
   } = useRecentSearches()
 
-  // Product store
-  const filteredProducts = useProductsStore((state) => state.filteredProducts)
-  const loading = useProductsStore((state) => state.loading)
-  const error = useProductsStore((state) => state.error)
-  const searchProductsRealTime = useProductsStore(
-    (state) => state.searchProductsRealTime
-  )
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const doSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setFilteredProducts([])
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await searchProducts(query.trim())
+      setFilteredProducts(data?.products ?? [])
+    } catch (err: any) {
+      setError(err.message || "Search failed")
+      setFilteredProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   // Calculate grid columns based on device and orientation
   const numColumns = useMemo(
@@ -218,13 +232,13 @@ export default function SearchScreen() {
   // Auto-search when debounced query changes
   useEffect(() => {
     if (debouncedQuery.length >= MIN_SEARCH_LENGTH) {
-      searchProductsRealTime(debouncedQuery)
+      doSearch(debouncedQuery)
       setHasSearched(true)
     } else if (debouncedQuery.length === 0) {
-      searchProductsRealTime("")
+      setFilteredProducts([])
       setHasSearched(false)
     }
-  }, [debouncedQuery, searchProductsRealTime])
+  }, [debouncedQuery, doSearch])
 
   // Handlers
   const handleSearchChange = useCallback((text: string) => {
@@ -234,8 +248,8 @@ export default function SearchScreen() {
   const handleClearSearch = useCallback(() => {
     setSearchQuery("")
     setHasSearched(false)
-    searchProductsRealTime("")
-  }, [searchProductsRealTime])
+    setFilteredProducts([])
+  }, [])
 
   const handleSearch = useCallback(() => {
     Keyboard.dismiss()
@@ -261,29 +275,29 @@ export default function SearchScreen() {
     }
 
     addRecentSearch(searchQuery.trim())
-    searchProductsRealTime(searchQuery.trim())
+    doSearch(searchQuery.trim())
     setHasSearched(true)
-  }, [searchQuery, addRecentSearch, searchProductsRealTime])
+  }, [searchQuery, addRecentSearch, doSearch])
 
   const handleRecentSearchSelect = useCallback(
     (query: string) => {
       setSearchQuery(query)
-      searchProductsRealTime(query)
+      doSearch(query)
       setHasSearched(true)
       Keyboard.dismiss()
     },
-    [searchProductsRealTime]
+    [doSearch]
   )
 
   const handleSuggestionSelect = useCallback(
     (query: string) => {
       setSearchQuery(query)
       addRecentSearch(query)
-      searchProductsRealTime(query)
+      doSearch(query)
       setHasSearched(true)
       Keyboard.dismiss()
     },
-    [addRecentSearch, searchProductsRealTime]
+    [addRecentSearch, doSearch]
   )
 
   const handleClearRecentSearches = useCallback(() => {

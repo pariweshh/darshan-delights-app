@@ -3,7 +3,8 @@ import { Tabs } from "expo-router"
 import { Platform, Text, useWindowDimensions, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
-import { useCartStore } from "@/src/store/cartStore"
+import { useCart } from "@/src/hooks/queries/useCart"
+import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 
 type DeviceType = "phone" | "tablet"
@@ -136,7 +137,9 @@ const CartIcon = ({
 
 export default function TabLayout() {
   const { width, height } = useWindowDimensions()
-  const itemCount = useCartStore((state) => state.getItemCount())
+  const token = useAuthStore((state) => state.token)
+  const { data: cartItems } = useCart({ token, enabled: !!token })
+  const itemCount = cartItems?.length ?? 0
   const { unreadCount } = useNotificationStore()
 
   // Calculate responsive values

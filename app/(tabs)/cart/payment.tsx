@@ -10,8 +10,8 @@ import { createOrderAndPaymentIntent, deleteOrder } from "@/src/api/orders"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
+import { useClearCart } from "@/src/hooks/queries/useCart"
 import { useAuthStore } from "@/src/store/authStore"
-import { useCartStore } from "@/src/store/cartStore"
 import { useStripe } from "@stripe/stripe-react-native"
 
 const GST_RATE = 10
@@ -36,12 +36,11 @@ export default function PaymentScreen() {
 
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
-  const clearCart = useCartStore((state) => state.clearCart)
+  const { mutateAsync: clearCartMutateAsync } = useClearCart()
 
   const { initPaymentSheet, presentPaymentSheet } = useStripe()
 
   const [loading, setLoading] = useState(false)
-  const [paymentReady, setPaymentReady] = useState(false)
 
   const coupon = parsedOrderData?.coupon
   const discountAmount = parsedOrderData?.discountAmount || 0
@@ -143,17 +142,6 @@ export default function PaymentScreen() {
           totalAmount,
           platform: "mobile",
         })
-
-        // if (!data?.paymentIntent?.clientSecret) {
-        //   Toast.show({
-        //     type: "error",
-        //     text1: "Payment intent failed",
-        //     text2: "Failed to create payment intent",
-        //     position: "bottom",
-        //     visibilityTime: 2000,
-        //   })
-        //   return null
-        // }
 
         return data
       } catch (error: any) {
@@ -265,8 +253,6 @@ export default function PaymentScreen() {
         return
       }
 
-      setPaymentReady(true)
-
       const { error: presentError } = await presentPaymentSheet()
 
       if (presentError) {
@@ -304,7 +290,6 @@ export default function PaymentScreen() {
       })
     } finally {
       setLoading(false)
-      setPaymentReady(false)
     }
   }, [
     user,
@@ -333,7 +318,7 @@ export default function PaymentScreen() {
         }
 
         if (token) {
-          await clearCart(token)
+          await clearCartMutateAsync(token as string)
         }
 
         Toast.show({
@@ -355,7 +340,7 @@ export default function PaymentScreen() {
         router.replace("/(tabs)/home")
       }
     },
-    [token, clearCart, router, coupon, discountAmount]
+    [token, clearCartMutateAsync, router, coupon, discountAmount]
   )
 
   const formatShippingAddress = useCallback((shippingDetails: any): string => {

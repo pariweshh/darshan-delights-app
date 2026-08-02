@@ -10,7 +10,9 @@ import {
 } from "react-native"
 
 import { getProducts } from "@/src/api/products"
+import { useCategories, useProducts } from "@/src/hooks/queries/useProducts"
 import ConnectionErrorScreen from "@/src/components/common/ConnectionErrorScreen"
+import ShippingNoticeBanner from "@/src/components/common/ShippingNoticeBanner"
 import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
@@ -20,6 +22,7 @@ import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
 import PurchasedBeforeList from "@/src/components/home/PurchasedBeforeList"
 import RecentlyViewed from "@/src/components/home/RecentlyViewed"
 import SectionHeader from "@/src/components/home/SectionHeader"
+import FeaturedFlipBook from "@/src/components/home/FeaturedFlipBook"
 import SignInPrompt from "@/src/components/home/SignInPrompt"
 import {
   CategoryChipSkeleton,
@@ -209,28 +212,46 @@ export default function HomeScreen() {
   const [spotlightCategory, setSpotlightCategory] =
     useState<SpotlightCategory | null>(null)
 
-  // Use individual selectors from products store
-  const categories = useProductsStore((state) => state.categories)
-  const newProducts = useProductsStore((state) => state.newProducts)
-  const onSaleProducts = useProductsStore((state) => state.onSaleProducts)
-  const popularProducts = useProductsStore((state) => state.popularProducts)
-  const newArrivalsLoading = useProductsStore(
-    (state) => state.newArrivalsLoading
-  )
-  const popularLoading = useProductsStore((state) => state.popularLoading)
-  const saleLoading = useProductsStore((state) => state.saleLoading)
-  const categoriesLoading = useProductsStore((state) => state.categoriesLoading)
-  const error = useProductsStore((state) => state.error)
-  const fetchNewArrivals = useProductsStore((state) => state.fetchNewArrivals)
-  const fetchCategories = useProductsStore((state) => state.fetchCategories)
-  const fetchOnSaleProducts = useProductsStore(
-    (state) => state.fetchOnSaleProducts
-  )
-  const fetchPopularProducts = useProductsStore(
-    (state) => state.fetchPopularProducts
-  )
+  // React Query hooks for data fetching
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useCategories()
+
+  const {
+    data: newArrivalsData,
+    isLoading: newArrivalsLoading,
+    error: newArrivalsError,
+    refetch: refetchNewArrivals,
+  } = useProducts({ limit: 8, sort: "createdAt:desc" })
+
+  const {
+    data: saleData,
+    isLoading: saleLoading,
+    error: saleError,
+    refetch: refetchSaleProducts,
+  } = useProducts({ onSale: true, limit: 4 })
+
+  const {
+    data: popularData,
+    isLoading: popularLoading,
+    error: popularError,
+    refetch: refetchPopularProducts,
+  } = useProducts({ popular: true, limit: 6 })
+
+  // Derive arrays from React Query results
+  const categories = categoriesData ?? []
+  const newProducts = newArrivalsData?.products ?? []
+  const onSaleProducts = saleData?.products ?? []
+  const popularProducts = popularData?.products ?? []
+  const error =
+    (categoriesError ?? newArrivalsError ?? saleError ?? popularError)?.message ??
+    null
+
+  // UI state still from store
   const setCategory = useProductsStore((state) => state.setCategory)
-  const clearError = useProductsStore((state) => state.clearError)
 
   // Memoize computed values
   const horizontalProductCount = useMemo(
@@ -317,25 +338,6 @@ export default function HomeScreen() {
     []
   )
 
-  const loadInitialData = useCallback(async () => {
-    await Promise.all([
-      fetchCategories(),
-      fetchNewArrivals(),
-      fetchPopularProducts(),
-      fetchOnSaleProducts(),
-    ])
-  }, [
-    fetchCategories,
-    fetchNewArrivals,
-    fetchPopularProducts,
-    fetchOnSaleProducts,
-  ])
-
-  // Initial data fetch
-  useEffect(() => {
-    loadInitialData()
-  }, [loadInitialData])
-
   // Select spotlight category when categories are loaded
   useEffect(() => {
     if (categories.length > 0 && !spotlightCategory) {
@@ -346,15 +348,18 @@ export default function HomeScreen() {
   // Memoize handlers
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    clearError()
     setSpotlightCategory(null)
-    await loadInitialData()
-
-    if (categories.length > 0) {
-      await selectRandomSpotlightCategory(categories)
+    try {
+      await Promise.all([
+        refetchCategories(),
+        refetchNewArrivals(),
+        refetchSaleProducts(),
+        refetchPopularProducts(),
+      ])
+    } finally {
+      setRefreshing(false)
     }
-    setRefreshing(false)
-  }, [categories, selectRandomSpotlightCategory, clearError, loadInitialData])
+  }, [refetchCategories, refetchNewArrivals, refetchSaleProducts, refetchPopularProducts])
 
   const navigateToCategory = useCallback(
     (category: string | null) => {
@@ -392,9 +397,14 @@ export default function HomeScreen() {
   const handleRetry = useCallback(async () => {
     const status = await checkFullConnectivity()
     if (status === "connected") {
-      await loadInitialData()
+      await Promise.all([
+        refetchCategories(),
+        refetchNewArrivals(),
+        refetchSaleProducts(),
+        refetchPopularProducts(),
+      ])
     }
-  }, [checkFullConnectivity, loadInitialData])
+  }, [checkFullConnectivity, refetchCategories, refetchNewArrivals, refetchSaleProducts, refetchPopularProducts])
 
   // ==========================================
   // Render Logic
@@ -444,6 +454,7 @@ export default function HomeScreen() {
   return (
     <Wrapper style={styles.wrapper}>
       <HomeHeader />
+      <ShippingNoticeBanner />
 
       <ScrollView
         style={styles.scrollView}
@@ -488,6 +499,8 @@ export default function HomeScreen() {
         </View>
 
         <AppExclusiveBanner />
+
+        {/* <FeaturedFlipBook /> */}
 
         {/* New Arrivals Section */}
         <View style={{ marginBottom: config.sectionSpacing }}>

@@ -1,14 +1,13 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { useEffect } from "react"
 import { StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
+import { useCart } from "@/src/hooks/queries/useCart"
+import { useFavorites } from "@/src/hooks/queries/useFavorites"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
-import { useCartStore } from "@/src/store/cartStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 import Logo from "../common/Logo"
 import DebouncedTouchable from "./DebouncedTouchable"
@@ -16,20 +15,13 @@ import DebouncedTouchable from "./DebouncedTouchable"
 const HomeHeader = () => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { cart, fetchCart } = useCartStore()
   const { token } = useAuthStore()
-  const { favoriteList, fetchFavorites } = useFavoritesStore()
+  const { data: cartItems } = useCart({ token, enabled: !!token })
+  const { data: favoritesData } = useFavorites({ token, enabled: !!token })
   const { unreadCount } = useNotificationStore()
 
-  useEffect(() => {
-    if (token) {
-      fetchFavorites(token)
-      fetchCart(token)
-    }
-  }, [token, fetchFavorites, fetchCart])
-
-  const cartCount = cart?.length || 0
-  const favCount = favoriteList?.products?.length || 0
+  const cartCount = cartItems?.length ?? 0
+  const favCount = favoritesData?.products?.length ?? 0
 
   const iconButtonSize = isTablet ? 48 : 40
   const iconSize = isTablet ? 24 : 20

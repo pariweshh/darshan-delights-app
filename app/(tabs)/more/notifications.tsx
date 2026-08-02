@@ -13,12 +13,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
-import {
-  deleteNotification,
-  getNotifications,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
-} from "@/src/api/notifications"
 import EmptyState from "@/src/components/common/EmptyState"
 import NotificationCard from "@/src/components/notifications/NotificationCard"
 import {
@@ -27,12 +21,16 @@ import {
 } from "@/src/components/skeletons"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import {
+  useDeleteNotification,
+  useInfiniteNotifications,
+  useMarkAllNotificationsAsRead,
+  useMarkNotificationAsRead,
+} from "@/src/hooks/queries/useNotifications"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
 import { Notification } from "@/src/types/notifications"
-
-const PAGE_SIZE = 20
 
 interface NotificationItemProps {
   item: Notification
@@ -279,36 +277,13 @@ export default function NotificationsScreenTab() {
   const pathname = usePathname()
   const { config, isTablet, isLandscape, width } = useResponsive()
 
-  const token = useAuthStore((state) => state.token)
-  const notifications = useNotificationStore((state) => state.notifications)
-  const unreadCount = useNotificationStore((state) => state.unreadCount)
-  const isLoading = useNotificationStore((state) => state.isLoading)
-  const hasMore = useNotificationStore((state) => state.hasMore)
-  const page = useNotificationStore((state) => state.page)
-  const setNotifications = useNotificationStore(
-    (state) => state.setNotifications
-  )
-  const addNotifications = useNotificationStore(
-    (state) => state.addNotifications
-  )
-  const setUnreadCount = useNotificationStore((state) => state.setUnreadCount)
-  const decrementUnreadCount = useNotificationStore(
-    (state) => state.decrementUnreadCount
-  )
-  const markAsRead = useNotificationStore((state) => state.markAsRead)
-  const markAllAsRead = useNotificationStore((state) => state.markAllAsRead)
-  const removeNotification = useNotificationStore(
-    (state) => state.removeNotification
-  )
-  const setLoading = useNotificationStore((state) => state.setLoading)
-  const setHasMore = useNotificationStore((state) => state.setHasMore)
-  const setPage = useNotificationStore((state) => state.setPage)
-  const incrementPage = useNotificationStore((state) => state.incrementPage)
+  const { token, user } = useAuthStore()
+  const userId = user?.id ?? null
+  const { unreadCount, setUnreadCount, decrementUnreadCount } =
+    useNotificationStore()
 
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-  // Layout configuration
   const layoutConfig = useMemo(() => {
     const useColumnsLayout = isTablet && isLandscape
     const numColumns = useColumnsLayout ? 2 : 1
@@ -336,107 +311,57 @@ export default function NotificationsScreenTab() {
     [layoutConfig.numColumns]
   )
 
-  /**
-   * Fetch notifications
-   */
-  const fetchNotifications = useCallback(
-    async (pageNum: number = 1, refresh: boolean = false) => {
-      if (!token) return
+  const {
+    data: notificationsData,
+    isLoading,
+    isFetchingNextPage: isLoadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteNotifications(token, userId)
 
-      try {
-        if (refresh) {
-          setIsRefreshing(true)
-        } else if (pageNum === 1) {
-          setLoading(true)
-        } else {
-          setIsLoadingMore(true)
-        }
+  const notifications = notificationsData?.pages.flatMap((p) => p.data) ?? []
 
-        const response = await getNotifications(token, pageNum, PAGE_SIZE)
-
-        if (refresh || pageNum === 1) {
-          setNotifications(response.data)
-          setPage(1)
-        } else {
-          addNotifications(response.data)
-        }
-
-        setUnreadCount(response.meta.unreadCount)
-        setHasMore(pageNum < response.meta.pagination.pageCount)
-      } catch (error) {
-        console.error("Error fetching notifications:", error)
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load notifications",
-          visibilityTime: 2000,
-        })
-      } finally {
-        setLoading(false)
-        setIsRefreshing(false)
-        setIsLoadingMore(false)
-      }
-    },
-    [
-      token,
-      setLoading,
-      setNotifications,
-      setPage,
-      addNotifications,
-      setUnreadCount,
-      setHasMore,
-    ]
-  )
-
-  /**
-   * Initial fetch
-   */
+  const serverUnreadCount = notificationsData?.pages[0]?.meta.unreadCount
   useEffect(() => {
-    fetchNotifications(1)
-  }, [])
+    if (serverUnreadCount !== undefined) setUnreadCount(serverUnreadCount)
+  }, [serverUnreadCount, setUnreadCount])
 
   useEffect(() => {
     Notifications.setBadgeCountAsync(0)
   }, [])
 
-  /**
-   * Handle refresh
-   */
-  const handleRefresh = useCallback(() => {
-    fetchNotifications(1, true)
-  }, [fetchNotifications])
+  const { mutate: markAsReadMutate } = useMarkNotificationAsRead()
+  const { mutate: markAllReadMutate } = useMarkAllNotificationsAsRead()
+  const { mutate: deleteMutate } = useDeleteNotification()
 
-  /**
-   * Handle load more
-   */
-  const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMore && !isLoading) {
-      const nextPage = page + 1
-      incrementPage()
-      fetchNotifications(nextPage)
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      await refetch()
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [
-    isLoadingMore,
-    hasMore,
-    isLoading,
-    page,
-    incrementPage,
-    fetchNotifications,
-  ])
-  /**
-   * Handle notification press
-   */
+  }, [refetch])
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore) {
+      fetchNextPage()
+    }
+  }, [hasMore, isLoadingMore, fetchNextPage])
+
   const handleNotificationPress = useCallback(
-    async (notification: Notification) => {
+    (notification: Notification) => {
       if (!notification.isRead && token) {
-        try {
-          await markNotificationAsRead(notification.id, token)
-          await Notifications.setBadgeCountAsync(unreadCount - 1)
-          markAsRead(notification.id)
-          decrementUnreadCount()
-        } catch (error) {
-          console.error("Error marking notification as read:", error)
-        }
+        markAsReadMutate(
+          { id: notification.id, token },
+          {
+            onSuccess: () => {
+              decrementUnreadCount()
+              Notifications.setBadgeCountAsync(Math.max(0, unreadCount - 1))
+            },
+          }
+        )
       }
 
       if (notification.actionUrl && pathname !== "/more/notifications") {
@@ -445,12 +370,9 @@ export default function NotificationsScreenTab() {
         router.push(`/(tabs)/more/orders?orderId=${notification.order.id}`)
       }
     },
-    [token, unreadCount, pathname, router, markAsRead, decrementUnreadCount]
+    [token, unreadCount, pathname, router, markAsReadMutate, decrementUnreadCount]
   )
 
-  /**
-   * Handle delete notification
-   */
   const handleDeleteNotification = useCallback(
     (notification: Notification) => {
       Alert.alert(
@@ -461,72 +383,70 @@ export default function NotificationsScreenTab() {
           {
             text: "Delete",
             style: "destructive",
-            onPress: async () => {
+            onPress: () => {
               if (!token) return
-
-              try {
-                await deleteNotification(notification.id, token)
-                removeNotification(notification.id)
-
-                if (!notification.isRead) {
-                  decrementUnreadCount()
-                  await Notifications.setBadgeCountAsync(unreadCount - 1)
+              deleteMutate(
+                { id: notification.id, token },
+                {
+                  onSuccess: () => {
+                    if (!notification.isRead) {
+                      decrementUnreadCount()
+                      Notifications.setBadgeCountAsync(
+                        Math.max(0, unreadCount - 1)
+                      )
+                    }
+                    Toast.show({
+                      type: "success",
+                      text1: "Deleted",
+                      text2: "Notification removed",
+                      visibilityTime: 1500,
+                    })
+                  },
+                  onError: () => {
+                    Toast.show({
+                      type: "error",
+                      text1: "Error",
+                      text2: "Failed to delete notification",
+                      visibilityTime: 2000,
+                    })
+                  },
                 }
-
-                Toast.show({
-                  type: "success",
-                  text1: "Deleted",
-                  text2: "Notification removed",
-                  visibilityTime: 1500,
-                })
-              } catch (error) {
-                console.error("Error deleting notification:", error)
-                Toast.show({
-                  type: "error",
-                  text1: "Error",
-                  text2: "Failed to delete notification",
-                  visibilityTime: 2000,
-                })
-              }
+              )
             },
           },
         ]
       )
     },
-    [token, unreadCount, removeNotification, decrementUnreadCount]
+    [token, unreadCount, deleteMutate, decrementUnreadCount]
   )
 
-  /**
-   * Handle mark all as read
-   */
-  const handleMarkAllAsRead = useCallback(async () => {
+  const handleMarkAllAsRead = useCallback(() => {
     if (!token || unreadCount === 0) return
+    markAllReadMutate(
+      { token },
+      {
+        onSuccess: () => {
+          setUnreadCount(0)
+          Notifications.setBadgeCountAsync(0)
+          Toast.show({
+            type: "success",
+            text1: "Done",
+            text2: "All notifications marked as read",
+            visibilityTime: 1500,
+          })
+        },
+        onError: () => {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: "Failed to mark all as read",
+            visibilityTime: 2000,
+          })
+        },
+      }
+    )
+  }, [token, unreadCount, markAllReadMutate, setUnreadCount])
 
-    try {
-      await markAllNotificationsAsRead(token)
-      await Notifications.setBadgeCountAsync(0)
-      markAllAsRead()
-
-      Toast.show({
-        type: "success",
-        text1: "Done",
-        text2: "All notifications marked as read",
-        visibilityTime: 1500,
-      })
-    } catch (error) {
-      console.error("Error marking all as read:", error)
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to mark all as read",
-        visibilityTime: 2000,
-      })
-    }
-  }, [token, unreadCount, markAllAsRead])
-
-  /**
-   * Render notification item
-   */
   const renderItem = useCallback(
     ({ item, index }: { item: Notification; index: number }) => (
       <NotificationItem
@@ -554,9 +474,6 @@ export default function NotificationsScreenTab() {
     []
   )
 
-  /**
-   * Render header
-   */
   const ListHeaderComponent = useMemo(
     () => (
       <ListHeader
@@ -601,7 +518,6 @@ export default function NotificationsScreenTab() {
     )
   }, [isLoading])
 
-  // Loading state
   if (isLoading && notifications.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -657,7 +573,6 @@ export default function NotificationsScreenTab() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
-        // Performance optimizations
         removeClippedSubviews={true}
         maxToRenderPerBatch={10}
         initialNumToRender={10}
@@ -683,7 +598,6 @@ const styles = StyleSheet.create({
   skeletonRow: {
     flexDirection: "row",
   },
-  // Header
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -698,7 +612,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium",
     color: AppColors.primary[600],
   },
-  // Footer
   loadingFooter: {
     flexDirection: "row",
     paddingVertical: 16,

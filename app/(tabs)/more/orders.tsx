@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
-import { cancelOrder, getUserOrders } from "@/src/api/orders"
+import { useCancelOrder, useInfiniteOrders } from "@/src/hooks/queries/useOrders"
 import { getUserProductReview } from "@/src/api/reviews"
 import EmptyState from "@/src/components/common/EmptyState"
 import Wrapper from "@/src/components/common/Wrapper"
@@ -37,16 +37,29 @@ export default function OrdersScreen() {
     orderId?: string
   }>()
 
-  // Orders state
-  const [orders, setOrders] = useState<Order[]>([])
-  const [totalOrders, setTotalOrders] = useState(0)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const {
+    data: ordersData,
+    isLoading,
+    isFetchingNextPage: isLoadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    refetch,
+    error: queryError,
+  } = useInfiniteOrders({
+    userId: user?.id ? Number(user.id) : null,
+    token,
+    limit: ORDERS_PER_PAGE,
+    enabled: !!user && !!token,
+  })
 
-  // Loading states
-  const [isLoading, setIsLoading] = useState(true)
+  const orders = ordersData?.pages.flatMap((p) => p.orders) ?? []
+  const totalOrders = ordersData?.pages[0]?.totalOrders ?? 0
+  const error = !user || !token
+    ? "Please login to view your orders"
+    : queryError
+      ? (queryError as any).message || "Failed to load orders"
+      : null
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   // Order Modal state
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -61,8 +74,7 @@ export default function OrdersScreen() {
   const [reviewOrderId, setReviewOrderId] = useState<number | null>(null)
   const [existingReview, setExistingReview] = useState<Review | null>(null)
 
-  // Error state
-  const [error, setError] = useState<string | null>(null)
+  const cancelOrderMutation = useCancelOrder()
 
   // Layout configuration
   const useColumnsLayout = isTablet && isLandscape
@@ -87,68 +99,6 @@ export default function OrdersScreen() {
       }
     }
   }, [deepLinkOrderId, orders, isLoading])
-
-  /**
-   * Fetch orders from API
-   */
-  const fetchOrders = useCallback(
-    async (reset: boolean = true) => {
-      if (!token || !user) {
-        setError("Please login to view your orders")
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        if (reset) {
-          setIsLoading(true)
-          setError(null)
-        }
-
-        const startIndex = reset ? 0 : currentPage * ORDERS_PER_PAGE
-        const data = await getUserOrders(token, ORDERS_PER_PAGE, startIndex)
-
-        if (data?.orders) {
-          if (reset) {
-            setOrders(data.orders)
-            setCurrentPage(1)
-          } else {
-            setOrders((prev) => {
-              const existingIds = new Set(prev.map((o) => o.id))
-              const newOrders = data.orders.filter(
-                (o: Order) => !existingIds.has(o.id)
-              )
-              return [...prev, ...newOrders]
-            })
-            setCurrentPage((prev) => prev + 1)
-          }
-
-          setTotalOrders(data.totalOrders)
-          const currentCount = reset
-            ? data.orders.length
-            : orders.length + data.orders.length
-          setHasMore(
-            data.orders.length === ORDERS_PER_PAGE &&
-              currentCount < data.totalOrders
-          )
-        } else {
-          if (reset) {
-            setOrders([])
-            setTotalOrders(0)
-          }
-          setHasMore(false)
-        }
-      } catch (err: any) {
-        console.error("Error fetching orders:", err)
-        setError(err.message || "Failed to load orders")
-      } finally {
-        setIsLoading(false)
-        setIsRefreshing(false)
-        setIsLoadingMore(false)
-      }
-    },
-    [token, user, currentPage, orders.length]
-  )
 
   /**
    * Fetch reviewed products for an order
@@ -208,18 +158,18 @@ export default function OrdersScreen() {
    */
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
-    await fetchOrders(true)
-  }, [fetchOrders])
+    await refetch()
+    setIsRefreshing(false)
+  }, [refetch])
 
   /**
    * Handle load more (infinite scroll)
    */
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMore && hasMore && !isLoading) {
-      setIsLoadingMore(true)
-      fetchOrders(false)
+      fetchNextPage()
     }
-  }, [isLoadingMore, hasMore, isLoading, fetchOrders])
+  }, [isLoadingMore, hasMore, isLoading, fetchNextPage])
 
   /**
    * Handle cancel order
@@ -227,32 +177,15 @@ export default function OrdersScreen() {
   const handleCancelOrder = useCallback(
     async (orderId: number) => {
       if (!token) return
-
       try {
-        const result = await cancelOrder(orderId, token)
-
-        if (result?.order_status === "canceled") {
-          setOrders((prev) =>
-            prev.map((order) =>
-              order.id === orderId
-                ? {
-                    ...order,
-                    order_status: "canceled",
-                    delivery_status: "canceled",
-                  }
-                : order
-            )
-          )
-
-          Toast.show({
-            type: "success",
-            text1: "Order Canceled",
-            text2: `Order #${orderId} has been canceled`,
-            visibilityTime: 2500,
-          })
-        }
+        await cancelOrderMutation.mutateAsync({ orderId, token })
+        Toast.show({
+          type: "success",
+          text1: "Order Canceled",
+          text2: `Order #${orderId} has been canceled`,
+          visibilityTime: 2500,
+        })
       } catch (err: any) {
-        console.error("Error canceling order:", err)
         Toast.show({
           type: "error",
           text1: "Cancel Failed",
@@ -261,7 +194,7 @@ export default function OrdersScreen() {
         })
       }
     },
-    [token]
+    [token, cancelOrderMutation]
   )
 
   /**
@@ -493,11 +426,11 @@ export default function OrdersScreen() {
     )
   }
 
-  // Fetch orders on focus
+  // Refetch orders on focus
   useFocusEffect(
     useCallback(() => {
-      fetchOrders(true)
-    }, [])
+      refetch()
+    }, [refetch])
   )
 
   // Loading state with skeleton

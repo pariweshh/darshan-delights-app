@@ -31,7 +31,7 @@ interface Props {
   onWriteReview: (
     product: CartItem,
     orderId: number,
-    existingReview: Review | null
+    existingReview: Review | null,
   ) => void
   reviewedProductIds: Set<number>
 }
@@ -111,7 +111,7 @@ const OrderDetailsModal: React.FC<Props> = ({
       try {
         existingReview = await getUserProductReview(
           Number(product.product_id),
-          token
+          token,
         )
       } catch (error) {
         existingReview = null
@@ -123,7 +123,7 @@ const OrderDetailsModal: React.FC<Props> = ({
         onWriteReview(product, order.id, existingReview)
       }, 300)
     },
-    [token, order, onClose, onWriteReview]
+    [token, order, onClose, onWriteReview],
   )
 
   const handleViewProduct = useCallback(
@@ -136,7 +136,7 @@ const OrderDetailsModal: React.FC<Props> = ({
         })
       }, 300)
     },
-    [onClose, router]
+    [onClose, router],
   )
 
   const formatDate = (dateString: string): string => {
@@ -224,7 +224,7 @@ const OrderDetailsModal: React.FC<Props> = ({
                 <Text
                   style={[styles.headerTitle, { fontSize: isTablet ? 22 : 20 }]}
                 >
-                  Order #{order.id || order.order_number}
+                  Order #{order.order_number || order.id}
                 </Text>
                 <Text
                   style={[
@@ -636,7 +636,7 @@ const OrderDetailsModal: React.FC<Props> = ({
               >
                 {orderProducts.map((item, index) => {
                   const isReviewed = reviewedProductIds.has(
-                    Number(item.product_id)
+                    Number(item.product_id),
                   )
 
                   return (
@@ -820,8 +820,8 @@ const OrderDetailsModal: React.FC<Props> = ({
                       ? 28
                       : 32
                     : isTablet
-                    ? 20
-                    : 16,
+                      ? 20
+                      : 16,
               },
             ]}
           >

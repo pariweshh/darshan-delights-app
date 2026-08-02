@@ -13,10 +13,10 @@ import Toast from "react-native-toast-message"
 
 import { getProductById, getProductBySlug } from "@/src/api/products"
 import AppColors from "@/src/constants/Colors"
+import { useAddToCart, useCart } from "@/src/hooks/queries/useCart"
+import { useIsFavorite, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
-import { useCartStore } from "@/src/store/cartStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { Product } from "@/src/types"
 
 import {
@@ -286,25 +286,17 @@ export default function ProductDetailScreen() {
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
-  const addItem = useCartStore((state) => state.addItem)
-  const cart = useCartStore((state) => state.cart)
-  const cartLoading = useCartStore((state) => state.isLoading)
-  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
-  const isFavorite = useFavoritesStore((state) => state.isFavorite)
+  const { data: cartItems = [] } = useCart({ token, enabled: !!token })
+  const addToCartMutation = useAddToCart()
+  const toggleFavoriteMutation = useToggleFavorite()
   const { trackProductView } = useRecentlyViewed()
 
-  const isFav = useMemo(
-    () => isFavorite(product?.id ?? 0),
-    [isFavorite, product?.id]
-  )
+  const isFav = useIsFavorite(product?.id ?? 0, token)
 
   // Calculate stock availability
   const productInCart = useMemo(
-    () =>
-      cart?.find(
-        (item) => item.product_id?.toString() === product?.id?.toString()
-      ),
-    [cart, product?.id]
+    () => cartItems.find((item) => item.product_id?.toString() === product?.id?.toString()),
+    [cartItems, product?.id]
   )
   const quantityInCart = productInCart?.quantity || 0
   const availableStock = (product?.stock || 0) - quantityInCart
@@ -431,22 +423,11 @@ export default function ProductDetailScreen() {
 
   const handleAddToCart = useCallback(async () => {
     if (!product || !token) {
-      Toast.show({
-        type: "error",
-        text1: "Please login",
-        text2: "You must be logged in to add items to your cart",
-        visibilityTime: 2000,
-      })
+      Toast.show({ type: "error", text1: "Please login", text2: "You must be logged in to add items to your cart", visibilityTime: 2000 })
       return
     }
-
     if (isOutOfStock) {
-      Toast.show({
-        type: "error",
-        text1: "Out of stock",
-        text2: "This product is currently unavailable",
-        visibilityTime: 2000,
-      })
+      Toast.show({ type: "error", text1: "Out of stock", text2: "This product is currently unavailable", visibilityTime: 2000 })
       return
     }
 
@@ -455,58 +436,33 @@ export default function ProductDetailScreen() {
       product_id: product.id,
       user_id: parseInt(user?.id?.toString() ?? "0"),
       quantity,
-      amount: price,
+      amount: price * quantity,
       name: product.name,
       cover: product.cover?.url,
       slug: product.slug,
       unit_price: price,
-      publishedAt: new Date(),
       brand: product.brand?.name,
       weight: quantity * product.weight_in_grams,
     }
 
     try {
-      const result = await addItem(itemData as any, token)
-
-      if (result?.basket_item_id) {
-        Toast.show({
-          type: "success",
-          text1: "Added to cart!",
-          text2: `${product.name} has been added to your cart`,
-          visibilityTime: 2000,
-        })
-        setQuantity(1)
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Failed to add to cart",
-          text2: "Please try again",
-          visibilityTime: 2000,
-        })
-      }
-    } catch (err) {
-      console.error("Error adding to cart:", err)
-      Toast.show({
-        type: "error",
-        text1: "Failed to add to cart",
-        text2: "Please try again",
-        visibilityTime: 2000,
-      })
+      await addToCartMutation.mutateAsync({ product: itemData as any, token })
+      Toast.show({ type: "success", text1: "Added to cart!", text2: `${product.name} has been added to your cart`, visibilityTime: 2000 })
+      setQuantity(1)
+    } catch {
+      Toast.show({ type: "error", text1: "Failed to add to cart", text2: "Please try again", visibilityTime: 2000 })
     }
-  }, [product, token, user?.id, quantity, isOutOfStock, addItem])
+  }, [product, token, user?.id, quantity, isOutOfStock, addToCartMutation])
 
   const handleToggleFavorite = useCallback(() => {
     if (!product || !token) {
-      Toast.show({
-        type: "info",
-        text1: "Login required",
-        text2: "Please login to add favorites",
-        visibilityTime: 2000,
-      })
+      Toast.show({ type: "info", text1: "Login required", text2: "Please login to add favorites", visibilityTime: 2000 })
       return
     }
-    toggleFavorite({ product_id: product.id }, token)
-  }, [product, token, toggleFavorite])
+    toggleFavoriteMutation.mutateAsync({ productId: product.id, token }).catch(() => {
+      Toast.show({ type: "error", text1: "Failed to update favorites", text2: "Please try again", visibilityTime: 2000 })
+    })
+  }, [product, token, toggleFavoriteMutation])
 
   const handleShare = useCallback(async () => {
     if (!product) return
@@ -610,13 +566,6 @@ export default function ProductDetailScreen() {
     setShowFullDescription((prev) => !prev)
   }, [])
 
-  // Get reviews to display
-  // const otherReviews = reviews.filter((r) => r.id !== userReview?.id)
-  // const displayedReviews = showAllReviews
-  //   ? otherReviews
-  //   : otherReviews.slice(0, INITIAL_REVIEWS_COUNT)
-  // const hasMoreReviews = otherReviews.length > INITIAL_REVIEWS_COUNT
-  // const totalReviewsCount = reviewStats?.totalReviews || reviews.length
 
   // Loading state
   if (loading) {
@@ -918,8 +867,8 @@ export default function ProductDetailScreen() {
         <Button
           title={isOutOfStock ? "Out of Stock" : "Add to Cart"}
           onPress={handleAddToCart}
-          loading={cartLoading}
-          disabled={isOutOfStock || cartLoading}
+          loading={addToCartMutation.isPending}
+          disabled={isOutOfStock || addToCartMutation.isPending}
           containerStyles="flex-1 ml-4"
           icon={
             !isOutOfStock ? (

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -11,195 +11,108 @@ import {
 } from "react-native"
 import Toast from "react-native-toast-message"
 
-import {
-  canUserReviewProduct,
-  deleteReview,
-  getProductReviews,
-  getUserProductReview,
-} from "@/src/api/reviews"
 import AppColors from "@/src/constants/Colors"
+import {
+  REVIEW_SORT_OPTIONS,
+  REVIEWS_KEYS,
+  ReviewSortOption,
+  useDeleteReview,
+  useInfiniteProductReviews,
+  useUserReviewStatus,
+} from "@/src/hooks/queries/useReviews"
 import { useAuthStore } from "@/src/store/authStore"
-import { Review, ReviewStats } from "@/src/types/review"
+import { useQueryClient } from "@tanstack/react-query"
 
 import EmptyState from "@/src/components/common/EmptyState"
 import Wrapper from "@/src/components/common/Wrapper"
+import { Review } from "@/src/types/review"
 import RatingSummary from "@/src/components/reviews/RatingSummary"
 import ReviewCard from "@/src/components/reviews/ReviewCard"
 import WriteReviewModal from "@/src/components/reviews/WriteReviewModal"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
-type SortOption = "newest" | "oldest" | "highest" | "lowest"
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "Newest" },
-  { value: "oldest", label: "Oldest" },
-  { value: "highest", label: "Highest Rated" },
-  { value: "lowest", label: "Lowest Rated" },
-]
-
-const PAGE_SIZE = 10
-
 export default function ProductReviewsScreen() {
-  const router = useRouter()
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>()
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
+  const userId = user?.id ?? null
+  const queryClient = useQueryClient()
 
-  // State
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
-  const [sortBy, setSortBy] = useState<SortOption>("newest")
+  const productId = Number(id)
+
+  const [sortBy, setSortBy] = useState<ReviewSortOption>("newest")
   const [showSortPicker, setShowSortPicker] = useState(false)
-
-  // User review state
-  const [userReview, setUserReview] = useState<Review | null>(null)
-  const [canReview, setCanReview] = useState(false)
-  const [reviewOrderId, setReviewOrderId] = useState<number | undefined>()
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [showWriteReviewModal, setShowWriteReviewModal] = useState(false)
 
-  // Fetch reviews
-  const fetchReviews = useCallback(
-    async (pageNum: number = 0, sort: SortOption = sortBy, refresh = false) => {
-      if (!id) return
+  const {
+    data: reviewsData,
+    isLoading,
+    isFetchingNextPage: isLoadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteProductReviews({ productId, sortBy })
 
-      try {
-        if (refresh) {
-          setIsRefreshing(true)
-        } else if (pageNum === 1) {
-          setIsLoading(true)
-        } else {
-          setIsLoadingMore(true)
-        }
+  const { userReview, canReview, reviewOrderId } = useUserReviewStatus(productId, token, userId)
 
-        const response = await getProductReviews(
-          Number(id),
-          pageNum,
-          PAGE_SIZE,
-          sort
-        )
+  const { reviews, reviewStats } = useMemo(() => {
+    const all = reviewsData?.pages.flatMap((p) => p.data) ?? []
+    return {
+      reviews: userReview ? all.filter((r) => r.id !== userReview.id) : all,
+      reviewStats: reviewsData?.pages[0]?.stats ?? null,
+    }
+  }, [reviewsData, userReview])
 
-        if (pageNum === 1 || refresh) {
-          setReviews(response.data)
-          setReviewStats(response.stats)
-        } else {
-          setReviews((prev) => [...prev, ...response.data])
-        }
+  const { mutate: deleteMutate } = useDeleteReview()
 
-        setHasMore(pageNum < response.meta.pagination.pageCount)
-        setPage(pageNum)
-      } catch (error) {
-        console.error("Error fetching reviews:", error)
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load reviews",
-          visibilityTime: 2000,
-        })
-      } finally {
-        setIsLoading(false)
-        setIsRefreshing(false)
-        setIsLoadingMore(false)
-      }
-    },
-    [id, sortBy]
-  )
-
-  // Check user review status
-  const checkUserReviewStatus = useCallback(async () => {
-    if (!token || !id) return
-
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
     try {
-      const existingReview = await getUserProductReview(Number(id), token)
-      setUserReview(existingReview)
-
-      if (!existingReview) {
-        const result = await canUserReviewProduct(Number(id), token)
-        setCanReview(result.canReview)
-        setReviewOrderId(result.orderId)
-      }
-    } catch (err) {
-      if ((err as any)?.response?.status !== 404) {
-        console.error("Error checking review status:", err)
-      }
+      await refetch()
+    } finally {
+      setIsRefreshing(false)
     }
-  }, [token, id])
+  }, [refetch])
 
-  // Initial fetch
-  useEffect(() => {
-    fetchReviews(0)
-    checkUserReviewStatus()
-  }, [])
-
-  // Handlers
-  const handleRefresh = () => {
-    fetchReviews(0, sortBy, true)
-  }
-
-  const handleLoadMore = () => {
-    if (!isLoadingMore && hasMore && !isLoading) {
-      fetchReviews(page + 1)
+  const handleLoadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore) {
+      fetchNextPage()
     }
-  }
+  }, [hasMore, isLoadingMore, fetchNextPage])
 
-  const handleSortChange = (sort: SortOption) => {
+  const handleSortChange = useCallback((sort: ReviewSortOption) => {
     setSortBy(sort)
     setShowSortPicker(false)
-    fetchReviews(0, sort)
-  }
+  }, [])
 
-  const handleReviewSuccess = (review: Review) => {
-    setUserReview(review)
-    setCanReview(false)
-    fetchReviews(0)
-  }
+  const handleReviewSuccess = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: REVIEWS_KEYS.productInfinite(productId, sortBy) })
+    queryClient.invalidateQueries({ queryKey: REVIEWS_KEYS.userProductReview(productId, userId) })
+    queryClient.invalidateQueries({ queryKey: REVIEWS_KEYS.canReview(productId, userId) })
+  }, [queryClient, productId, sortBy, userId])
 
-  const handleEditReview = () => {
-    setShowWriteReviewModal(true)
-  }
-
-  const handleDeleteReview = async () => {
+  const handleDeleteReview = useCallback(() => {
     if (!userReview || !token) return
 
-    try {
-      await deleteReview(userReview.id, token)
-      setUserReview(null)
+    deleteMutate(
+      { reviewId: userReview.id, token },
+      {
+        onSuccess: () => {
+          Toast.show({ type: "success", text1: "Deleted", text2: "Your review has been deleted", visibilityTime: 2000 })
+        },
+        onError: () => {
+          Toast.show({ type: "error", text1: "Error", text2: "Failed to delete review", visibilityTime: 2000 })
+        },
+      }
+    )
+  }, [userReview, token, deleteMutate])
 
-      const result = await canUserReviewProduct(Number(id), token)
-      setCanReview(result.canReview)
-      setReviewOrderId(result.orderId)
-
-      fetchReviews(0)
-
-      Toast.show({
-        type: "success",
-        text1: "Deleted",
-        text2: "Your review has been deleted",
-        visibilityTime: 2000,
-      })
-    } catch (err) {
-      console.error("Error deleting review:", err)
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to delete review",
-        visibilityTime: 2000,
-      })
-    }
-  }
-
-  // Render header
-  const renderHeader = () => (
+  const header = useMemo(() => (
     <View style={styles.headerContainer}>
-      {/* Rating Summary */}
       {reviewStats && reviewStats.totalReviews > 0 && (
         <RatingSummary stats={reviewStats} />
       )}
 
-      {/* Write Review Button */}
       {token && (canReview || userReview) && (
         <DebouncedTouchable
           style={styles.writeReviewButton}
@@ -217,19 +130,17 @@ export default function ProductReviewsScreen() {
         </DebouncedTouchable>
       )}
 
-      {/* User's Review */}
       {userReview && (
         <View style={styles.userReviewSection}>
           <Text style={styles.userReviewTitle}>Your Review</Text>
           <ReviewCard
             review={userReview}
-            onEdit={handleEditReview}
+            onEdit={() => setShowWriteReviewModal(true)}
             onDelete={handleDeleteReview}
           />
         </View>
       )}
 
-      {/* Sort Row */}
       {reviews.length > 0 && (
         <View style={styles.sortRow}>
           <Text style={styles.reviewCountText}>
@@ -237,11 +148,11 @@ export default function ProductReviewsScreen() {
           </Text>
           <DebouncedTouchable
             style={styles.sortButton}
-            onPress={() => setShowSortPicker(!showSortPicker)}
+            onPress={() => setShowSortPicker((prev) => !prev)}
             activeOpacity={0.7}
           >
             <Text style={styles.sortLabel}>
-              {SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
+              {REVIEW_SORT_OPTIONS.find((o) => o.value === sortBy)?.label}
             </Text>
             <Ionicons
               name={showSortPicker ? "chevron-up" : "chevron-down"}
@@ -252,10 +163,9 @@ export default function ProductReviewsScreen() {
         </View>
       )}
 
-      {/* Sort Picker */}
       {showSortPicker && (
         <View style={styles.sortPicker}>
-          {SORT_OPTIONS.map((option) => (
+          {REVIEW_SORT_OPTIONS.map((option) => (
             <DebouncedTouchable
               key={option.value}
               style={[
@@ -274,33 +184,22 @@ export default function ProductReviewsScreen() {
                 {option.label}
               </Text>
               {sortBy === option.value && (
-                <Ionicons
-                  name="checkmark"
-                  size={16}
-                  color={AppColors.primary[600]}
-                />
+                <Ionicons name="checkmark" size={16} color={AppColors.primary[600]} />
               )}
             </DebouncedTouchable>
           ))}
         </View>
       )}
     </View>
+  ), [reviewStats, token, canReview, userReview, reviews.length, sortBy, handleSortChange, handleDeleteReview])
+
+  const renderItem = useCallback(
+    ({ item }: { item: Review }) => <ReviewCard review={item} showActions={false} />,
+    []
   )
 
-  // Render review item
-  const renderItem = ({ item }: { item: Review }) => {
-    // Skip user's own review in the list
-    if (userReview && item.id === userReview.id) {
-      return null
-    }
-
-    return <ReviewCard review={item} showActions={false} />
-  }
-
-  // Render empty
-  const renderEmpty = () => {
+  const renderEmpty = useCallback(() => {
     if (isLoading) return null
-
     return (
       <EmptyState
         icon="chatbubble-outline"
@@ -308,18 +207,16 @@ export default function ProductReviewsScreen() {
         subMessage="Be the first to review this product!"
       />
     )
-  }
+  }, [isLoading])
 
-  // Render footer
-  const renderFooter = () => {
+  const renderFooter = useCallback(() => {
     if (!isLoadingMore) return null
-
     return (
       <View style={styles.loadingFooter}>
         <ActivityIndicator size="small" color={AppColors.primary[500]} />
       </View>
     )
-  }
+  }, [isLoadingMore])
 
   return (
     <Wrapper style={styles.container} edges={[]}>
@@ -333,7 +230,7 @@ export default function ProductReviewsScreen() {
           data={reviews}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={header}
           ListEmptyComponent={renderEmpty}
           ListFooterComponent={renderFooter}
           contentContainerStyle={
@@ -353,12 +250,11 @@ export default function ProductReviewsScreen() {
         />
       )}
 
-      {/* Write Review Modal */}
       <WriteReviewModal
         visible={showWriteReviewModal}
         onClose={() => setShowWriteReviewModal(false)}
         onSuccess={handleReviewSuccess}
-        productId={Number(id)}
+        productId={productId}
         productName={name || "Product"}
         existingReview={userReview}
         orderId={reviewOrderId}
@@ -372,10 +268,6 @@ const styles = StyleSheet.create({
     backgroundColor: AppColors.background.secondary,
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
-  },
-  backButton: {
-    marginRight: 8,
-    padding: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -394,7 +286,6 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 16,
   },
-  // Header
   headerContainer: {
     padding: 16,
     backgroundColor: AppColors.background.secondary,
@@ -425,7 +316,6 @@ const styles = StyleSheet.create({
     color: AppColors.text.primary,
     marginBottom: 8,
   },
-  // Sort Row
   sortRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -450,7 +340,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: AppColors.text.secondary,
   },
-  // Sort Picker
   sortPicker: {
     backgroundColor: AppColors.background.primary,
     borderRadius: 10,
@@ -480,7 +369,6 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins_500Medium",
     color: AppColors.primary[600],
   },
-  // Footer
   loadingFooter: {
     paddingVertical: 16,
     alignItems: "center",

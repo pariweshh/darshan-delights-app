@@ -1,5 +1,6 @@
 // src/hooks/useResponsive.ts
 
+import { useMemo } from "react"
 import { useWindowDimensions } from "react-native"
 
 export type DeviceType = "phone" | "tablet"
@@ -136,7 +137,10 @@ export function useResponsive(): ResponsiveInfo {
   const smallerDimension = Math.min(width, height)
   const deviceType: DeviceType = smallerDimension >= 600 ? "tablet" : "phone"
 
-  const config = getResponsiveConfig(width, height, deviceType, isLandscape)
+  const config = useMemo(
+    () => getResponsiveConfig(width, height, deviceType, isLandscape),
+    [width, height, deviceType, isLandscape]
+  )
 
   return {
     width,

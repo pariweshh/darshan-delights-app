@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons"
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router"
-import { memo, useCallback, useEffect, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -9,9 +9,11 @@ import {
   View,
 } from "react-native"
 
+import { useCart } from "@/src/hooks/queries/useCart"
+import { useBrands, useCategories, useInfiniteProducts } from "@/src/hooks/queries/useProducts"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
-import { useCartStore } from "@/src/store/cartStore"
+import { useAuthStore } from "@/src/store/authStore"
 import { useProductsStore } from "@/src/store/productStore"
 import { Brand, Product } from "@/src/types"
 
@@ -26,7 +28,6 @@ import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 const ITEMS_PER_PAGE = 12
 
-// Memoize the product item component
 const ProductItem = memo(
   ({
     item,
@@ -61,32 +62,18 @@ export default function ShopScreen() {
     brand?: string
   }>()
 
-  const { cart } = useCartStore()
-
-  const {
-    fetchProducts,
-    categories,
-    fetchCategories,
-    brands,
-    fetchBrands,
-    selectedCategory,
-    setCategory,
-  } = useProductsStore()
-
-  // Local state
-  const [products, setProducts] = useState<Product[]>([])
-  const [currentPage, setCurrentPage] = useState(1)
-  const [hasMoreData, setHasMoreData] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
-  const [totalProducts, setTotalProducts] = useState(0)
+  const { token } = useAuthStore()
+  const { selectedCategory, setCategory } = useProductsStore()
+  const { data: cartItems = [] } = useCart({ token, enabled: !!token })
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories()
+  const { data: brands = [], isLoading: brandsLoading } = useBrands()
 
   // Filter state
   const [showFilterModal, setShowFilterModal] = useState(false)
   const [activeSortOption, setActiveSortOption] = useState<string | null>(null)
   const [selectedBrands, setSelectedBrands] = useState<Brand[]>([])
 
-  // Track if initial params have been applied
+  // Track if initial URL params have been applied
   const [paramsApplied, setParamsApplied] = useState(false)
 
   const isFilterActive =
@@ -94,10 +81,8 @@ export default function ShopScreen() {
     activeSortOption !== null ||
     selectedBrands.length > 0
 
-  // Calculate number of columns based on device and orientation
+  // Calculate grid layout
   const numColumns = config.productGridColumns
-
-  // Calculate item width for the grid
   const gap = config.gap
   const horizontalPadding = config.horizontalPadding
   const totalGap = gap * (numColumns - 1)
@@ -105,29 +90,17 @@ export default function ShopScreen() {
   const itemWidth = (availableWidth - totalGap) / numColumns
 
   useEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    })
+    navigation.setOptions({ headerShown: false })
   }, [navigation])
 
+  // Apply URL params once brands have loaded — runs only once
   useEffect(() => {
-    if (!categories || categories.length === 0) fetchCategories()
-    if (!brands || brands.length === 0) fetchBrands()
-  }, [])
+    if (brandsLoading || paramsApplied) return
 
-  useEffect(() => {
-    // Wait for brands to load before applying params
-    if (!brands || brands.length === 0) return
-
-    // Only apply params once
-    if (paramsApplied) return
-
-    // Apply category param
     if (categoryParam && categoryParam !== selectedCategory) {
       setCategory(categoryParam)
     }
 
-    // Apply brand param
     if (brandParam) {
       const matchedBrand = brands.find(
         (b) => b.name.toLowerCase() === brandParam.toLowerCase()
@@ -137,109 +110,29 @@ export default function ShopScreen() {
       }
     }
 
-    // Mark params as applied
     setParamsApplied(true)
-  }, [brands, brandParam, categoryParam])
+  }, [brands, brandsLoading, brandParam, categoryParam, paramsApplied, selectedCategory, setCategory])
 
-  const buildApiParams = useCallback(() => {
-    const params: any = {
-      limit: ITEMS_PER_PAGE,
-      sort: activeSortOption || "createdAt:desc",
-    }
+  // Filter params drive the query key — changing them auto-resets pagination
+  const filterParams = useMemo(() => ({
+    limit: ITEMS_PER_PAGE,
+    sort: activeSortOption || 'createdAt:desc',
+    ...(selectedCategory ? { category: selectedCategory } : {}),
+    ...(selectedBrands.length > 0
+      ? { selectedBrands: selectedBrands.map((b) => b.id).join(',') }
+      : {}),
+  }), [activeSortOption, selectedCategory, selectedBrands])
 
-    if (selectedCategory) {
-      params.category = selectedCategory
-    }
+  const {
+    data: productsData,
+    isLoading: isInitialLoading,
+    isFetchingNextPage: isLoadingMore,
+    hasNextPage: hasMoreData,
+    fetchNextPage,
+  } = useInfiniteProducts(filterParams)
 
-    if (selectedBrands.length > 0) {
-      params.selectedBrands = selectedBrands.map((b) => b.id).join(",")
-    }
-
-    return params
-  }, [selectedCategory, selectedBrands, activeSortOption])
-
-  const loadInitialProducts = useCallback(async () => {
-    setIsInitialLoading(true)
-    setProducts([])
-    setCurrentPage(1)
-    setHasMoreData(true)
-
-    try {
-      const params = { ...buildApiParams(), start: 0 }
-      const data = await fetchProducts(params)
-
-      if (data?.products) {
-        setProducts(data.products)
-        setTotalProducts(data.total)
-        setHasMoreData(
-          data.products.length === ITEMS_PER_PAGE &&
-            data.products.length < data.total
-        )
-      }
-    } catch (error) {
-      console.error("Error loading products:", error)
-    } finally {
-      setIsInitialLoading(false)
-    }
-  }, [buildApiParams, fetchProducts])
-
-  const loadMoreProducts = useCallback(async () => {
-    if (isLoadingMore || !hasMoreData || isInitialLoading) return
-
-    setIsLoadingMore(true)
-
-    try {
-      const startIndex = currentPage * ITEMS_PER_PAGE
-      const params = { ...buildApiParams(), start: startIndex }
-      const data = await fetchProducts(params)
-
-      if (data?.products && data.products.length > 0) {
-        setProducts((prev) => {
-          const existingIds = new Set(prev.map((p) => p.id))
-          const newProducts = data.products.filter(
-            (p) => !existingIds.has(p.id)
-          )
-          return [...prev, ...newProducts]
-        })
-
-        setCurrentPage((prev) => prev + 1)
-        setHasMoreData(products.length + data.products.length < data.total)
-      } else {
-        setHasMoreData(false)
-      }
-    } catch (error) {
-      console.error("Error loading more:", error)
-    } finally {
-      setIsLoadingMore(false)
-    }
-  }, [
-    isLoadingMore,
-    hasMoreData,
-    isInitialLoading,
-    currentPage,
-    buildApiParams,
-    fetchProducts,
-    products.length,
-  ])
-
-  useEffect(() => {
-    // Don't load until we have categories and brands data
-    if (!categories || categories.length === 0) return
-    if (!brands || brands.length === 0) return
-
-    // Don't load until URL params have been applied
-    if (!paramsApplied) return
-
-    loadInitialProducts()
-  }, [
-    selectedCategory,
-    activeSortOption,
-    selectedBrands,
-    categories,
-    brands,
-    paramsApplied,
-    loadInitialProducts,
-  ])
+  const products = productsData?.pages.flatMap((p) => p.products) ?? []
+  const totalProducts = productsData?.pages[0]?.total ?? 0
 
   // Handlers
   const handleCategoryChange = (category: string | null) => {
@@ -249,10 +142,7 @@ export default function ShopScreen() {
   const handleBrandToggle = (brand: Brand) => {
     setSelectedBrands((prev) => {
       const isSelected = prev.some((b) => b.id === brand.id)
-      if (isSelected) {
-        return prev.filter((b) => b.id !== brand.id)
-      }
-      return [...prev, brand]
+      return isSelected ? prev.filter((b) => b.id !== brand.id) : [...prev, brand]
     })
   }
 
@@ -269,7 +159,7 @@ export default function ShopScreen() {
 
   const handleEndReached = () => {
     if (hasMoreData && !isLoadingMore && !isInitialLoading) {
-      loadMoreProducts()
+      fetchNextPage()
     }
   }
 
@@ -281,7 +171,6 @@ export default function ShopScreen() {
     }
   }
 
-  // Render functions
   const renderTopHeader = () => (
     <View
       style={[
@@ -334,7 +223,7 @@ export default function ShopScreen() {
           size={config.iconSize + 2}
           color={AppColors.primary[700]}
         />
-        {cart?.length > 0 && (
+        {cartItems.length > 0 && (
           <View
             style={[
               styles.cartBadge,
@@ -348,7 +237,7 @@ export default function ShopScreen() {
             <Text
               style={[styles.cartBadgeText, { fontSize: isTablet ? 11 : 10 }]}
             >
-              {cart.length > 99 ? "99+" : cart.length}
+              {cartItems.length > 99 ? "99+" : cartItems.length}
             </Text>
           </View>
         )}
@@ -358,7 +247,6 @@ export default function ShopScreen() {
 
   const renderHeader = () => (
     <View style={styles.header}>
-      {/* Search Row */}
       <View
         style={[
           styles.searchRow,
@@ -422,20 +310,17 @@ export default function ShopScreen() {
         </DebouncedTouchable>
       </View>
 
-      {/* Category Chips */}
       <CategoryChips
         categories={categories || []}
         selectedCategory={selectedCategory}
         onSelectCategory={handleCategoryChange}
       />
 
-      {/* Active Filters */}
       <ActiveFilters
         selectedBrands={selectedBrands}
         activeSortOption={activeSortOption}
       />
 
-      {/* Results Count */}
       <View
         style={[
           styles.resultsRow,
@@ -451,18 +336,18 @@ export default function ShopScreen() {
     </View>
   )
 
-  const renderFooter = () => {
-    if (!isLoadingMore) return <View style={{ height: 100 }} />
-
-    return (
-      <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={AppColors.primary[500]} />
-        <Text style={[styles.loadingText, { fontSize: config.bodyFontSize }]}>
-          Loading more...
-        </Text>
-      </View>
-    )
-  }
+  const renderFooter = useCallback(() => (
+    <View style={styles.loadingFooter}>
+      {isLoadingMore && (
+        <>
+          <ActivityIndicator size="small" color={AppColors.primary[500]} />
+          <Text style={[styles.loadingText, { fontSize: config.bodyFontSize }]}>
+            Loading more...
+          </Text>
+        </>
+      )}
+    </View>
+  ), [isLoadingMore, config.bodyFontSize])
 
   const renderProduct = useCallback(
     ({ item, index }: { item: Product; index: number }) => (
@@ -479,18 +364,13 @@ export default function ShopScreen() {
 
   const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
 
-  // Create a key for FlatList to force re-render when columns change
   const flatListKey = `grid-${numColumns}`
 
   return (
     <Wrapper style={styles.container} edges={["top", "bottom"]}>
-      {/* Custom Top Header */}
       {renderTopHeader()}
-
-      {/* Filters Header */}
       {renderHeader()}
 
-      {/* Content */}
       {isInitialLoading ? (
         <View
           style={{
@@ -498,7 +378,6 @@ export default function ShopScreen() {
             paddingTop: 16,
           }}
         >
-          {/* Results count skeleton */}
           <View style={{ marginBottom: 12 }}>
             <SkeletonBase width={80} height={config.bodyFontSize + 2} />
           </View>
@@ -527,17 +406,14 @@ export default function ShopScreen() {
           ListFooterComponent={renderFooter}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.3}
-          // Performance optimizations
           removeClippedSubviews={true}
           initialNumToRender={ITEMS_PER_PAGE}
           maxToRenderPerBatch={8}
           windowSize={5}
           updateCellsBatchingPeriod={50}
-          getItemLayout={undefined}
         />
       )}
 
-      {/* Filter Modal */}
       <FilterModal
         visible={showFilterModal}
         onClose={() => setShowFilterModal(false)}
@@ -647,10 +523,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   loadingFooter: {
+    height: 100,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
     gap: 8,
   },
   loadingText: {

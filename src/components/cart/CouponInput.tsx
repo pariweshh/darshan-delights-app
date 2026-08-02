@@ -297,7 +297,7 @@ export default function CouponInput({
       )}
 
       {/* App exclusive hint */}
-      <View
+      {/* <View
         style={[
           styles.hintContainer,
           { marginTop: isTablet ? 14 : 12, paddingTop: isTablet ? 14 : 12 },
@@ -309,10 +309,10 @@ export default function CouponInput({
           color={AppColors.primary[500]}
         />
         <Text style={[styles.hintText, { fontSize: config.smallFontSize }]}>
-          Use code <Text style={styles.hintCode}>APP10</Text> for 10% off app
-          orders!
+          Use code <Text style={styles.hintCode}>APP10</Text> for 10% off your
+          first app order!
         </Text>
-      </View>
+      </View> */}
     </View>
   )
 }

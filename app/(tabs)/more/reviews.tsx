@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react"
+import React, { memo, useCallback, useMemo, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
@@ -13,27 +13,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
-import { deleteReview, getUserReviews } from "@/src/api/reviews"
 import EmptyState from "@/src/components/common/EmptyState"
 import Rating from "@/src/components/reviews/Rating"
 import { ReviewCardSkeleton, SkeletonBase } from "@/src/components/skeletons"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import AppColors from "@/src/constants/Colors"
+import { useDeleteReview, useInfiniteUserReviews } from "@/src/hooks/queries/useReviews"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Review } from "@/src/types/review"
+import { formatDate } from "@/src/utils/date"
 import { Image } from "expo-image"
-
-const PAGE_SIZE = 10
-
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
-}
 
 interface ReviewItemProps {
   item: Review
@@ -86,7 +76,6 @@ const ReviewItem = memo(
           },
         ]}
       >
-        {/* Product Info */}
         <DebouncedTouchable
           style={[styles.productInfo, { paddingBottom: isTablet ? 14 : 12 }]}
           onPress={handleProductPress}
@@ -147,7 +136,6 @@ const ReviewItem = memo(
           />
         </DebouncedTouchable>
 
-        {/* Rating */}
         <View style={[styles.ratingRow, { marginBottom: isTablet ? 10 : 8 }]}>
           <Rating rating={item.rating} size="small" />
           {item.isVerifiedPurchase && (
@@ -169,7 +157,6 @@ const ReviewItem = memo(
           )}
         </View>
 
-        {/* Title */}
         {item.title && (
           <Text
             style={[
@@ -181,7 +168,6 @@ const ReviewItem = memo(
           </Text>
         )}
 
-        {/* Message */}
         <Text
           style={[
             styles.reviewMessage,
@@ -195,7 +181,6 @@ const ReviewItem = memo(
           {item.message}
         </Text>
 
-        {/* Actions */}
         <View
           style={[
             styles.actionsRow,
@@ -263,11 +248,14 @@ const ReviewItem = memo(
     return (
       prevProps.item.id === nextProps.item.id &&
       prevProps.item.rating === nextProps.item.rating &&
+      prevProps.item.title === nextProps.item.title &&
       prevProps.item.message === nextProps.item.message &&
+      prevProps.item.isVerifiedPurchase === nextProps.item.isVerifiedPurchase &&
       prevProps.index === nextProps.index &&
       prevProps.useColumnsLayout === nextProps.useColumnsLayout &&
       prevProps.numColumns === nextProps.numColumns &&
-      prevProps.itemWidth === nextProps.itemWidth
+      prevProps.itemWidth === nextProps.itemWidth &&
+      prevProps.gap === nextProps.gap
     )
   }
 )
@@ -402,14 +390,10 @@ const SkeletonState = memo(
 export default function MyReviewsScreen() {
   const router = useRouter()
   const { config, isTablet, isLandscape, width } = useResponsive()
-  const token = useAuthStore((state) => state.token)
+  const { token, user } = useAuthStore()
+  const userId = user?.id ?? null
 
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
 
   const layoutConfig = useMemo(() => {
     const useColumnsLayout = isTablet && isLandscape
@@ -438,66 +422,33 @@ export default function MyReviewsScreen() {
     [layoutConfig.numColumns]
   )
 
-  /**
-   * Fetch user reviews
-   */
-  const fetchReviews = useCallback(
-    async (pageNum: number = 0, refresh: boolean = false) => {
-      if (!token) return
+  const {
+    data: reviewsData,
+    isLoading,
+    isFetchingNextPage: isLoadingMore,
+    hasNextPage: hasMore,
+    fetchNextPage,
+    refetch,
+  } = useInfiniteUserReviews({ token, userId })
 
-      try {
-        if (refresh) {
-          setIsRefreshing(true)
-        } else if (pageNum === 0) {
-          setIsLoading(true)
-        } else {
-          setIsLoadingMore(true)
-        }
+  const reviews = reviewsData?.pages.flatMap((p) => p.data) ?? []
 
-        const response = await getUserReviews(token, pageNum, PAGE_SIZE)
+  const { mutate: deleteMutate } = useDeleteReview()
 
-        if (refresh || pageNum === 0) {
-          setReviews(response.data)
-        } else {
-          setReviews((prev) => [...prev, ...response.data])
-        }
-
-        setHasMore(pageNum < response.meta.pagination.pageCount)
-        setPage(pageNum)
-      } catch (error) {
-        console.error("Error fetching reviews:", error)
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Failed to load your reviews",
-          visibilityTime: 2000,
-        })
-      } finally {
-        setIsLoading(false)
-        setIsRefreshing(false)
-        setIsLoadingMore(false)
-      }
-    },
-    [token]
-  )
-
-  /**
-   * Initial fetch
-   */
-  useEffect(() => {
-    fetchReviews(0)
-  }, [])
-
-  // Memoized handlers
-  const handleRefresh = useCallback(() => {
-    fetchReviews(0, true)
-  }, [fetchReviews])
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      await refetch()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [refetch])
 
   const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMore && !isLoading) {
-      fetchReviews(page + 1)
+    if (hasMore && !isLoadingMore) {
+      fetchNextPage()
     }
-  }, [isLoadingMore, hasMore, isLoading, page, fetchReviews])
+  }, [hasMore, isLoadingMore, fetchNextPage])
 
   const handleProductPress = useCallback(
     (review: Review) => {
@@ -521,34 +472,35 @@ export default function MyReviewsScreen() {
           {
             text: "Delete",
             style: "destructive",
-            onPress: async () => {
+            onPress: () => {
               if (!token) return
-
-              try {
-                await deleteReview(review.id, token)
-                setReviews((prev) => prev.filter((r) => r.id !== review.id))
-
-                Toast.show({
-                  type: "success",
-                  text1: "Deleted",
-                  text2: "Your review has been deleted",
-                  visibilityTime: 2000,
-                })
-              } catch (error) {
-                console.error("Error deleting review:", error)
-                Toast.show({
-                  type: "error",
-                  text1: "Error",
-                  text2: "Failed to delete review",
-                  visibilityTime: 2000,
-                })
-              }
+              deleteMutate(
+                { reviewId: review.id, token },
+                {
+                  onSuccess: () => {
+                    Toast.show({
+                      type: "success",
+                      text1: "Deleted",
+                      text2: "Your review has been deleted",
+                      visibilityTime: 2000,
+                    })
+                  },
+                  onError: () => {
+                    Toast.show({
+                      type: "error",
+                      text1: "Error",
+                      text2: "Failed to delete review",
+                      visibilityTime: 2000,
+                    })
+                  },
+                }
+              )
             },
           },
         ]
       )
     },
-    [token]
+    [token, deleteMutate]
   )
 
   const renderItem = useCallback(
@@ -606,7 +558,6 @@ export default function MyReviewsScreen() {
     )
   }, [isLoading, router])
 
-  // Loading state
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container} edges={["bottom"]}>
@@ -664,7 +615,6 @@ export default function MyReviewsScreen() {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.3}
         showsVerticalScrollIndicator={false}
-        // Performance optimizations
         removeClippedSubviews={true}
         maxToRenderPerBatch={8}
         initialNumToRender={8}

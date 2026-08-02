@@ -6,9 +6,9 @@ import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
+import { useAddToCart, useCart } from "@/src/hooks/queries/useCart"
+import { useIsFavorite, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
 import { useAuthStore } from "@/src/store/authStore"
-import { useCartStore } from "@/src/store/cartStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
 import {
   SCREEN_WIDTH,
   windowHeight,
@@ -32,31 +32,15 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  // Auth store - individual selectors
   const user = useAuthStore((state) => state.user)
   const token = useAuthStore((state) => state.token)
 
-  // Cart store - individual selectors
-  const addItem = useCartStore((state) => state.addItem)
-  const error = useCartStore((state) => state.error)
-  const getItemQuantityInCart = useCartStore(
-    (state) => state.getItemQuantityInCart
-  )
-
-  // Favorites store - subscribe to favorites list for proper re-renders
-  const favoriteProducts = useFavoritesStore(
-    (state) => state.favoriteList?.products
-  )
-  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite)
-
-  // Calculate isFav from the favorites array
-  const isFav = useMemo(
-    () => favoriteProducts?.some((p) => p.id === product.id) ?? false,
-    [favoriteProducts, product.id]
-  )
-
-  // Memoize computed values
-  const currentQuantityInCart = getItemQuantityInCart?.(product.id) || 0
+  const addToCartMutation = useAddToCart()
+  const toggleFavoriteMutation = useToggleFavorite()
+  const isFav = useIsFavorite(product.id, token)
+  const { data: cartItems = [] } = useCart({ token, enabled: !!token })
+  const currentQuantityInCart =
+    cartItems.find((item) => +item.product_id === +product.id)?.quantity ?? 0
   const isOutOfStock = product?.stock === 0
   const isMaxQuantityInCart = currentQuantityInCart >= (product?.stock || 0)
   const canAddToCart = !isOutOfStock && !isMaxQuantityInCart
@@ -110,25 +94,14 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
       weight: product?.weight_in_grams,
     }
     try {
-      const result = await addItem(data as any, token)
-
-      if (result?.basket_item_id) {
-        Toast.show({
-          type: "success",
-          text1: "Added to cart!",
-          text2: `${product?.name} has been added to your cart`,
-          visibilityTime: 2000,
-        })
-      } else {
-        Toast.show({
-          type: "error",
-          text1: "Failed to add to cart",
-          text2: error || "Please try again",
-          visibilityTime: 2000,
-        })
-      }
+      await addToCartMutation.mutateAsync({ product: data as any, token })
+      Toast.show({
+        type: "success",
+        text1: "Added to cart!",
+        text2: `${product?.name} has been added to your cart`,
+        visibilityTime: 2000,
+      })
     } catch (err) {
-      console.error("Error adding to cart:", err)
       Toast.show({
         type: "error",
         text1: "Failed to add to cart",
@@ -138,7 +111,7 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [token, canAddToCart, isOutOfStock, product, user?.id, addItem, error])
+  }, [token, canAddToCart, isOutOfStock, product, user?.id, addToCartMutation])
 
   const handleToggleFavorite = useCallback(() => {
     if (!token) {
@@ -150,8 +123,8 @@ const BigProductCard: React.FC<BigProductCardProps> = ({
       })
       return
     }
-    toggleFavorite({ product_id: product.id }, token)
-  }, [token, toggleFavorite, product.id])
+    toggleFavoriteMutation.mutate({ productId: product.id, token })
+  }, [token, toggleFavoriteMutation, product.id])
 
   const handlePress = useCallback(() => {
     router.push(`/product/${product?.id}`)

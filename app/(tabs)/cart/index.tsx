@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
-import { memo, useCallback, useMemo, useRef, useState } from "react"
+import { memo, useCallback, useMemo, useState } from "react"
 import {
   Alert,
   FlatList,
@@ -15,8 +15,8 @@ import Toast from "react-native-toast-message"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
-import { useCartStore } from "@/src/store/cartStore"
 import { CartItem } from "@/src/types"
+import { useCart, useClearCart } from "@/src/hooks/queries/useCart"
 
 import { ValidatedCoupon } from "@/src/api/coupon"
 import CartItemCard from "@/src/components/cart/CartItemCard"
@@ -319,24 +319,26 @@ export default function CartScreen() {
     null
   )
 
-  // Prevent duplicate fetches
-  const isFetchingRef = useRef(false)
-
   // Auth store - individual selectors
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
 
-  // Cart store - individual selectors
-  const cart = useCartStore((state) => state.cart)
-  const clearCart = useCartStore((state) => state.clearCart)
-  const isLoading = useCartStore((state) => state.isLoading)
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice)
-  const fetchCart = useCartStore((state) => state.fetchCart)
+  // React Query hooks
+  const {
+    data: cartItems = [],
+    isLoading,
+    refetch,
+  } = useCart({ token, enabled: !!token })
 
-  const subtotal = useMemo(() => getTotalPrice(), [getTotalPrice, cart])
+  const clearCartMutation = useClearCart()
+
+  const subtotal = useMemo(
+    () => cartItems.reduce((sum, item) => sum + item.amount, 0),
+    [cartItems]
+  )
   const discountAmount = appliedCoupon?.discountAmount || 0
   const totalAfterDiscount = subtotal - discountAmount
-  const itemCount = cart?.length || 0
+  const itemCount = cartItems.length
 
   // Memoize layout configuration
   const layoutConfig = useMemo(() => {
@@ -375,19 +377,10 @@ export default function CartScreen() {
   // this ensures cross-device sync for the same user
   useFocusEffect(
     useCallback(() => {
-      const loadCart = async () => {
-        if (!token || isFetchingRef.current) return
-
-        isFetchingRef.current = true
-        try {
-          await fetchCart(token)
-        } finally {
-          isFetchingRef.current = false
-        }
+      if (token) {
+        refetch()
       }
-
-      loadCart()
-    }, [token, fetchCart])
+    }, [token, refetch])
   )
 
   // Automatically recalculate discount when subtotal changes (e.g., after fetch)
@@ -438,13 +431,11 @@ export default function CartScreen() {
 
     setRefreshing(true)
     try {
-      await fetchCart(token)
-    } catch (error) {
-      console.error("Error refreshing cart:", error)
+      await refetch()
     } finally {
       setRefreshing(false)
     }
-  }, [token, fetchCart])
+  }, [token, refetch])
 
   // Clear cart with confirmation
   const handleClearCart = useCallback(() => {
@@ -460,19 +451,15 @@ export default function CartScreen() {
             if (!token) return
 
             try {
-              const result = await clearCart(token)
-
-              if (result > 0) {
-                setAppliedCoupon(null)
-                Toast.show({
-                  type: "success",
-                  text1: "Cart cleared",
-                  text2: "All items have been removed",
-                  visibilityTime: 2000,
-                })
-              }
-            } catch (error) {
-              console.error("Error clearing cart:", error)
+              await clearCartMutation.mutateAsync(token)
+              setAppliedCoupon(null)
+              Toast.show({
+                type: "success",
+                text1: "Cart cleared",
+                text2: "All items have been removed",
+                visibilityTime: 2000,
+              })
+            } catch {
               Toast.show({
                 type: "error",
                 text1: "Error",
@@ -484,7 +471,7 @@ export default function CartScreen() {
         },
       ]
     )
-  }, [token, clearCart])
+  }, [token, clearCartMutation.mutateAsync])
 
   const navigateToShop = useCallback(() => {
     router.push("/shop")
@@ -506,7 +493,7 @@ export default function CartScreen() {
     }
 
     const orderData = {
-      cart,
+      cart: cartItems,
       subtotal,
       discountAmount,
       coupon: appliedCoupon
@@ -535,7 +522,7 @@ export default function CartScreen() {
     })
   }, [
     user,
-    cart,
+    cartItems,
     subtotal,
     discountAmount,
     appliedCoupon,
@@ -592,7 +579,7 @@ export default function CartScreen() {
         discountAmount={discountAmount}
         appliedCoupon={appliedCoupon}
         token={token || ""}
-        isLoading={isLoading}
+        isLoading={isLoading || clearCartMutation.isPending}
         isTablet={isTablet}
         horizontalPadding={config.horizontalPadding}
         iconSize={config.iconSize}
@@ -608,6 +595,7 @@ export default function CartScreen() {
       appliedCoupon,
       token,
       isLoading,
+      clearCartMutation.isPending,
       isTablet,
       config.horizontalPadding,
       config.iconSize,
@@ -631,7 +619,7 @@ export default function CartScreen() {
   }
 
   // Loading state
-  if (isLoading && itemCount === 0) {
+  if (isLoading && itemCount === 0 && !clearCartMutation.isPending) {
     return (
       <LoadingSkeleton
         horizontalPadding={config.horizontalPadding}
@@ -666,7 +654,7 @@ export default function CartScreen() {
           {/* Cart Items Column */}
           <View style={{ width: layoutConfig.cartListWidth }}>
             <FlatList
-              data={cart}
+              data={cartItems}
               renderItem={renderCartItem}
               keyExtractor={keyExtractor}
               contentContainerStyle={[
@@ -708,7 +696,7 @@ export default function CartScreen() {
     <Wrapper style={styles.container}>
       <FlatList
         key={`cart-${layoutConfig.numColumns}`}
-        data={cart}
+        data={cartItems}
         renderItem={renderCartItem}
         keyExtractor={keyExtractor}
         numColumns={layoutConfig.numColumns}

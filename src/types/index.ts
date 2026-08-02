@@ -88,7 +88,7 @@ export interface ProductParams {
   onSale?: boolean
   category?: string
   brand?: string
-  selectedBrands?: any
+  selectedBrands?: string
   query?: string
 }
 

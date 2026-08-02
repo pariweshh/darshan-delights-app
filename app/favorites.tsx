@@ -11,8 +11,8 @@ import {
 import Toast from "react-native-toast-message"
 
 import AppColors from "@/src/constants/Colors"
+import { useFavorites, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
 import { useAuthStore } from "@/src/store/authStore"
-import { useFavoritesStore } from "@/src/store/favoritesStore"
 import { IsIPAD } from "@/src/themes/app.constants"
 import { Product } from "@/src/types"
 
@@ -68,31 +68,30 @@ export default function FavoritesScreen() {
   const [refreshing, setRefreshing] = useState(false)
 
   const token = useAuthStore((state) => state.token)
-  const favoriteList = useFavoritesStore((state) => state.favoriteList)
-  const isLoading = useFavoritesStore((state) => state.isLoading)
-  const fetchFavorites = useFavoritesStore((state) => state.fetchFavorites)
-  const resetFavorites = useFavoritesStore((state) => state.resetFavorites)
 
-  const favorites = useMemo(
-    () => favoriteList?.products || [],
-    [favoriteList?.products]
-  )
+  const {
+    data: favoritesData,
+    isLoading,
+    refetch,
+  } = useFavorites({ token, enabled: !!token })
+
+  const toggleFavoriteMutation = useToggleFavorite()
+  const { mutateAsync: toggleMutateAsync } = toggleFavoriteMutation
+
+  const favorites = favoritesData?.products ?? []
   const favoriteCount = favorites.length
   const numColumns = IsIPAD ? 3 : 2
 
   // Pull to refresh
   const onRefresh = useCallback(async () => {
     if (!token) return
-
     setRefreshing(true)
     try {
-      await fetchFavorites(token)
-    } catch (error) {
-      console.error("Error refreshing favorites:", error)
+      await refetch()
     } finally {
       setRefreshing(false)
     }
-  }, [token, fetchFavorites])
+  }, [token, refetch])
 
   // Clear all favorites with confirmation
   const handleClearAll = useCallback(() => {
@@ -104,19 +103,32 @@ export default function FavoritesScreen() {
         {
           text: "Clear All",
           style: "destructive",
-          onPress: () => {
-            resetFavorites()
-            Toast.show({
-              type: "success",
-              text1: "Favorites cleared",
-              text2: "All items have been removed from your favorites",
-              visibilityTime: 2000,
-            })
+          onPress: async () => {
+            if (!token) return
+            try {
+              for (const product of favorites) {
+                await toggleMutateAsync({ productId: product.id, token })
+              }
+              Toast.show({
+                type: "success",
+                text1: "Favorites cleared",
+                text2: "All items have been removed from your favorites",
+                visibilityTime: 2000,
+              })
+            } catch {
+              await refetch()
+              Toast.show({
+                type: "error",
+                text1: "Partial failure",
+                text2: "Some items may not have been removed. Pull to refresh.",
+                visibilityTime: 3000,
+              })
+            }
           },
         },
       ]
     )
-  }, [resetFavorites])
+  }, [token, favorites, toggleMutateAsync, refetch])
 
   const navigateToShop = useCallback(() => {
     router.push("/shop")
@@ -209,22 +221,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: AppColors.gray[200],
   },
-  backButton: {
-    marginRight: 8,
-    padding: 4,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: AppColors.gray[200],
-    backgroundColor: AppColors.background.primary,
-  },
-  title: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: 28,
-    color: AppColors.text.primary,
-  },
   listContent: {
     paddingHorizontal: 16,
   },
@@ -254,44 +250,5 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: "100%",
-  },
-  // Guest styles
-  guestContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  guestIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: AppColors.gray[100],
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 24,
-  },
-  guestTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    fontSize: 22,
-    color: AppColors.text.primary,
-    marginBottom: 8,
-  },
-  guestSubtitle: {
-    fontFamily: "Poppins_400Regular",
-    fontSize: 15,
-    color: AppColors.text.secondary,
-    textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  browseButton: {
-    marginTop: 16,
-    paddingVertical: 12,
-  },
-  browseText: {
-    fontFamily: "Poppins_500Medium",
-    fontSize: 15,
-    color: AppColors.primary[500],
   },
 })

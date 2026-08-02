@@ -11,6 +11,7 @@ import {
 
 import AppColors from "@/src/constants/Colors"
 import { DeliveryStatus, Order, PaymentStatus } from "@/src/types"
+import { formatDate } from "@/src/utils/date"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
 
 interface Props {
@@ -114,15 +115,6 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
       default:
         return AppColors.gray[100]
     }
-  }
-
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-AU", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })
   }
 
   return (

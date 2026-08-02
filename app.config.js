@@ -1,9 +1,9 @@
-const IS_PRODUCTION = process.env.APP_ENV === "production"
+const IS_PRODUCTION = process.env.APP_ENV === "production";
 export default {
   expo: {
     name: "Darshan Delights",
     slug: "darshan-delights-app",
-    version: "1.0.0",
+    version: "1.0.2",
     orientation: "portrait",
     icon: "./assets/images/logo_square.png",
     scheme: "darshandelights",
@@ -177,6 +177,15 @@ export default {
     experiments: {
       typedRoutes: true,
     },
+    updates: {
+      url: "https://u.expo.dev/d9dcf810-5b8e-4698-992a-f11a300d8f38",
+      enabled: true,
+      checkAutomatically: "ON_LOAD",
+      fallbackToCacheTimeout: 0,
+    },
+    runtimeVersion: {
+      policy: "appVersion",
+    },
     extra: {
       router: {},
       eas: {
@@ -185,4 +194,4 @@ export default {
     },
     owner: "darshan-delights",
   },
-}
+};

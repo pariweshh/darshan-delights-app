@@ -6,8 +6,8 @@ import Toast from "react-native-toast-message"
 
 import { getProductById } from "@/src/api/products"
 import AppColors from "@/src/constants/Colors"
+import { useRemoveCartItem, useUpdateCartItem } from "@/src/hooks/queries/useCart"
 import { useResponsive } from "@/src/hooks/useResponsive"
-import { useCartStore } from "@/src/store/cartStore"
 import { CartItem } from "@/src/types"
 import { Image } from "expo-image"
 import DebouncedTouchable from "../ui/DebouncedTouchable"
@@ -21,7 +21,8 @@ interface CartItemCardProps {
 const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { updateQuantity, removeItem } = useCartStore()
+  const updateCartItemMutation = useUpdateCartItem()
+  const removeCartItemMutation = useRemoveCartItem()
 
   const [loading, setLoading] = useState(false)
   const [removing, setRemoving] = useState(false)
@@ -56,9 +57,13 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
       weight: newWeight ?? item.weight,
     }
 
-    const res = await updateQuantity(item.basket_item_id, data, token)
-
-    if (!res?.basket_item_id) {
+    try {
+      await updateCartItemMutation.mutateAsync({
+        cartItemId: item.basket_item_id!,
+        data,
+        token,
+      })
+    } catch {
       Toast.show({
         type: "error",
         text1: "Update failed",
@@ -135,22 +140,17 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
           onPress: async () => {
             setRemoving(true)
             try {
-              const res = await removeItem(
-                item.basket_item_id ?? null,
-                userId,
-                token
-              )
-
-              if (res?.product_id) {
-                Toast.show({
-                  type: "success",
-                  text1: "Item removed",
-                  text2: `${item.name} has been removed from your cart`,
-                  visibilityTime: 2000,
-                })
-              }
-            } catch (error) {
-              console.error("Error removing item:", error)
+              await removeCartItemMutation.mutateAsync({
+                cartItemId: item.basket_item_id!,
+                token,
+              })
+              Toast.show({
+                type: "success",
+                text1: "Item removed",
+                text2: `${item.name} has been removed from your cart`,
+                visibilityTime: 2000,
+              })
+            } catch {
               Toast.show({
                 type: "error",
                 text1: "Error",

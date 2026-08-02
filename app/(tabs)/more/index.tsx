@@ -319,6 +319,16 @@ export default function MoreScreen() {
       Alert.alert("Error", "Unable to open terms of service")
     }
   }
+  const handleOpenRefundPolicy = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(
+        "https://darshandelights.com.au/policies/refund-policy"
+      )
+    } catch (error) {
+      console.error("Error opening terms of service:", error)
+      Alert.alert("Error", "Unable to open terms of service")
+    }
+  }
 
   const handleOpenProductRecalls = async () => {
     try {
@@ -529,6 +539,16 @@ export default function MoreScreen() {
         icon="shield-checkmark-outline"
         label="Terms of Service"
         onPress={handleOpenTermsOfService}
+        showChevron={false}
+        showArrow={true}
+        isTablet={isTablet}
+        config={config}
+      />
+      <View style={[styles.menuDivider, { marginLeft: isTablet ? 70 : 64 }]} />
+      <MenuItem
+        icon="cash-outline"
+        label="Refund Policy"
+        onPress={handleOpenRefundPolicy}
         showChevron={false}
         showArrow={true}
         isTablet={isTablet}

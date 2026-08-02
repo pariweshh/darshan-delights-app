@@ -1,6 +1,8 @@
 import ConnectionStatusBanner from "@/src/components/common/ConnectionStatusBanner"
 import ErrorBoundary from "@/src/components/common/ErrorBoundary"
+import ShippingNoticeModal from "@/src/components/common/ShippingNoticeModal"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
+import { QueryProvider } from "@/src/providers/QueryProvider"
 import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
@@ -20,6 +22,7 @@ import { Ionicons } from "@expo/vector-icons"
 import { StripeProvider } from "@stripe/stripe-react-native"
 import { LinearGradient } from "expo-linear-gradient"
 import * as Notifications from "expo-notifications"
+import * as Updates from "expo-updates"
 import { Stack, useRouter } from "expo-router"
 import * as SecureStore from "expo-secure-store"
 import * as SplashScreen from "expo-splash-screen"
@@ -86,6 +89,25 @@ export default function RootLayout() {
 
   // initialise deep linking only after app is ready
   useDeepLinking(!showCustomSplash && !isLoading)
+
+  // Check for Over-The-Air (OTA) updates on startup in production
+  useEffect(() => {
+    async function onFetchUpdateAsync() {
+      try {
+        const update = await Updates.checkForUpdateAsync()
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync()
+          await Updates.reloadAsync()
+        }
+      } catch (error) {
+        // Silently ignore during local dev
+      }
+    }
+
+    if (!__DEV__) {
+      onFetchUpdateAsync()
+    }
+  }, [])
 
   const [fontsLoaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -203,11 +225,9 @@ export default function RootLayout() {
   ])
 
   useEffect(() => {
-    if (expoPushToken) {
-      console.log("Push token registered:", expoPushToken)
-    }
-    if (pushError) {
-      console.log("Push notification error:", pushError)
+    if (__DEV__) {
+      if (expoPushToken) console.log("Push token registered:", expoPushToken)
+      if (pushError) console.log("Push notification error:", pushError)
     }
   }, [expoPushToken, pushError])
 
@@ -259,11 +279,12 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary onError={logErrorToService}>
-      <StripeProvider
-        publishableKey={publishableKey}
-        merchantIdentifier="merchant.com.darshandelights"
-      >
-        <SafeAreaProvider>
+      <QueryProvider>
+        <StripeProvider
+          publishableKey={publishableKey}
+          merchantIdentifier="merchant.com.darshandelights"
+        >
+          <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>
             <ConnectionStatusBanner />
             <Stack
@@ -374,9 +395,11 @@ export default function RootLayout() {
 
             <StatusBar style="dark" />
             <Toast />
+            <ShippingNoticeModal />
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </StripeProvider>
+    </QueryProvider>
     </ErrorBoundary>
   )
 }

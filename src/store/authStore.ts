@@ -348,6 +348,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           error: isActualError ? res.session.error : null,
           biometricAuthEnabled: false,
         })
+        const { useCartStore } = await import("./cartStore")
+        useCartStore.getState().clearCartOnLogout()
+        const { useFavoritesStore } = await import("./favoritesStore")
+        useFavoritesStore.getState().clearFavoritesOnLogout()
       }
     } catch (error: any) {
       const errorMessage = error.message?.toLowerCase() || ""
@@ -362,6 +366,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
         error: isSessionMissingError ? null : error.message,
       })
+      const { useCartStore } = await import("./cartStore")
+      useCartStore.getState().clearCartOnLogout()
+      const { useFavoritesStore } = await import("./favoritesStore")
+      useFavoritesStore.getState().clearFavoritesOnLogout()
     }
   },
 
