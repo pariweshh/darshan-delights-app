@@ -58,6 +58,20 @@ Before submitting PRs, pushing to `dev`/`main`, or publishing OTA updates, you M
 # 1. Check for TypeScript compilation errors
 npx tsc --noEmit
 
-# 2. Verify bundler compilation without errors
+# 2. Lint (ESLint via eslint-config-expo, added 2026-08-03)
+npm run lint        # or: npx expo lint
+
+# 3. Verify bundler compilation without errors
 npx expo export --dry-run
 ```
+
+> [!NOTE]
+> `npx tsc --noEmit` is currently **non-green by design**: exactly **1** known pre-existing
+> type-only error remains (`src/components/common/ShippingNoticeModal.tsx:20` `Timeout`
+> mismatch). It does not affect the bundle. The two `useNotifications.ts` implicit-`any`
+> errors were fixed 2026-08-04 as part of the sanctioned optimization list — the tsc baseline
+> is now 1 error, not 3. Do not "fix" the remaining one silently — see BUILD_STATE.md.
+>
+> `npm run lint` is **GREEN — 0 errors** as of the 2026-08-04 full-repo sweep (was 66 errors /
+> 86 warnings). 79 warnings remain (pre-existing `react-hooks`/`no-unused-vars`); keep new
+> edits warning-clean but do not chase the warning backlog without a separate task.

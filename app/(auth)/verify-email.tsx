@@ -219,7 +219,7 @@ export default function VerifyEmailScreen() {
               Verify your email
             </Text>
             <Text style={[styles.subtitle, { fontSize: config.bodyFontSize }]}>
-              We've sent a 6-digit verification code to
+              We{"'"}ve sent a 6-digit verification code to
             </Text>
             <Text
               style={[
@@ -264,7 +264,7 @@ export default function VerifyEmailScreen() {
               <Text
                 style={[styles.resendText, { fontSize: config.bodyFontSize }]}
               >
-                Didn't receive the code?{" "}
+                Didn{"'"}t receive the code?{" "}
               </Text>
               {resendCooldown > 0 ? (
                 <Text
@@ -352,7 +352,7 @@ export default function VerifyEmailScreen() {
                   },
                 ]}
               >
-                Check your spam folder if you don't see the email in your inbox
+                Check your spam folder if you don{"'"}t see the email in your inbox
               </Text>
             </View>
           </View>

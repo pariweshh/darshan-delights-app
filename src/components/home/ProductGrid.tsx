@@ -18,27 +18,19 @@ interface ProductGridProps {
   emptyMessage?: string
 }
 
-// Module-level constants — update these if ProductCard layout changes
-const CONTENT_TEXT_HEIGHT = 80 // category(~18px) + title 1-2 lines(~40px) + price row(~22px)
-const CARD_BOTTOM_MARGIN = 16 // matches styles.card.marginBottom in ProductCard.tsx
-
 const ProductGrid: React.FC<ProductGridProps> = ({
   products,
   loading,
   saleCard = false,
   emptyMessage = "No products found",
 }) => {
-  const { config, width, isTablet } = useResponsive()
+  const { config, width } = useResponsive()
 
   const columns = config.productGridColumns
   const gap = config.gap
   const totalGap = gap * (columns - 1)
   const availableWidth = width - config.horizontalPadding * 2
   const itemWidth = (availableWidth - totalGap) / columns
-
-  const contentPadding = (isTablet ? 14 : 12) * 2
-  const itemHeight =
-    config.imageHeight + contentPadding + config.buttonHeight + CONTENT_TEXT_HEIGHT + CARD_BOTTOM_MARGIN + gap
 
   // Memoize renderItem
   const renderItem = useCallback(
@@ -61,16 +53,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   // Memoize keyExtractor
   const keyExtractor = useCallback((item: Product) => item.id.toString(), [])
-
-  // Memoize getItemLayout
-  const getItemLayoutCallback = useCallback(
-    (_data: ArrayLike<Product> | null | undefined, index: number) => ({
-      length: itemHeight,
-      offset: itemHeight * Math.floor(index / columns),
-      index,
-    }),
-    [itemHeight, columns]
-  )
 
   if (loading) {
     return (
@@ -115,7 +97,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       maxToRenderPerBatch={6}
       initialNumToRender={6}
       windowSize={3}
-      getItemLayout={getItemLayoutCallback}
+      // BUG FIX (2026-08-04, triage #7): removed magic-number getItemLayout.
+      // A hardcoded itemHeight desyncs once ProductCard content shifts (font
+      // scaling, badge states) — let VirtualizedList measure each cell instead.
     />
   )
 }

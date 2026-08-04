@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
-import { memo, useCallback, useMemo, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   Alert,
   FlatList,
@@ -56,6 +56,7 @@ const CartItemWrapper = memo(
     )
   }
 )
+CartItemWrapper.displayName = "CartItemWrapper"
 
 // ==========================================
 // Memoized Header Component
@@ -86,6 +87,7 @@ const ListHeader = memo(
     </View>
   )
 )
+ListHeader.displayName = "ListHeader"
 
 // ==========================================
 // Memoized Guest State Component
@@ -169,6 +171,7 @@ const GuestState = memo(
     )
   }
 )
+GuestState.displayName = "GuestState"
 
 // ==========================================
 // Memoized Loading Skeleton Component
@@ -233,6 +236,7 @@ const LoadingSkeleton = memo(
     </Wrapper>
   )
 )
+LoadingSkeleton.displayName = "LoadingSkeleton"
 
 // ==========================================
 // Memoized Summary Section Component
@@ -304,6 +308,7 @@ const SummarySection = memo(
     </View>
   )
 )
+SummarySection.displayName = "SummarySection"
 
 // ==========================================
 // Main Component
@@ -383,9 +388,10 @@ export default function CartScreen() {
     }, [token, refetch])
   )
 
-  // Automatically recalculate discount when subtotal changes (e.g., after fetch)
-  // Recalculate discount when subtotal changes
-  useMemo(() => {
+  // Recalculate discount when subtotal changes (e.g., after fetch)
+  // BUG FIX (2026-08-04, triage #5): was `useMemo` calling setAppliedCoupon inside
+  // — state updates belong in effects, not render-phase memos.
+  useEffect(() => {
     if (appliedCoupon && subtotal > 0) {
       let newDiscountAmount = 0
       if (appliedCoupon.discountType === "percentage") {
@@ -402,7 +408,7 @@ export default function CartScreen() {
         )
       }
     }
-  }, [subtotal, appliedCoupon?.discountType, appliedCoupon?.discountValue])
+  }, [subtotal, appliedCoupon])
 
   const handleCouponApply = useCallback(
     (coupon: ValidatedCoupon) => {

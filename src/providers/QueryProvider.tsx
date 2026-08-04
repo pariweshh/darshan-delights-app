@@ -19,7 +19,10 @@ function createQueryClient() {
       queries: {
         staleTime: STALE_TIME.SHORT,
         gcTime: GCACHE_TIME.SHORT,
-        retry: 3,
+        retry: 1, // OPTIMIZATION (2026-08-04): was 3 — stacked with the axios
+        // interceptor's own retries it multiplied GET attempts up to 16× and
+        // stalled UX ~6s on 5xx. One RQ-level retry keeps resilience without
+        // the multiplier (api/client.ts still retries idempotent GET/HEAD).
         refetchOnWindowFocus: Platform.OS === 'web',
         refetchOnReconnect: true,
       },
@@ -52,3 +55,4 @@ export const QueryProvider = memo(({ children }: { children: React.ReactNode }) 
     </QueryClientProvider>
   )
 })
+QueryProvider.displayName = "QueryProvider";

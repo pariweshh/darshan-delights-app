@@ -6,8 +6,10 @@ const RATING_STORAGE_KEY = "@app_rating"
 const ORDERS_BEFORE_PROMPT = 2 // Show after 2nd successful order
 const DAYS_BETWEEN_PROMPTS = 30 // Don't ask again for 30 days
 const MAX_DISMISS_COUNT = 2
-const APP_STORE_ID = process.env.APP_STORE_ID
-const PLAY_STORE_ID = process.env.PLAY_STORE_ID
+// Metro only inlines EXPO_PUBLIC_* env vars at bundle time.
+// Fallbacks keep the store links valid in every build (see eas.json ascAppId / app.config.js android.package).
+const APP_STORE_ID = process.env.EXPO_PUBLIC_APP_STORE_ID || "6757019626"
+const PLAY_STORE_ID = process.env.EXPO_PUBLIC_PLAY_STORE_ID || "com.darshandelights.app"
 
 interface RatingData {
   hasRated: boolean
@@ -190,8 +192,6 @@ export const requestInAppReview = async (): Promise<boolean> => {
  * Show the rating prompt with custom UI fallback
  */
 export const showRatingPrompt = async (): Promise<void> => {
-  const data = await getRatingData()
-
   // Update last prompt date
   await saveRatingData({
     lastPromptDate: new Date().toISOString(),

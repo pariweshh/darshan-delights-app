@@ -65,3 +65,17 @@ Durable record of key architectural choices, technical decisions, rationale, and
   - `expo-secure-store`: Used exclusively for sensitive authentication JWT tokens and biometric auth state.
   - `@react-native-async-storage/async-storage`: Used for non-sensitive persistent state (offline cart items, user preferences, favorite product IDs).
 - **Consequences:** High security for credentials without incurring latency penalties on frequent cart state reads/writes.
+
+---
+
+## ADR-007: Bottom Dock — Opaque Cream Surface over Frosted Glass
+
+- **Status:** Accepted & Implemented
+- **Date:** 2026-08-04
+- **Context:** The design system (DESIGN.md) originally specified a frosted-glass dock (`BlurView` intensity 70, translucent `rgba(255,255,255,0.15)`). The first dock rewrite used this, but on-device feedback across seven polish passes converged on a warmer, more solid treatment: labels clipped, the dock read as washed-out, and the active state lacked definition.
+- **Decision:**
+  1. **Surface:** opaque cream `#FEFEFE` (Warm Neutrals Rule — no pure white) with a **1.5px saffron gradient hairline** border (`rgba(249,115,22,0.30/0.70/0.30)`). No `BlurView`.
+  2. **Geometry:** floating **curved** bar — 64px tall, **20px radius** (NOT fully rounded; the full pill `radius = height/2` was explicitly rejected by the user 2026-08-04). Floated via margin insets (v7's base style uses logical `start`/`end`, which beat physical `left`/`right`). Phone side gap 18px; tablet capped at 640px and centered. Bottom gap `max(10, insets.bottom − 12)`.
+  3. **Active tab:** Saffron Whisper `#FFF7ED` pill inset 4px vertically + **3px Saffron Flame capsule** indicator; Saffron Deep `#EA580C` icon/label. Centering is flexbox `alignItems` (percentage positioning was measurably ~8pt off-center).
+  4. **v7 double-render:** `@react-navigation/bottom-tabs` v7 renders `tabBarIcon` twice per tab (active/inactive copies cross-faded) — active styling is therefore **static per copy**, and reanimated was removed from this file as dead code.
+- **Consequences:** The dock is now unmistakable and consistent with the brand; the tradeoff is the tab labels cap accessibility font scaling at 1.15× (`maxFontSizeMultiplier`) — a deliberate exception to the 1.5× product requirement, standard practice for tab chrome. Frosted glass remains available for other surfaces (e.g., modals) but is not used by the dock.

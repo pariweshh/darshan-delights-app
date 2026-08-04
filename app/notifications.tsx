@@ -53,6 +53,7 @@ const NotificationItem = memo(
     )
   }
 )
+NotificationItem.displayName = "NotificationItem"
 
 interface ListHeaderProps {
   unreadCount: number
@@ -78,6 +79,7 @@ const ListHeader = memo(
     )
   }
 )
+ListHeader.displayName = "ListHeader"
 
 const ListFooter = memo(({ isLoadingMore }: { isLoadingMore: boolean }) => {
   if (!isLoadingMore) return null
@@ -88,6 +90,7 @@ const ListFooter = memo(({ isLoadingMore }: { isLoadingMore: boolean }) => {
     </View>
   )
 })
+ListFooter.displayName = "ListFooter"
 
 export default function NotificationsScreen() {
   const router = useRouter()

@@ -53,6 +53,7 @@ const ProductItem = memo(
     )
   }
 )
+ProductItem.displayName = "ProductItem"
 
 interface ListHeaderProps {
   favoriteCount: number
@@ -86,6 +87,7 @@ const ListHeader = memo(
     </View>
   )
 )
+ListHeader.displayName = "ListHeader"
 
 // ==========================================
 // Memoized Guest State Component
@@ -165,6 +167,7 @@ const GuestState = memo(
     </View>
   )
 )
+GuestState.displayName = "GuestState"
 
 interface SkeletonStateProps {
   horizontalPadding: number
@@ -207,6 +210,7 @@ const SkeletonState = memo(
     </View>
   )
 )
+SkeletonState.displayName = "SkeletonState"
 
 export default function FavoritesScreenTab() {
   const router = useRouter()

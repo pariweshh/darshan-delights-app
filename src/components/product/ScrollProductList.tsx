@@ -32,6 +32,8 @@ const ScrollProductList: React.FC<ScrollProductListProps> = ({
 
   const queryParams = useMemo(
     () => ({ ...productParam, limit: ITEMS_PER_PAGE, sort: 'id:asc' as const }),
+    // productParam is a fresh object on every render; JSON.stringify keeps the
+    // memo stable across renders unless the actual filter values change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(productParam)]
   )

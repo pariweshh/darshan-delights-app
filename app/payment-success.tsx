@@ -241,7 +241,7 @@ export default function PaymentSuccessScreen() {
                 { fontSize: config.bodyFontSize - 1 },
               ]}
             >
-              You'll receive a confirmation email shortly with your order
+              You{"'"}ll receive a confirmation email shortly with your order
               details.
             </Text>
           </Animated.View>
@@ -267,7 +267,7 @@ export default function PaymentSuccessScreen() {
               },
             ]}
           >
-            What's Next?
+            What{"'"}s Next?
           </Text>
 
           <Animated.View
@@ -316,7 +316,7 @@ export default function PaymentSuccessScreen() {
               />
             </View>
             <Text style={[styles.stepText, { fontSize: config.bodyFontSize }]}>
-              We'll notify you when your order ships
+              We{"'"}ll notify you when your order ships
             </Text>
           </Animated.View>
 

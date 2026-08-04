@@ -75,6 +75,7 @@ const ProductItem = memo(
     )
   }
 )
+ProductItem.displayName = "ProductItem"
 
 const InitialState = memo(
   ({
@@ -110,6 +111,7 @@ const InitialState = memo(
     </ScrollView>
   )
 )
+InitialState.displayName = "InitialState"
 
 const SkeletonState = memo(
   ({
@@ -131,16 +133,18 @@ const SkeletonState = memo(
     </View>
   )
 )
+SkeletonState.displayName = "SkeletonState"
 
 const ResultsHeader = memo(
   ({ count, searchQuery, fontSize, paddingVertical }: ResultsHeaderProps) => (
     <View style={[styles.resultsHeader, { paddingVertical }]}>
       <Text style={[styles.resultsText, { fontSize }]}>
-        {count} results for "{searchQuery}"
+        {count} results for {"\""}{searchQuery}{"\""}
       </Text>
     </View>
   )
 )
+ResultsHeader.displayName = "ResultsHeader"
 
 interface ErrorStateProps {
   error: string
@@ -152,6 +156,7 @@ const ErrorState = memo(({ error, fontSize }: ErrorStateProps) => (
     <Text style={[styles.errorText, { fontSize }]}>{error}</Text>
   </View>
 ))
+ErrorState.displayName = "ErrorState"
 
 export default function SearchScreen() {
   const { config, isTablet, isLandscape, width } = useResponsive()

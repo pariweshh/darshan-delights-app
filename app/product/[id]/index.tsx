@@ -92,6 +92,7 @@ const PriceDisplay = memo(
     return <Text style={[styles.price, { fontSize }]}>${rrp.toFixed(2)}</Text>
   }
 )
+PriceDisplay.displayName = "PriceDisplay"
 
 const ReviewsSection = memo(
   ({
@@ -262,6 +263,7 @@ const ReviewsSection = memo(
     )
   }
 )
+ReviewsSection.displayName = "ReviewsSection"
 
 export default function ProductDetailScreen() {
   const router = useRouter()

@@ -146,7 +146,7 @@ export default function RatingPromptModal({
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.textButtonText, styles.neverAskText]}>
-                    Don't Ask Again
+                    Don{"'"}t Ask Again
                   </Text>
                 </DebouncedTouchable>
               </View>
@@ -160,9 +160,9 @@ export default function RatingPromptModal({
             <View style={styles.iconContainer}>
               <Text style={styles.emoji}>💭</Text>
             </View>
-            <Text style={styles.title}>We'd Love Your Feedback</Text>
+            <Text style={styles.title}>We{"'"}d Love Your Feedback</Text>
             <Text style={styles.message}>
-              We're sorry to hear that. Would you like to tell us how we can
+              We{"'"}re sorry to hear that. Would you like to tell us how we can
               improve?
             </Text>
             <View style={styles.buttonContainer}>

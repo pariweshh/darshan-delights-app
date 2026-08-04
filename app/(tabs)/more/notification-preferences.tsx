@@ -422,7 +422,7 @@ export default function NotificationSettingsScreen() {
               },
             ]}
           >
-            Choose which notifications you'd like to receive
+            Choose which notifications you{"'"}d like to receive
           </Text>
 
           <View

@@ -529,7 +529,7 @@ export default function FAQsScreen() {
               },
             ]}
           >
-            Can't find what you're looking for? Our customer support team is
+            Can{"'"}t find what you{"'"}re looking for? Our customer support team is
             here to help.
           </Text>
           <Text

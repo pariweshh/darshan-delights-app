@@ -52,6 +52,7 @@ const ProductItem = memo(
     )
   }
 )
+ProductItem.displayName = "ProductItem"
 
 export default function ShopScreen() {
   const router = useRouter()

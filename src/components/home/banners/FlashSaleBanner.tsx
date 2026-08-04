@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons"
 import { LinearGradient } from "expo-linear-gradient"
 import { useRouter } from "expo-router"
-import { useEffect, useState } from "react"
-import { StyleSheet, Text, View } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import { AppState, StyleSheet, Text, View } from "react-native"
 import DebouncedTouchable from "../../ui/DebouncedTouchable"
 
 interface FlashSaleBannerProps {
@@ -20,6 +20,7 @@ export default function FlashSaleBanner({
   onPress,
 }: FlashSaleBannerProps) {
   const router = useRouter()
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const [timeLeft, setTimeLeft] = useState({
     hours: 0,
     minutes: 0,
@@ -36,13 +37,44 @@ export default function FlashSaleBanner({
           minutes: Math.floor((difference / 1000 / 60) % 60),
           seconds: Math.floor((difference / 1000) % 60),
         })
+      } else {
+        // Sale ended — freeze the clock and stop the 1s interval
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+        stopTimer()
       }
     }
 
-    calculateTimeLeft()
-    const timer = setInterval(calculateTimeLeft, 1000)
+    const startTimer = () => {
+      if (endTime.getTime() <= Date.now()) {
+        // Sale already over — freeze and don't re-create the ticker on foreground
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
+        return
+      }
+      calculateTimeLeft()
+      if (!timerRef.current) {
+        timerRef.current = setInterval(calculateTimeLeft, 1000)
+      }
+    }
 
-    return () => clearInterval(timer)
+    const stopTimer = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+        timerRef.current = null
+      }
+    }
+
+    // OPTIMIZATION (2026-08-04): pause the ticker while the app is backgrounded
+    // and stop it entirely once the sale ends — no perpetual 1s interval.
+    const appStateSub = AppState.addEventListener("change", (next) => {
+      if (next === "active") startTimer()
+      else stopTimer()
+    })
+
+    startTimer()
+    return () => {
+      stopTimer()
+      appStateSub.remove()
+    }
   }, [endTime])
 
   const handlePress = () => {

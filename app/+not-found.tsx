@@ -34,7 +34,7 @@ export default function NotFoundScreen() {
             style={{ fontFamily: "Poppins_400Regular" }}
             className="text-gray-500 text-center mt-3 mb-8"
           >
-            Sorry, the page you're looking for doesn't exist or has been moved.
+            Sorry, the page you{"'"}re looking for doesn{"'"}t exist or has been moved.
           </Text>
 
           {/* Back to Home Button */}

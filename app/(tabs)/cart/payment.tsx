@@ -42,6 +42,25 @@ export default function PaymentScreen() {
 
   const [loading, setLoading] = useState(false)
 
+  // BUG FIX (2026-08-04, triage #2): best-effort cleanup of a draft order when
+  // payment setup or presentation fails. Previously only the "Canceled" branch
+  // called deleteOrder — init errors and non-canceled presentation errors leaked
+  // orphan draft orders + PaymentIntents. A failed deleteOrder must never mask
+  // the real payment error, so failures are logged (dev only) and swallowed.
+  const cleanupDraftOrder = useCallback(
+    async (orderId: number | undefined, authToken: string) => {
+      if (!orderId || !authToken) return
+      try {
+        await deleteOrder(orderId, authToken)
+      } catch (error) {
+        if (__DEV__) {
+          console.error("Failed to clean up draft order:", error)
+        }
+      }
+    },
+    []
+  )
+
   const coupon = parsedOrderData?.coupon
   const discountAmount = parsedOrderData?.discountAmount || 0
 
@@ -172,6 +191,10 @@ export default function PaymentScreen() {
     }
     setLoading(true)
 
+    // Hoisted so the outer catch can also clean up if initPaymentSheet or
+    // presentPaymentSheet rejects (throws) instead of resolving { error }.
+    let createdOrderId: number | undefined
+
     try {
       const paymentData = await createPaymentIntent()
 
@@ -187,6 +210,7 @@ export default function PaymentScreen() {
         ephemeralKey,
         freeOrder,
       } = paymentData
+      createdOrderId = order_id
 
       if (freeOrder) {
         await handlePaymentSuccess(order_id, order_number || "")
@@ -200,6 +224,8 @@ export default function PaymentScreen() {
           text2: "Unable to process payment. Please try again.",
           visibilityTime: 3000,
         })
+        // BUG FIX: don't leak the draft order when no client secret was returned
+        await cleanupDraftOrder(order_id, token as string)
         setLoading(false)
         return
       }
@@ -249,6 +275,8 @@ export default function PaymentScreen() {
           text2: initError.message || "Unable to initialize payment",
           visibilityTime: 3000,
         })
+        // BUG FIX: sheet init failure previously leaked the draft order
+        await cleanupDraftOrder(order_id, token as string)
         setLoading(false)
         return
       }
@@ -257,13 +285,13 @@ export default function PaymentScreen() {
 
       if (presentError) {
         if (presentError.code === "Canceled") {
-          await deleteOrder(order_id, token as string)
           Toast.show({
             type: "info",
             text1: "Payment Canceled",
             text2: "Your order has been canceled",
             visibilityTime: 2000,
           })
+          await cleanupDraftOrder(order_id, token as string)
         } else {
           if (__DEV__) {
             console.error("Payment presentation error:", presentError)
@@ -274,6 +302,9 @@ export default function PaymentScreen() {
             text2: presentError.message || "Please try again",
             visibilityTime: 3000,
           })
+          // BUG FIX: non-canceled presentation failures previously leaked the
+          // draft order + PaymentIntent (only "Canceled" cleaned up)
+          await cleanupDraftOrder(order_id, token as string)
         }
       } else {
         await handlePaymentSuccess(order_id, order_number || "")
@@ -282,12 +313,20 @@ export default function PaymentScreen() {
       if (__DEV__) {
         console.error("Payment flow error:", error)
       }
+      // Toast first — cleanup hits the network and must never delay user feedback.
       Toast.show({
         type: "error",
         text1: "Payment Error",
         text2: error.message || "An unexpected error occurred",
         visibilityTime: 3000,
       })
+      // BUG FIX: if init/present rejected (threw) rather than resolving with
+      // { error }, the draft order would previously leak. Clean up best-effort.
+      // Caveat: allowsDelayedPaymentMethods is set, so a delayed method could in
+      // theory still resolve to paid server-side — the draft is unpublished and
+      // the webhook owns the real order, so deleting the pending draft is the
+      // lesser evil (matches the explicit Canceled-branch behavior).
+      await cleanupDraftOrder(createdOrderId, token as string)
     } finally {
       setLoading(false)
     }
@@ -298,6 +337,7 @@ export default function PaymentScreen() {
     initPaymentSheet,
     presentPaymentSheet,
     parsedOrderData,
+    cleanupDraftOrder,
   ])
 
   const handlePaymentSuccess = useCallback(

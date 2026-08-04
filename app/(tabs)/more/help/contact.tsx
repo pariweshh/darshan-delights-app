@@ -324,7 +324,7 @@ export default function ContactScreen() {
                 },
               ]}
             >
-              We'd love to hear from you. Fill out the form below and we'll get
+              We{"'"}d love to hear from you. Fill out the form below and we{"'"}ll get
               back to you as soon as possible.
             </Text>
 

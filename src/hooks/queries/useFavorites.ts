@@ -8,9 +8,12 @@ export interface FavoriteItem {
   products: Product[]
 }
 
+// Query keys are scoped by token so favorites cache can never bleed between
+// accounts on the same device (e.g. logging into a different user).
 export const FAVORITES_KEYS = {
   all: ['favorites'] as const,
-  detail: () => [...FAVORITES_KEYS.all, 'detail'] as const,
+  detail: (token?: string | null) =>
+    [...FAVORITES_KEYS.all, 'detail', token ?? 'guest'] as const,
 }
 
 interface UseFavoritesParams {
@@ -20,7 +23,7 @@ interface UseFavoritesParams {
 
 export function useFavorites({ token, enabled = true }: UseFavoritesParams) {
   return useQuery<FavoriteItem>({
-    queryKey: FAVORITES_KEYS.detail(),
+    queryKey: FAVORITES_KEYS.detail(token),
     queryFn: () => getFavorites(token!),
     enabled: enabled && !!token,
     staleTime: 1000 * 30,
@@ -34,12 +37,13 @@ export function useToggleFavorite() {
   return useMutation({
     mutationFn: ({ productId, token }: { productId: number; token: string }) =>
       toggleFavorite({ product_id: productId }, token),
-    onMutate: async ({ productId }) => {
-      await queryClient.cancelQueries({ queryKey: FAVORITES_KEYS.detail() })
-      const previousFavorites = queryClient.getQueryData<FavoriteItem>(FAVORITES_KEYS.detail())
+    onMutate: async ({ productId, token }) => {
+      const key = FAVORITES_KEYS.detail(token)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previousFavorites = queryClient.getQueryData<FavoriteItem>(key)
 
       // Optimistic remove — if adding, we don't have full product data so skip optimistic add
-      queryClient.setQueryData<FavoriteItem>(FAVORITES_KEYS.detail(), (old) => {
+      queryClient.setQueryData<FavoriteItem>(key, (old) => {
         const products = old?.products ?? []
         const exists = products.some((p) => p.id === productId)
         if (exists) {
@@ -51,17 +55,25 @@ export function useToggleFavorite() {
 
       return { previousFavorites }
     },
-    onSuccess: (data: FavoriteItem) => {
+    onSuccess: (data, variables) => {
       // Replace cache with authoritative server response
-      queryClient.setQueryData<FavoriteItem>(FAVORITES_KEYS.detail(), data)
+      queryClient.setQueryData<FavoriteItem>(
+        FAVORITES_KEYS.detail(variables.token),
+        data
+      )
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       if (context?.previousFavorites !== undefined) {
-        queryClient.setQueryData(FAVORITES_KEYS.detail(), context.previousFavorites)
+        queryClient.setQueryData(
+          FAVORITES_KEYS.detail(variables.token),
+          context.previousFavorites
+        )
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: FAVORITES_KEYS.detail() })
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: FAVORITES_KEYS.detail(variables.token),
+      })
     },
   })
 }

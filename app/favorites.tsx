@@ -40,6 +40,7 @@ const ProductItem = memo(
     )
   }
 )
+ProductItem.displayName = "ProductItem"
 
 interface ListHeaderProps {
   favoriteCount: number
@@ -62,6 +63,7 @@ const ListHeader = memo(({ favoriteCount, onClearAll }: ListHeaderProps) => (
     )}
   </View>
 ))
+ListHeader.displayName = "ListHeader"
 
 export default function FavoritesScreen() {
   const router = useRouter()

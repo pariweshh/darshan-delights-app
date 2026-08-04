@@ -24,8 +24,6 @@ export default function OfflineBanner({
   const isOffline =
     !isLoading && (!isConnected || isInternetReachable === false)
 
-  console.log({ isOffline, isConnected, isInternetReachable })
-
   useEffect(() => {
     Animated.timing(slideAnim, {
       toValue: isOffline ? 0 : -60,

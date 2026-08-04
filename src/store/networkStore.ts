@@ -34,7 +34,6 @@ interface NetworkState {
 }
 
 // Debounce helper
-let serverCheckTimeout: NodeJS.Timeout | null = null
 const SERVER_CHECK_DEBOUNCE = 5000 // 5 seconds between server checks
 const SERVER_CHECK_TIMEOUT = 8000
 
@@ -117,10 +116,15 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
     if (!isOnline) {
       set({ connectionStatus: "offline" })
-      return !isOnline
+      // BUG FIX (2026-08-04): was `return !isOnline` — returned true when offline,
+      // so checkConnection() always reported connected. OfflineScreen retry then
+      // always fired and checkFullConnectivity never short-circuited to "offline".
+      // Note: `isOnline` is `boolean | null` (NetInfo), so explicit booleans keep
+      // the function's `Promise<boolean>` contract.
+      return false
     }
 
-    return isOnline
+    return true
   },
 
   checkServerHealth: async () => {
@@ -162,7 +166,7 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
       })
 
       return isReachable
-    } catch (error: any) {
+    } catch {
       // Only mark as server_unavailable if we're sure we're online
       const netInfo = await NetInfo.fetch()
       const isOnline =
@@ -210,6 +214,11 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
   requireNetwork: async (customMessage?: string) => {
     const status = await get().checkFullConnectivity()
+    // BUG FIX (2026-08-04, triage #9): honor the custom message instead of
+    // silently ignoring it — surface it as the server error banner text.
+    if (status !== "connected" && customMessage) {
+      set({ serverErrorMessage: customMessage })
+    }
     return status === "connected"
   },
 

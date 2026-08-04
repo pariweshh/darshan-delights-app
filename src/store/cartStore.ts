@@ -8,7 +8,11 @@ interface CartState {
 export const useCartStore = create<CartState>()(() => ({
   clearCartOnLogout: () => {
     import('@/src/providers/QueryProvider').then(({ queryClientInstance }) => {
-      queryClientInstance?.setQueryData(CART_KEYS.detail(), [])
+      // Keys are token-scoped (Bug #8) — clear every user's cart cache on logout
+      queryClientInstance?.setQueriesData(
+        { queryKey: CART_KEYS.all },
+        []
+      )
     })
   },
 }))

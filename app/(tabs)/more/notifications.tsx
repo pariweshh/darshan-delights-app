@@ -99,6 +99,7 @@ const NotificationItem = memo(
     )
   }
 )
+NotificationItem.displayName = "NotificationItem"
 
 interface ListHeaderProps {
   unreadCount: number
@@ -146,6 +147,7 @@ const ListHeader = memo(
     )
   }
 )
+ListHeader.displayName = "ListHeader"
 
 interface ListFooterProps {
   isLoadingMore: boolean
@@ -167,6 +169,7 @@ const ListFooter = memo(
     )
   }
 )
+ListFooter.displayName = "ListFooter"
 
 interface SkeletonStateProps {
   useColumnsLayout: boolean
@@ -271,6 +274,7 @@ const SkeletonState = memo(
     )
   }
 )
+SkeletonState.displayName = "SkeletonState"
 
 export default function NotificationsScreenTab() {
   const router = useRouter()

@@ -50,6 +50,40 @@ const RETRY_CONFIG = {
   retryableStatuses: [408, 500, 502, 503, 504], // Statuses worth retrying
 }
 
+// ---------------------------------------------------------------------------
+// OPTIMIZATION (2026-08-04): in-memory auth token cache.
+// Every request previously read SecureStore + NetInfo.fetch() (two native
+// round-trips per request). The token is now cached here and invalidated from
+// storage.ts on login/logout and from the 401 handler below — so the cache can
+// never outlive a session change.
+// ---------------------------------------------------------------------------
+let authTokenCache: string | null | undefined // undefined = not loaded yet
+let authTokenPromise: Promise<string | null> | null = null
+
+/** Drop the in-memory token so the next request re-reads SecureStore. */
+export function invalidateAuthTokenCache(): void {
+  authTokenCache = undefined
+  authTokenPromise = null
+}
+
+async function getAuthToken(): Promise<string | null> {
+  if (authTokenCache !== undefined) return authTokenCache
+  if (!authTokenPromise) {
+    authTokenPromise = (async (): Promise<string | null> => {
+      try {
+        const tokenString = await SecureStore.getItemAsync(
+          STORAGE_KEYS.AUTH_TOKEN
+        )
+        authTokenCache = tokenString ? JSON.parse(tokenString) : null
+      } catch {
+        authTokenCache = null
+      }
+      return authTokenCache ?? null
+    })()
+  }
+  return authTokenPromise
+}
+
 // Track consecutive failures for smarter error handling
 let consecutiveFailures = 0
 const MAX_FAILURES_BEFORE_UNAVAILABLE = 5
@@ -98,31 +132,22 @@ api.interceptors.request.use(
 
     // Only check network on first attempt
     if (config.headers["x-retry-count"] === "0") {
-      try {
-        const netInfo = await NetInfo.fetch()
-        if (!netInfo.isConnected) {
-          throw new NetworkError()
-        }
-      } catch (error) {
-        if (error instanceof NetworkError) {
-          useNetworkStore
-            .getState()
-            .setServerReachable(false, "No internet connection")
-          throw error
-        }
+      // OPTIMIZATION (2026-08-04): reuse the networkStore's live NetInfo state
+      // (kept in sync by useNetworkInit in the root layout) instead of paying a
+      // NetInfo.fetch() native round-trip on every request.
+      if (!useNetworkStore.getState().isConnected) {
+        useNetworkStore
+          .getState()
+          .setServerReachable(false, "No internet connection")
+        throw new NetworkError()
       }
     }
 
-    // Add auth token
+    // Add auth token (memory-cached — see getAuthToken above)
     try {
-      const tokenString = await SecureStore.getItemAsync(
-        STORAGE_KEYS.AUTH_TOKEN
-      )
-      if (tokenString) {
-        const token = JSON.parse(tokenString)
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
+      const token = await getAuthToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
       }
     } catch (error) {
       console.error("Error retrieving auth token:", error)
@@ -156,9 +181,24 @@ api.interceptors.response.use(
     // Get current retry count
     const retryCount = parseInt(config?.headers?.["x-retry-count"] || "0", 10)
 
+    // BUG FIX (2026-08-04, triage #3): only auto-retry idempotent read requests.
+    // A POST (order creation, cart add, coupon apply) that times out or hits a
+    // 5xx may already have been processed server-side — retrying it creates
+    // duplicate orders / double cart adds. Non-idempotent requests are NOT
+    // retried; they fall through to the normal error handling below.
+    const isIdempotentMethod = (): boolean => {
+      const method = (config?.method || "get").toUpperCase()
+      return method === "GET" || method === "HEAD"
+    }
+
     // Determine if we should retry
     const shouldRetry = (): boolean => {
       if (!config || retryCount >= RETRY_CONFIG.maxRetries) {
+        return false
+      }
+
+      // Never auto-retry non-idempotent methods (duplicate-order risk)
+      if (!isIdempotentMethod()) {
         return false
       }
 
@@ -278,6 +318,7 @@ api.interceptors.response.use(
         } catch (clearError) {
           console.error("Error clearing auth data:", clearError)
         }
+        invalidateAuthTokenCache()
         return Promise.reject(
           new ServerError("Session expired. Please log in again.", 401)
         )

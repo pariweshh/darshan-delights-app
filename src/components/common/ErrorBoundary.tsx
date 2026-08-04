@@ -137,7 +137,7 @@ class ErrorBoundary extends Component<Props, State> {
 
             {/* Error Message */}
             <Text style={styles.message}>
-              We're sorry, but something unexpected happened. Please try again
+              We{"'"}re sorry, but something unexpected happened. Please try again
               or restart the app.
             </Text>
 

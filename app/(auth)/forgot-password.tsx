@@ -170,7 +170,7 @@ export default function ForgotPasswordScreen() {
                 },
               ]}
             >
-              No worries! Enter your email address and we'll send you a code to
+              No worries! Enter your email address and we{"'"}ll send you a code to
               reset your password.
             </Text>
 

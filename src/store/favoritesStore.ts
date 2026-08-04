@@ -8,7 +8,11 @@ interface FavoritesState {
 export const useFavoritesStore = create<FavoritesState>()(() => ({
   clearFavoritesOnLogout: () => {
     import('@/src/providers/QueryProvider').then(({ queryClientInstance }) => {
-      queryClientInstance?.setQueryData(FAVORITES_KEYS.detail(), { products: [] })
+      // Keys are token-scoped (Bug #8) — clear every user's favorites cache on logout
+      queryClientInstance?.setQueriesData(
+        { queryKey: FAVORITES_KEYS.all },
+        { products: [] }
+      )
     })
   },
 }))

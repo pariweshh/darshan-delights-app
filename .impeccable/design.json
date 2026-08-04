@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T18:00:00Z",
+  "title": "Design System: Darshan Delights",
+  "extensions": {
+    "colorMeta": {
+      "saffron-flame": {
+        "role": "primary",
+        "displayName": "Saffron Flame",
+        "canonical": "#F97316",
+        "tonalRamp": ["#1A0E05", "#3D1F0B", "#6B3512", "#9A4D1A", "#C26421", "#F97316", "#FB923C", "#FDBA74", "#FED7AA", "#FFF7ED"]
+      },
+      "saffron-deep": {
+        "role": "primary-dark",
+        "displayName": "Saffron Deep",
+        "canonical": "#EA580C",
+        "tonalRamp": ["#170905", "#351509", "#5C250E", "#833614", "#B04A19", "#EA580C", "#FB7A3C", "#FDA06C", "#FEC89E", "#FFF0E5"]
+      },
+      "turmeric-gold": {
+        "role": "secondary",
+        "displayName": "Turmeric Gold",
+        "canonical": "#F59E0B",
+        "tonalRamp": ["#1A1002", "#3D2505", "#6B4109", "#9A5E0D", "#C27A10", "#F59E0B", "#F7B23C", "#FAC96D", "#FCE09E", "#FFF8E5"]
+      },
+      "chili-red": {
+        "role": "error",
+        "displayName": "Chili Red",
+        "canonical": "#EF4444",
+        "tonalRamp": ["#1A0707", "#3D1010", "#6B1C1C", "#9A2B2B", "#C23838", "#EF4444", "#F36C6C", "#F79494", "#FBBDBD", "#FFF0F0"]
+      },
+      "herb-green": {
+        "role": "success",
+        "displayName": "Herb Green",
+        "canonical": "#10B981",
+        "tonalRamp": ["#051A12", "#0A3D2A", "#116B49", "#189A6A", "#1FC28A", "#10B981", "#3DD99D", "#6DE8B9", "#9EF3D5", "#E5FFF5"]
+      },
+      "spice-dark": {
+        "role": "text-primary",
+        "displayName": "Spice Dark",
+        "canonical": "#1F2937",
+        "tonalRamp": ["#050709", "#0E1218", "#1A2030", "#2A3548", "#3D4D60", "#1F2937", "#4B5E75", "#7A8FA5", "#A8B8C8", "#E8EDF2"]
+      },
+      "cream": {
+        "role": "background",
+        "displayName": "Cream",
+        "canonical": "#FEFEFE",
+        "tonalRamp": ["#F5F0E8", "#F7F3EC", "#F9F5EF", "#FBF7F2", "#FDF9F5", "#FEFEFE", "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "White-Star Display",
+        "purpose": "Hero headlines and onboarding screens only. Custom font for brand distinction."
+      },
+      "body": {
+        "displayName": "Poppins",
+        "purpose": "All UI text. Geometric sans-serif with friendly, rounded proportions."
+      },
+      "label": {
+        "displayName": "Poppins SemiBold",
+        "purpose": "Buttons, badges, tabs, metadata. Emphasis through weight, not size."
+      }
+    },
+    "shadows": [
+      {
+        "name": "subtle-lift",
+        "value": "0 2px 8px rgba(31, 41, 55, 0.06)",
+        "purpose": "Default card state. Gentle lift suggesting interactivity."
+      },
+      {
+        "name": "medium-lift",
+        "value": "0 4px 12px rgba(31, 41, 55, 0.1)",
+        "purpose": "Pressed cards, focused inputs, dropdown menus."
+      },
+      {
+        "name": "strong-lift",
+        "value": "0 8px 24px rgba(31, 41, 55, 0.12)",
+        "purpose": "Floating dock, modals, bottom sheets. Maximum elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for state transitions."
+      },
+      {
+        "name": "ease-out-quart",
+        "value": "cubic-bezier(0.25, 1, 0.5, 1)",
+        "purpose": "Exit animations, dismissals, content leaving view."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "< 600px"
+      },
+      {
+        "name": "tablet",
+        "value": ">= 600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action button. Saffron Flame background with white text.",
+      "html": "<button class=\"ds-btn-primary\">Add to Cart</button>",
+      "css": ".ds-btn-primary { background: #F97316; color: #FFFFFF; padding: 12px 24px; border: none; border-radius: 12px; font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.1s; box-shadow: 0 4px 12px rgba(31, 41, 55, 0.1); } .ds-btn-primary:hover { background: #EA580C; transform: translateY(-1px); } .ds-btn-primary:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(31, 41, 55, 0.06); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary action button. Outlined with Saffron Deep text.",
+      "html": "<button class=\"ds-btn-secondary\">View Details</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: #EA580C; padding: 12px 24px; border: 1.5px solid #FDBA74; border-radius: 12px; font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; transition: background 0.2s, border-color 0.2s; } .ds-btn-secondary:hover { background: #FFF7ED; border-color: #EA580C; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Product display card with image, name, price, and action buttons.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-image\"><img src=\"\" alt=\"Product\" /></div><div class=\"ds-card-body\"><h3 class=\"ds-card-title\">Product Name</h3><p class=\"ds-card-price\">$12.99</p></div></div>",
+      "css": ".ds-card { background: #FEFEFE; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(31, 41, 55, 0.06); transition: box-shadow 0.2s, transform 0.2s; } .ds-card:hover { box-shadow: 0 4px 12px rgba(31, 41, 55, 0.1); transform: translateY(-2px); } .ds-card-image { width: 100%; aspect-ratio: 1; background: #F5F5F7; } .ds-card-body { padding: 12px; } .ds-card-title { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 14px; color: #1F2937; margin: 0 0 4px; } .ds-card-price { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 16px; color: #EA580C; margin: 0; }"
+    },
+    {
+      "name": "Category Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filterable category chip. Pill shape with warm background.",
+      "html": "<span class=\"ds-chip\">Snacks</span><span class=\"ds-chip ds-chip-active\">Spices</span>",
+      "css": ".ds-chip { display: inline-block; background: #FFF7ED; color: #EA580C; padding: 6px 14px; border-radius: 9999px; font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.02em; cursor: pointer; transition: background 0.2s, color 0.2s; } .ds-chip:hover { background: #FED7AA; } .ds-chip-active { background: #F97316; color: #FFFFFF; } .ds-chip-active:hover { background: #EA580C; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard text input field with warm styling.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search products...\" />",
+      "css": ".ds-input { background: #FEFEFE; border: 1px solid #EEEEEE; border-radius: 12px; padding: 12px 16px; font-family: 'Poppins', sans-serif; font-size: 14px; color: #1F2937; outline: none; transition: border-color 0.2s; width: 100%; box-sizing: border-box; } .ds-input::placeholder { color: #9CA3AF; } .ds-input:focus { border-color: #F97316; } .ds-input-error { border-color: #EF4444; }"
+    },
+    {
+      "name": "Bottom Dock",
+      "kind": "nav",
+      "refersTo": "dock",
+      "description": "Floating curved navigation dock, 20px radius, opaque cream surface with a 1.5px saffron gradient hairline. Active tab: Saffron Whisper pill (inset 4px vertically) + 3px Saffron Flame capsule indicator, Saffron Deep icon/label. Implemented in app/(tabs)/_layout.tsx (see ADR-007).",
+      "html": "<nav class=\"ds-dock\"><button class=\"ds-dock-item ds-dock-item-active\"><span class=\"ds-dock-capsule\"></span><span class=\"ds-dock-icon\">🏠</span><span class=\"ds-dock-label\">Home</span></button><button class=\"ds-dock-item\"><span class=\"ds-dock-icon\">📦</span><span class=\"ds-dock-label\">Products</span></button><button class=\"ds-dock-item\"><span class=\"ds-dock-icon\">🛒</span><span class=\"ds-dock-label\">Cart</span></button><button class=\"ds-dock-item\"><span class=\"ds-dock-icon\">☰</span><span class=\"ds-dock-label\">More</span></button></nav>",
+      "css": ".ds-dock { position: fixed; bottom: 22px; left: 18px; right: 18px; height: 64px; background: #FEFEFE; border-radius: 20px; display: flex; align-items: center; justify-content: space-around; padding: 0 8px; box-shadow: 0 8px 24px rgba(31, 41, 55, 0.15); } .ds-dock::before { content: ''; position: absolute; inset: 0; border-radius: 20px; padding: 1.5px; background: linear-gradient(90deg, rgba(249,115,22,0.30), rgba(249,115,22,0.70), rgba(249,115,22,0.30)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; } .ds-dock-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 25%; padding: 7px 6px; border-radius: 16px; border: none; background: transparent; cursor: pointer; } .ds-dock-item-active { background: #FFF7ED; } .ds-dock-capsule { position: absolute; top: -1px; width: 20px; height: 3px; border-radius: 1.5px; background: #F97316; } .ds-dock-icon { font-size: 22px; color: #71717A; } .ds-dock-item-active .ds-dock-icon { color: #EA580C; } .ds-dock-label { font-family: 'Poppins', sans-serif; font-weight: 500; font-size: 10px; color: #71717A; } .ds-dock-item-active .ds-dock-label { color: #EA580C; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Spice Market",
+    "overview": "Walking into a well-stocked South Asian grocery store: warm light catching rows of colorful spice jars, vibrant packaging stacked floor to ceiling, the visual richness of turmeric gold, chili red, and saffron orange against warm neutral shelves. The interface should feel appetizing, culturally rooted, and alive with color, never sterile or clinical.\n\nThis system rejects the cold utility of generic grocery apps and the cramped, low-quality feel of typical ethnic food apps. It aims for the visual confidence of premium food brands while maintaining the warmth and approachability of a neighborhood specialty store.\n\nThe palette is warm and generous, with orange as the signature color used generously across the interface. Surfaces are lifted with visible shadows, creating a tactile, floating feel. Typography uses Poppins for its friendly, geometric character, paired with the custom White-Star display font for brand distinction.",
+    "keyCharacteristics": [
+      "Warmth over minimalism: color is used generously, not rationed",
+      "Appetizing imagery first: product photography drives engagement",
+      "Lifted surfaces: cards and buttons float with visible shadows",
+      "Cultural vibrancy: visual language draws from South Asian design sensibilities"
+    ],
+    "rules": [
+      {
+        "name": "The Generosity Rule",
+        "body": "Orange is used generously across the interface, not rationed as a rare accent. Its abundance is the point.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm Neutrals Rule",
+        "body": "Never use pure #000 or #fff. All neutrals are tinted warm toward orange/amber.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight Contrast Rule",
+        "body": "Hierarchy comes from weight contrast, not size alone. Never use two weights at the same size for the same role.",
+        "section": "typography"
+      },
+      {
+        "name": "The Poppins-Only Rule",
+        "body": "All UI text uses Poppins. White-Star is reserved for display/hero use only.",
+        "section": "typography"
+      },
+      {
+        "name": "The Lifted-By-Default Rule",
+        "body": "Cards and interactive surfaces have shadows at rest. The interface feels like a collection of floating objects.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Shadow-Not-Elevation Rule",
+        "body": "On Android, prefer shadowOffset/shadowOpacity/shadowRadius over elevation. Elevation adds opaque backgrounds that fight translucent effects.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Use orange generously across the interface",
+      "Keep all neutrals warm-tinted (#FEFEFE, not #FFFFFF)",
+      "Use visible shadows on cards and interactive surfaces",
+      "Prioritize product imagery on every screen",
+      "Use Poppins for all UI text",
+      "Maintain 44pt minimum touch targets"
+    ],
+    "donts": [
+      "Use pure #000 or #fff anywhere",
+      "Create a cold, utilitarian, blue/white corporate palette (generic grocery app)",
+      "Use cramped layouts, low-quality imagery, or cluttered navigation (typical ethnic food app)",
+      "Use side-stripe borders (border-left/right > 1px as colored accent)",
+      "Use gradient text (background-clip: text with gradients)",
+      "Use glassmorphism as a default treatment (reserve for dock only)",
+      "Nest cards inside cards",
+      "Animate layout properties (width, height, padding)"
+    ]
+  }
+}

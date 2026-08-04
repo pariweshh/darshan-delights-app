@@ -434,7 +434,7 @@ export default function LoginScreen() {
                 <Text
                   style={[styles.linkText, { fontSize: config.bodyFontSize }]}
                 >
-                  Don't have an account?{" "}
+                  Don{"'"}t have an account?{" "}
                 </Text>
                 <Link href="/(auth)/signup" asChild>
                   <Text

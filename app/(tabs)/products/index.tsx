@@ -78,6 +78,7 @@ const SkeletonPulse = memo(({ style }: { style?: any }) => {
     />
   )
 })
+SkeletonPulse.displayName = "SkeletonPulse"
 
 interface CategorySkeletonProps {
   itemWidth: number
@@ -123,6 +124,7 @@ const CategorySkeleton = memo(
     )
   }
 )
+CategorySkeleton.displayName = "CategorySkeleton"
 
 interface QuickAccessSkeletonProps {
   isHorizontal: boolean
@@ -180,6 +182,7 @@ const QuickAccessSkeleton = memo(
     )
   }
 )
+QuickAccessSkeleton.displayName = "QuickAccessSkeleton"
 
 // ==========================================
 // Memoized Category Item Component
@@ -283,6 +286,7 @@ const CategoryItem = memo(
     )
   }
 )
+CategoryItem.displayName = "CategoryItem"
 
 // ==========================================
 // Memoized Quick Access Section
@@ -404,7 +408,7 @@ const QuickAccessSection = memo(
                 deviceType !== "phone" && styles.quickAccessSubtitleLarge,
               ]}
             >
-              Don't miss the deals
+              Don{"'"}t miss the deals
             </Text>
           </View>
           <View style={styles.saleBadge}>
@@ -420,6 +424,7 @@ const QuickAccessSection = memo(
     </View>
   )
 )
+QuickAccessSection.displayName = "QuickAccessSection"
 
 interface SkeletonScreenProps {
   gridConfig: ReturnType<typeof getGridConfig>
@@ -507,6 +512,7 @@ const SkeletonScreen = memo(
     )
   }
 )
+SkeletonScreen.displayName = "SkeletonScreen"
 
 // ==========================================
 // Main Component

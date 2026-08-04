@@ -4,7 +4,7 @@ import {
   markAllNotificationsAsRead,
   markNotificationAsRead,
 } from '@/src/api/notifications'
-import { Notification } from '@/src/types/notifications'
+import { Notification, NotificationResponse } from '@/src/types/notifications'
 import {
   keepPreviousData,
   useInfiniteQuery,
@@ -19,6 +19,12 @@ export const NOTIFICATION_KEYS = {
   lists: () => [...NOTIFICATION_KEYS.all, 'list'] as const,
   infinite: (userId: string | null | undefined) =>
     [...NOTIFICATION_KEYS.lists(), 'infinite', userId] as const,
+}
+
+// Data shape cached by useInfiniteNotifications (InfiniteData<NotificationResponse>)
+interface NotificationsQueryData {
+  pages: NotificationResponse[]
+  pageParams: unknown[]
 }
 
 export function useInfiniteNotifications(
@@ -47,16 +53,16 @@ export function useMarkNotificationAsRead() {
       markNotificationAsRead(id, token),
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: NOTIFICATION_KEYS.lists() })
-      const previous = queryClient.getQueriesData<any>({
+      const previous = queryClient.getQueriesData<NotificationsQueryData>({
         queryKey: NOTIFICATION_KEYS.lists(),
       })
-      queryClient.setQueriesData<any>(
+      queryClient.setQueriesData<NotificationsQueryData>(
         { queryKey: NOTIFICATION_KEYS.lists() },
         (old) => {
           if (!old?.pages) return old
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
+            pages: old.pages.map((page) => ({
               ...page,
               data: page.data.map((n: Notification) =>
                 n.id === id
@@ -69,8 +75,8 @@ export function useMarkNotificationAsRead() {
       )
       return { previous }
     },
-    onError: (_, __, context) => {
-      context?.previous?.forEach(([key, data]: [any, any]) => {
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data)
       })
     },
@@ -95,16 +101,16 @@ export function useDeleteNotification() {
       deleteNotification(id, token),
     onMutate: async ({ id }) => {
       await queryClient.cancelQueries({ queryKey: NOTIFICATION_KEYS.lists() })
-      const previous = queryClient.getQueriesData<any>({
+      const previous = queryClient.getQueriesData<NotificationsQueryData>({
         queryKey: NOTIFICATION_KEYS.lists(),
       })
-      queryClient.setQueriesData<any>(
+      queryClient.setQueriesData<NotificationsQueryData>(
         { queryKey: NOTIFICATION_KEYS.lists() },
         (old) => {
           if (!old?.pages) return old
           return {
             ...old,
-            pages: old.pages.map((page: any) => ({
+            pages: old.pages.map((page) => ({
               ...page,
               data: page.data.filter((n: Notification) => n.id !== id),
             })),
@@ -113,8 +119,8 @@ export function useDeleteNotification() {
       )
       return { previous }
     },
-    onError: (_, __, context) => {
-      context?.previous?.forEach(([key, data]: [any, any]) => {
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([key, data]) => {
         queryClient.setQueryData(key, data)
       })
     },

@@ -1264,7 +1264,7 @@ export default function RefundRequestScreen() {
               ]}
             >
               Refund requests are typically reviewed within 2-3 business days.
-              You'll receive an email notification once your request has been
+              You{"'"}ll receive an email notification once your request has been
               processed.
             </Text>
           </View>

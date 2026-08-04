@@ -8,9 +8,12 @@ import {
 import { CartItem } from '@/src/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
+// Query keys are scoped by token so cart cache can never bleed between
+// accounts on the same device (e.g. logging into a different user).
 export const CART_KEYS = {
   all: ['cart'] as const,
-  detail: () => [...CART_KEYS.all, 'detail'] as const,
+  detail: (token?: string | null) =>
+    [...CART_KEYS.all, 'detail', token ?? 'guest'] as const,
 }
 
 interface UseCartParams {
@@ -20,11 +23,10 @@ interface UseCartParams {
 
 export function useCart({ token, enabled = true }: UseCartParams) {
   return useQuery({
-    queryKey: CART_KEYS.detail(),
+    queryKey: CART_KEYS.detail(token),
     queryFn: () => getUserCartItems(token!),
     enabled: enabled && !!token,
     staleTime: 1000 * 30, // 30s — mutations invalidate immediately, so this is safe
-    refetchOnWindowFocus: true,
   })
 }
 
@@ -35,10 +37,11 @@ export function useAddToCart() {
     mutationFn: ({ product, token }: { product: CartItem; token: string }) =>
       addToCart(product, token),
     onMutate: async (newItem) => {
-      await queryClient.cancelQueries({ queryKey: CART_KEYS.detail() })
-      const previousCart = queryClient.getQueryData<CartItem[]>(CART_KEYS.detail())
+      const key = CART_KEYS.detail(newItem.token)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previousCart = queryClient.getQueryData<CartItem[]>(key)
 
-      queryClient.setQueryData<CartItem[]>(CART_KEYS.detail(), (old = []) => {
+      queryClient.setQueryData<CartItem[]>(key, (old = []) => {
         const existing = old.find((item) => +item.product_id === +newItem.product.product_id)
         if (existing) {
           return old.map((item) =>
@@ -56,13 +59,18 @@ export function useAddToCart() {
 
       return { previousCart }
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       if (context?.previousCart !== undefined) {
-        queryClient.setQueryData(CART_KEYS.detail(), context.previousCart)
+        queryClient.setQueryData(
+          CART_KEYS.detail(variables.token),
+          context.previousCart
+        )
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: CART_KEYS.detail(variables.token),
+      })
     },
   })
 }
@@ -80,11 +88,12 @@ export function useUpdateCartItem() {
       data: Partial<CartItem>
       token: string
     }) => updateCartItem(cartItemId, data, token),
-    onMutate: async ({ cartItemId, data }) => {
-      await queryClient.cancelQueries({ queryKey: CART_KEYS.detail() })
-      const previousCart = queryClient.getQueryData<CartItem[]>(CART_KEYS.detail())
+    onMutate: async ({ cartItemId, data, token }) => {
+      const key = CART_KEYS.detail(token)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previousCart = queryClient.getQueryData<CartItem[]>(key)
 
-      queryClient.setQueryData<CartItem[]>(CART_KEYS.detail(), (old = []) =>
+      queryClient.setQueryData<CartItem[]>(key, (old = []) =>
         old.map((item) =>
           item.basket_item_id === cartItemId ? { ...item, ...data } : item
         )
@@ -92,13 +101,18 @@ export function useUpdateCartItem() {
 
       return { previousCart }
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       if (context?.previousCart !== undefined) {
-        queryClient.setQueryData(CART_KEYS.detail(), context.previousCart)
+        queryClient.setQueryData(
+          CART_KEYS.detail(variables.token),
+          context.previousCart
+        )
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: CART_KEYS.detail(variables.token),
+      })
     },
   })
 }
@@ -109,23 +123,29 @@ export function useRemoveCartItem() {
   return useMutation({
     mutationFn: ({ cartItemId, token }: { cartItemId: number; token: string }) =>
       deleteCartItem(cartItemId, token),
-    onMutate: async ({ cartItemId }) => {
-      await queryClient.cancelQueries({ queryKey: CART_KEYS.detail() })
-      const previousCart = queryClient.getQueryData<CartItem[]>(CART_KEYS.detail())
+    onMutate: async ({ cartItemId, token }) => {
+      const key = CART_KEYS.detail(token)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previousCart = queryClient.getQueryData<CartItem[]>(key)
 
-      queryClient.setQueryData<CartItem[]>(CART_KEYS.detail(), (old = []) =>
+      queryClient.setQueryData<CartItem[]>(key, (old = []) =>
         old.filter((item) => item.basket_item_id !== cartItemId)
       )
 
       return { previousCart }
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, variables, context) => {
       if (context?.previousCart !== undefined) {
-        queryClient.setQueryData(CART_KEYS.detail(), context.previousCart)
+        queryClient.setQueryData(
+          CART_KEYS.detail(variables.token),
+          context.previousCart
+        )
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: CART_KEYS.detail(variables.token),
+      })
     },
   })
 }
@@ -135,19 +155,23 @@ export function useClearCart() {
 
   return useMutation({
     mutationFn: (token: string) => deleteBasket(token),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: CART_KEYS.detail() })
-      const previousCart = queryClient.getQueryData<CartItem[]>(CART_KEYS.detail())
-      queryClient.setQueryData(CART_KEYS.detail(), [])
+    onMutate: async (token) => {
+      const key = CART_KEYS.detail(token)
+      await queryClient.cancelQueries({ queryKey: key })
+      const previousCart = queryClient.getQueryData<CartItem[]>(key)
+      queryClient.setQueryData(key, [])
       return { previousCart }
     },
-    onError: (_err, _variables, context) => {
+    onError: (_err, token, context) => {
       if (context?.previousCart !== undefined) {
-        queryClient.setQueryData(CART_KEYS.detail(), context.previousCart)
+        queryClient.setQueryData(
+          CART_KEYS.detail(token),
+          context.previousCart
+        )
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+    onSettled: (_data, _error, token) => {
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail(token) })
     },
   })
 }

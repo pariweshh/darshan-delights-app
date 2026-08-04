@@ -4,7 +4,8 @@ import { Platform, Share } from "react-native"
 const WEB_URL = "https://darshandelights.com.au"
 
 // App Store URLs
-const APP_STORE_ID = process.env.EXPO_PUBLIC_APP_STORE_ID || "6757019672"
+// Fallback matches eas.json ascAppId — was 6757019672 (nonexistent app).
+const APP_STORE_ID = process.env.EXPO_PUBLIC_APP_STORE_ID || "6757019626"
 const APP_STORE_URL = `https://apps.apple.com/app/darshan-delights/id${APP_STORE_ID}`
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.darshandelights.app"

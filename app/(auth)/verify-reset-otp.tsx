@@ -218,7 +218,7 @@ export default function VerifyResetOTPScreen() {
               Enter Reset Code
             </Text>
             <Text style={[styles.subtitle, { fontSize: config.bodyFontSize }]}>
-              We've sent a 6-digit code to
+              We{"'"}ve sent a 6-digit code to
             </Text>
             <Text
               style={[
@@ -263,7 +263,7 @@ export default function VerifyResetOTPScreen() {
               <Text
                 style={[styles.resendText, { fontSize: config.bodyFontSize }]}
               >
-                Didn't receive the code?{" "}
+                Didn{"'"}t receive the code?{" "}
               </Text>
               {resendCooldown > 0 ? (
                 <Text

@@ -17,6 +17,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
 import CategoryList from "@/src/components/home/CategoryList"
+import HomeCarousel from "@/src/components/home/HomeCarousel"
 import ProductGrid from "@/src/components/home/ProductGrid"
 import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
 import PurchasedBeforeList from "@/src/components/home/PurchasedBeforeList"
@@ -84,6 +85,7 @@ const WelcomeSection = memo(
     )
   }
 )
+WelcomeSection.displayName = "WelcomeSection"
 
 // Loading Skeleton
 const HomeSkeleton = memo(
@@ -159,6 +161,7 @@ const HomeSkeleton = memo(
     </ScrollView>
   )
 )
+HomeSkeleton.displayName = "HomeSkeleton"
 
 // Error State
 const ErrorState = memo(
@@ -192,6 +195,7 @@ const ErrorState = memo(
     </View>
   )
 )
+ErrorState.displayName = "ErrorState"
 
 // ==========================================
 // Main Component
@@ -497,6 +501,9 @@ export default function HomeScreen() {
             onCategoryPress={navigateToCategory}
           />
         </View>
+
+        {/* 5-Image Hero Banner Carousel */}
+        <HomeCarousel />
 
         <AppExclusiveBanner />
 

@@ -259,6 +259,7 @@ const ReviewItem = memo(
     )
   }
 )
+ReviewItem.displayName = "ReviewItem"
 
 interface ListHeaderProps {
   reviewCount: number
@@ -279,6 +280,7 @@ const ListHeader = memo(
     )
   }
 )
+ListHeader.displayName = "ListHeader"
 
 interface ListFooterProps {
   isLoadingMore: boolean
@@ -300,6 +302,7 @@ const ListFooter = memo(
     )
   }
 )
+ListFooter.displayName = "ListFooter"
 
 interface SkeletonStateProps {
   useColumnsLayout: boolean
@@ -386,6 +389,7 @@ const SkeletonState = memo(
     )
   }
 )
+SkeletonState.displayName = "SkeletonState"
 
 export default function MyReviewsScreen() {
   const router = useRouter()

@@ -4,11 +4,11 @@ Durable project state. Live/in-flight work lives in `WORKLOG.md`.
 
 - **Repo:** `darshan_delights_mobile` (Expo SDK 54, expo-router v6, React Native 0.81.5, New Architecture on)
 - **Backend:** Strapi v5 at `../strapi-cms` (its own `BUILD_STATE.md`)
-- **Branch:** `dev` (main branch: `main`)
+- **Branch:** `ui_update_aug_2026` (UI/design work branch, in progress; main branch: `main`)
 - **App version:** `1.0.2` · iOS bundle `com.darshandelights.identifier` · Android `com.darshandelights.app`
 - **EAS project:** `d9dcf810-5b8e-4698-992a-f11a300d8f38`, owner `darshan-delights`
 - **OTA:** `expo-updates` enabled, `runtimeVersion.policy = "appVersion"`, channel `production`
-- **Last State Audit:** 2026-08-02
+- **Last State Audit:** 2026-08-04
 
 ---
 
@@ -18,9 +18,12 @@ Durable project state. Live/in-flight work lives in `WORKLOG.md`.
 - **[WORKLOG.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/WORKLOG.md)** — Active session checkpoint, active task state, and immediate next steps.
 - **[.env.example](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/.env.example)** — Environment variable contract and Metro inlining topology.
 - **[ARCHITECTURE.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/ARCHITECTURE.md)** — System architecture, directory map, state management, and Strapi checkout sequence.
-- **[DECISION_LOG.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/DECISION_LOG.md)** — Architectural Decision Records (ADRs) explaining core design decisions.
+- **[DECISION_LOG.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/DECISION_LOG.md)** — Architectural Decision Records (ADRs) explaining core design decisions (incl. ADR-007 dock surface).
 - **[RUNBOOK.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/RUNBOOK.md)** — Standard operating procedures for dev server, EAS builds, OTA updates, and emergency rollbacks.
 - **[CONVENTIONS.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/CONVENTIONS.md)** — TypeScript rules, NativeWind UI guidelines, error handling rules, and verification requirements.
+- **[PRODUCT.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/PRODUCT.md)** — Product purpose, users, brand personality, design principles, accessibility requirements.
+- **[DESIGN.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/DESIGN.md)** — Design system: "The Spice Market" palette, typography, elevation, component specs (incl. dock).
+- **[.impeccable/design.json](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/.impeccable/design.json)** — Impeccable design-system sidecar (tonal ramps, shadows, motion, component HTML/CSS).
 
 ---
 
@@ -158,6 +161,8 @@ Must return `1`. It currently returns `0`.
   visible only in Content Manager drafts / SQL. No cron sweeper exists. **They do not decrement stock,
   send email/SMS/push, or consume coupon usage** — all of those hang off the `payment_intent.succeeded`
   webhook. No `paymentIntents.cancel` exists anywhere in the backend.
+  **FIXED 2026-08-04 (Bug #2):** `cleanupDraftOrder` helper wired into all four leak paths + the
+  outer catch (rejection edge case). See WORKLOG.
 - **Product reviews screen crashed for any product with reviews** — `ReferenceError` from a botched
   find-replace that renamed the *import specifiers* (`REVIEW_REVIEW_SORT_OPTIONS`,
   `ReviewReviewSortOption`) but not the usage sites. **FIXED 2026-07-31** in
@@ -194,8 +199,9 @@ client secret.
 
 ---
 
-## Recent work (git history, `dev`)
+## Recent work (git history, current branch `ui_update_aug_2026`)
 
+- `5d252cf` docs: standardize project Source of Truth files and update dev features
 - `a81525b` minor changes to account delete feature
 - `8b689d8` removed brand banner for now
 - `eedaf23` updated purchased before component
@@ -204,4 +210,82 @@ client secret.
 - `c2bf9ef` network error bug fixes; free-order handling (review purpose); missing images
 - `eca9cdc` strip console logs in production; resend confirmation email from login
 
-**Working tree is dirty** — a large number of modified files are uncommitted on `dev`.
+**Working tree is dirty on `ui_update_aug_2026`** — uncommitted UI work (see below).
+
+---
+
+## Active UI update session — 2026-08-02 → 08-04 (branch `ui_update_aug_2026`)
+
+Status: **In progress.** This is the current area of work. Everything below is on disk
+but NOT committed; it sits on top of the standardize-docs commit `5d252cf`.
+
+### What's on disk (uncommitted)
+
+| Area | Files | Notes |
+|---|---|---|
+| Bottom dock redesign | `app/(tabs)/_layout.tsx` (modified) | 7 passes; now a floating curved bar, see ADR-007 |
+| Home carousel rewrite | `src/components/home/HomeCarousel.tsx` (new) | ScrollView → FlatList; **images not loading + swiping broken FIXED 2026-08-04** — see WORKLOG (dead isPausedRef, Android removeClippedSubviews, onError fallback, recyclingKey, AppState pause, tablet width); on-device smoke test still pending |
+| Home screen integration | `app/(tabs)/home/index.tsx` (modified) | `<HomeCarousel />` between `<CategoryList />` and `<AppExclusiveBanner />` |
+| Banner target routes | `app/highlighted-products.tsx`, `app/short-dated.tsx`, `app/bulk-orders.tsx`, `app/popular-products.tsx` (new) | Stub routes for banner navigation |
+| Design system | `DESIGN.md`, `PRODUCT.md`, `.impeccable/design.json` (new) | Impeccable setup: "The Spice Market" north star, warm palette |
+| ESLint | `eslint.config.js` (new), `package.json`/`package-lock.json` (modified) | `eslint` + `eslint-config-expo` added; `npm run lint` → `expo lint` |
+| Session artifacts | `WORKLOG.md` (modified), `.freebuff/` (new) | Live checkpoint + local tool db |
+
+### Current dock implementation (reality, as of 2026-08-04)
+
+- **Floating curved bar**, 64px tall, 20px radius (NOT fully rounded — user rejected the full pill), opaque cream (`#FEFEFE`) surface with a 1.5px saffron gradient hairline border.
+- Floated via margin insets (v7 base style's logical `start`/`end` beat physical `left`/`right`), phone side gap 18px, tablet capped at 640px centered; `marginBottom = max(10, insets.bottom − 12)`.
+- v7 renders `tabBarIcon` **twice** per tab (active/inactive copies cross-faded) → static per-copy styling; reanimated removed (dead code).
+- Label no-truncation: `paddingTop/Bottom: 0` override of lib's `insets.bottom`, `tabBarIconStyle { width/height: 100% }` override of the 52×32 wrapper, `alignSelf: stretch` on the item (fixes unequal active-pill widths), width-derived fontSize, `maxFontSizeMultiplier`, `adjustsFontSizeToFit`.
+- Active tab: Saffron Whisper pill (inset 4px vertically) + 3px Saffron Flame capsule indicator centered via flexbox; Saffron Deep icon/label. Badge on cart (item count) + more (unread notifications).
+- `useResponsive()` hook for device detection; `useSafeAreaInsets()` for bottom offset.
+
+### ESLint
+
+`eslint.config.js` uses `eslint-config-expo`; run with `npm run lint` (expo lint).
+**Lint is now GREEN — 0 errors** as of the 2026-08-04 full-repo sweep (was 66 errors / 86 warnings at
+session start; 41 `react/display-name` + 25 `react/no-unescaped-entities` fixed). 79 warnings remain,
+all pre-existing `react-hooks`/`no-unused-vars`.
+
+### Open items
+
+1. **HomeCarousel fix needs an on-device smoke test** — root causes fixed in code (2026-08-04, see WORKLOG); the fix has NOT been device-verified yet. The defect previously shipped in the live OTA.
+2. iOS payment OTA defect (BUILD_STATE above) — still awaiting user decision on remediation; a correctly-flagged `eas update --environment production` is itself the fix.
+3. `npx tsc --noEmit` still shows the 1 known pre-existing type-only error (ShippingNoticeModal Timeout).
+
+---
+
+## Bug-fix session — 2026-08-04 (full-codebase triage + fixes #1–#3)
+
+Status: **In progress — paused on user request, will continue in a fresh session.**
+
+Ran a full read-only bug/optimization triage across stores, API layer, query hooks, and screens; then
+fixed the top three HIGH bugs one at a time (each validated with `tsc` + `lint`, code-reviewed).
+
+### Fixed this session (all verified: tsc = only the 3 known pre-existing errors; lint clean)
+
+| # | Bug | File | Fix |
+|---|---|---|---|
+| 1 | `checkConnection()` always returned `true` (inverted `return !isOnline`) — OfflineScreen retry always fired, `checkFullConnectivity` never reported `"offline"` | `src/store/networkStore.ts` | offline branch now returns `false`; single source of truth via explicit booleans (keeps `Promise<boolean>` contract) |
+| 2 | Orphan draft orders leaked on `initPaymentSheet` error + non-canceled `presentPaymentSheet` errors (only "Canceled" cleaned up) | `app/(tabs)/cart/payment.tsx` | `cleanupDraftOrder` helper (swallows failures) wired into all 4 leak paths + hoisted `createdOrderId` + outer-catch cleanup for SDK rejections; toast-first ordering; `allowsDelayedPaymentMethods` caveat documented |
+| 3 | Auto-retry retried non-idempotent POSTs after timeout/5xx → duplicate orders/double cart adds | `src/api/client.ts` | `isIdempotentMethod()` gate in `shouldRetry()` — only `GET`/`HEAD` auto-retry; POST/PUT/DELETE fall through to unchanged error handling |
+
+### Remaining triage backlog
+
+**Bugs #4–#9 — ALL FIXED 2026-08-04** (validated: tsc = 1 known error, lint no new issues). See WORKLOG for the full table. Summary: appRating env-var prefix + fallbacks (#4); cart `useMemo`→`useEffect` (#5); OfflineBanner log removed (#6); ProductGrid magic `getItemLayout` removed (#7); cart/favorites query keys token-scoped (#8); all five dead-code nits (#9).
+
+**Optimizations — DONE 2026-08-04:** API-client in-memory token cache + NetInfo store reuse (biggest perf win); orders-screen per-order review cache (N+1); cart double-fetch removed; `FlashSaleBanner` interval pauses/stops; QueryProvider `retry: 3→1` (stacked retries); `useNotifications` `any` types fixed → **tsc is now non-green with only 1 error** (ShippingNoticeModal).
+
+**Not yet done:** ProductCard query fan-out (40 selector subscriptions on a 20-card grid) — needs a shared-selector refactor, deferred.
+
+### IMPORTANT — tsc baseline changed 2026-08-04
+
+The two `useNotifications.ts:55,103` implicit-any errors (part of the optimization list) are now
+fixed with proper typing. `npx tsc --noEmit` now reports **exactly 1 error**:
+`src/components/common/ShippingNoticeModal.tsx:20` (`Timeout` mismatch). See CONVENTIONS.md note.
+
+### IMPORTANT — lint baseline changed 2026-08-04 (full-repo sweep)
+
+All 66 pre-existing lint errors eliminated (`react/display-name` ×41, `react/no-unescaped-entities`
+×25). `npm run lint` = **0 errors / 79 warnings**. Verification protocol in CONVENTIONS.md is
+unchanged — the "non-green" note no longer applies to lint.

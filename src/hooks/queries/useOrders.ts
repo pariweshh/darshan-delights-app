@@ -99,9 +99,10 @@ export function useCreateOrder() {
     mutationFn: (params: Parameters<typeof createOrderAndPaymentIntent>[0]) =>
       createOrderAndPaymentIntent(params),
     onSuccess: () => {
-      // Invalidate order list and cart after a successful order
+      // Invalidate order list and cart after a successful order.
+      // Cart keys are token-scoped (Bug #8), so invalidate the whole cart family.
       queryClient.invalidateQueries({ queryKey: ORDERS_KEYS.lists() })
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all })
     },
   })
 }

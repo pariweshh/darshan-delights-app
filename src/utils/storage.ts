@@ -1,3 +1,4 @@
+import { invalidateAuthTokenCache } from "@/src/api/client"
 import { API_CONFIG, STORAGE_KEYS } from "@/src/config/constants"
 import { SessionCheckResult, User } from "@/src/types"
 import axios, { AxiosError, isAxiosError } from "axios"
@@ -62,7 +63,7 @@ export const getLoggedInUser = async (): Promise<SessionCheckResult> => {
 
       if (axiosError.response?.status === 401) {
         try {
-          await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN)
+          await removeUserAuth()
         } catch (deleteError) {
           console.error("Error removing token:", deleteError)
         }
@@ -87,7 +88,7 @@ export const getLoggedInUser = async (): Promise<SessionCheckResult> => {
     }
 
     try {
-      await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN)
+      await removeUserAuth()
     } catch (deleteError) {
       console.error("Error removing token:", deleteError)
     }
@@ -116,10 +117,14 @@ export const isAuthenticated = async () => {
 export const setUserAuth = async (value: string): Promise<void> => {
   if (!value) return
   await SecureStore.setItemAsync(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(value))
+  // Invalidate the in-memory token cache (api/client.ts) so the next request
+  // picks up the new session.
+  invalidateAuthTokenCache()
 }
 
 export const removeUserAuth = async (): Promise<void> => {
   await SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_TOKEN)
+  invalidateAuthTokenCache()
 }
 
 export const hasCompletedOnboarding = async (): Promise<boolean> => {
