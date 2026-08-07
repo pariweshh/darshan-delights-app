@@ -635,10 +635,47 @@ Fresh production-environment export (`<scratch>/preflight3`) — all checks pass
 | `will ship until` | 0 | **0** ✅ |
 | `shipping_notice` storage keys | 0 | **0** ✅ |
 
+---
+
+## HomeCarousel disabled — 2026-08-07
+
+Hero carousel was not ready for release. Commented out at both sites in
+`app/(tabs)/home/index.tsx` (matching the existing `{/* <FeaturedFlipBook /> */}` precedent in the same
+file):
+
+- `:19` — `// import HomeCarousel from "@/src/components/home/HomeCarousel"`
+- `:504` — `{/* <HomeCarousel /> */}`
+
+Commenting out only the import (as literally asked) would have left `<HomeCarousel />` referencing an
+undefined identifier and crashed the home screen, so the JSX usage was commented out too.
+`src/components/home/HomeCarousel.tsx` is untouched and stays on disk for later.
+
+---
+
+## FINAL PRE-PUBLISH STATE — 2026-08-07
+
+`npx tsc --noEmit`: **1 error**, `ShippingNoticeModal.tsx:20`, inside a dead unmounted file.
+No test suite exists in this project.
+
+Verified bundle: `<scratch>/preflight4/_expo/static/js/ios/*.hbc`
+
+| Check | Expected | Actual |
+|---|---|---|
+| `pk_live_` | 1 | **1** ✅ |
+| `merchant.com.darshandelights` | 1 | **1** ✅ |
+| App Store ID `6757019626` | 1 | **1** ✅ |
+| `REVIEW_SORT_OPTIONS` | 1 | **1** ✅ |
+| `5th August` | 0 | **0** ✅ |
+| `Dispatch Schedule Notice` | 0 | **0** ✅ |
+| `HomeCarousel` | 0 | **0** ✅ |
+| `localhost:1337` / `192.168.` | 0 | **0** ✅ |
+
 ### Open threads
 
-- Awaiting go-ahead on the commit. The publish command is the user's to run.
-- Decide whether to `git rm` the two unmounted component files (after the first commit).
+- Awaiting a single go-ahead covering the commit **and** the production publish. The user's earlier
+  stated preference was to run the publish themselves; they have since said "update the production via
+  eas", so this needs one explicit confirmation before anything goes live.
+- Decide whether to `git rm` the two unmounted shipping-notice component files (after the commit).
 - Offered but not done: `ShippingNoticeModal.tsx:20` type error (moot if the file is deleted).
 - Unverifiable from this machine — see BUILD_STATE.md § Not verifiable from this machine.
 
