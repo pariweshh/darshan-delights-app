@@ -12,7 +12,6 @@ import {
 import { getProducts } from "@/src/api/products"
 import { useCategories, useProducts } from "@/src/hooks/queries/useProducts"
 import ConnectionErrorScreen from "@/src/components/common/ConnectionErrorScreen"
-import ShippingNoticeBanner from "@/src/components/common/ShippingNoticeBanner"
 import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
@@ -458,7 +457,6 @@ export default function HomeScreen() {
   return (
     <Wrapper style={styles.wrapper}>
       <HomeHeader />
-      <ShippingNoticeBanner />
 
       <ScrollView
         style={styles.scrollView}

@@ -1,6 +1,5 @@
 import ConnectionStatusBanner from "@/src/components/common/ConnectionStatusBanner"
 import ErrorBoundary from "@/src/components/common/ErrorBoundary"
-import ShippingNoticeModal from "@/src/components/common/ShippingNoticeModal"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { QueryProvider } from "@/src/providers/QueryProvider"
 import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
@@ -395,7 +394,6 @@ export default function RootLayout() {
 
             <StatusBar style="dark" />
             <Toast />
-            <ShippingNoticeModal />
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </StripeProvider>

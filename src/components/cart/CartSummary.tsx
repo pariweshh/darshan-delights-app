@@ -40,42 +40,6 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         },
       ]}
     >
-      {/* Shipping Delay Notice */}
-      <View
-        style={[
-          styles.shippingNoticeBanner,
-          {
-            padding: isTablet ? 14 : 12,
-            borderRadius: config.cardBorderRadius,
-            marginBottom: isTablet ? 20 : 16,
-          },
-        ]}
-      >
-        <Ionicons name="bus-outline" size={config.iconSize} color="#92400E" />
-        <View style={styles.shippingNoticeTextContainer}>
-          <Text
-            style={[
-              styles.shippingNoticeTitle,
-              { fontSize: config.bodyFontSize - 1 },
-            ]}
-          >
-            Shipping Delay Notice
-          </Text>
-          <Text
-            style={[
-              styles.shippingNoticeText,
-              { fontSize: config.smallFontSize },
-            ]}
-          >
-            No orders will ship until{" "}
-            <Text style={{ fontFamily: "Poppins_700Bold", textDecorationLine: "underline" }}>
-              5th August
-            </Text>
-            . Thank you for your patience!
-          </Text>
-        </View>
-      </View>
-
       {/* Free Shipping Progress */}
       {showFreeShippingProgress && (
         <View
@@ -247,27 +211,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: AppColors.gray[200],
     backgroundColor: AppColors.background.primary,
-  },
-  shippingNoticeBanner: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    backgroundColor: "#FEF3C7",
-    borderWidth: 1,
-    borderColor: "#FCD34D",
-    gap: 10,
-  },
-  shippingNoticeTextContainer: {
-    flex: 1,
-  },
-  shippingNoticeTitle: {
-    fontFamily: "Poppins_600SemiBold",
-    color: "#92400E",
-  },
-  shippingNoticeText: {
-    fontFamily: "Poppins_400Regular",
-    color: "#78350F",
-    marginTop: 2,
-    lineHeight: 18,
   },
   freeShippingBanner: {
     flexDirection: "row",

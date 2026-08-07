@@ -579,10 +579,67 @@ Artifact: `<scratch>/preflight2/_expo/static/js/ios/entry-86e75568c3fa6a90ac1bc8
 | `REVIEW_REVIEW_SORT_OPTIONS` | 0 | **0** ✅ |
 | `REVIEW_SORT_OPTIONS` | ≥1 | **1** ✅ |
 
+---
+
+## Shipping delay notice removed — 2026-08-07
+
+The notice advertised "no orders ship until 5th August", now past. The user asked to remove the popup
+and the banner. A grep sweep found **four** render sites, not two — all four removed:
+
+| # | Location | What it was |
+|---|---|---|
+| 1 | `app/_layout.tsx:3,398` | `<ShippingNoticeModal />` — the popup (import + mount) |
+| 2 | `app/(tabs)/home/index.tsx:15,461` | `<ShippingNoticeBanner />` — home banner (import + mount) |
+| 3 | `src/components/cart/CartSummary.tsx:43-77` + styles `251-270` | inline "Shipping Delay Notice" card |
+| 4 | `app/(tabs)/cart/select-shipping.tsx:812-853` | inline "Dispatch Schedule Notice" card |
+
+Sites 3 and 4 were **not** mentioned in the request and were not separate components — they were
+hardcoded inline blocks carrying the same expired 5th-August date. Removed because leaving them would
+have defeated the point of the request. Flagged to the user.
+
+`Ionicons` is still used elsewhere in both edited files (4 and 20 remaining uses), so imports were left
+alone. Only the notice-specific styles were deleted.
+
+### Component files — unmounted, NOT deleted
+
+`src/components/common/ShippingNoticeModal.tsx` and `ShippingNoticeBanner.tsx` still exist on disk but
+are referenced by nothing. Metro only bundles reachable modules, so they do **not** ship — confirmed by
+the absence of their AsyncStorage keys in the built bundle.
+
+They are **untracked**, so deleting them now would be unrecoverable. Recommended sequence: commit once
+(capturing them in history), then `git rm` them in a follow-up commit. They are a reusable
+dismissible-notice pattern worth keeping for the next shipping pause.
+
+Orphaned AsyncStorage keys left on user devices (`@shipping_notice_modal_seen`,
+`@shipping_notice_banner_dismissed`) are inert — no cleanup needed.
+
+### Verification — 2026-08-07
+
+`npx tsc --noEmit` (clean run, no stale buildinfo): **1 error**, down from 13. The single remaining
+error is `ShippingNoticeModal.tsx:20` (`number` vs `Timeout`) — inside the now-dead component file, so
+it disappears when that file is deleted. The two `useNotifications.ts` implicit-`any` errors no longer
+reproduce.
+
+Fresh production-environment export (`<scratch>/preflight3`) — all checks pass:
+
+| Check | Expected | Actual |
+|---|---|---|
+| `pk_live_` | 1 | **1** ✅ |
+| `merchant.com.darshandelights` | 1 | **1** ✅ |
+| App Store ID `6757019626` | 1 | **1** ✅ |
+| `REVIEW_SORT_OPTIONS` | 1 | **1** ✅ |
+| `5th August` | 0 | **0** ✅ |
+| `Shipping Notice` | 0 | **0** ✅ |
+| `Shipping Delay Notice` | 0 | **0** ✅ |
+| `Dispatch Schedule Notice` | 0 | **0** ✅ |
+| `will ship until` | 0 | **0** ✅ |
+| `shipping_notice` storage keys | 0 | **0** ✅ |
+
 ### Open threads
 
 - Awaiting go-ahead on the commit. The publish command is the user's to run.
-- Offered but not done: the 3 remaining type-only tsc errors.
+- Decide whether to `git rm` the two unmounted component files (after the first commit).
+- Offered but not done: `ShippingNoticeModal.tsx:20` type error (moot if the file is deleted).
 - Unverifiable from this machine — see BUILD_STATE.md § Not verifiable from this machine.
 
 ### Later (out of scope — do not action without approval)
