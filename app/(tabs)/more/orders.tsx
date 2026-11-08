@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router"
-import React, { useCallback, useEffect, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import {
   ActivityIndicator,
   FlatList,
@@ -67,6 +67,9 @@ export default function OrdersScreen() {
   const [reviewedProductIds, setReviewedProductIds] = useState<Set<number>>(
     new Set()
   )
+  // Per-order reviewed-product cache so re-opening the details modal doesn't
+  // re-issue one getUserProductReview per product (N+1).
+  const reviewedCacheRef = useRef<Map<number, Set<number>>>(new Map())
 
   // Review Modal state
   const [showReviewModal, setShowReviewModal] = useState(false)
@@ -107,11 +110,19 @@ export default function OrdersScreen() {
     async (order: Order) => {
       if (!token) return
 
+      const cached = reviewedCacheRef.current.get(order.id)
+      if (cached) {
+        setReviewedProductIds(cached)
+        return
+      }
+
       const isReviewable =
         order?.delivery_status &&
         REVIEWABLE_STATUSES.includes(order.delivery_status.toLowerCase())
       if (!isReviewable) {
-        setReviewedProductIds(new Set())
+        const empty = new Set<number>()
+        reviewedCacheRef.current.set(order.id, empty)
+        setReviewedProductIds(empty)
         return
       }
 
@@ -148,6 +159,7 @@ export default function OrdersScreen() {
       } catch (error) {
         console.error("Error fetching review status:", error)
       }
+      reviewedCacheRef.current.set(order.id, reviewedIds)
       setReviewedProductIds(reviewedIds)
     },
     [token]
@@ -159,6 +171,7 @@ export default function OrdersScreen() {
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true)
     await refetch()
+    reviewedCacheRef.current.clear()
     setIsRefreshing(false)
   }, [refetch])
 
@@ -252,6 +265,12 @@ export default function OrdersScreen() {
           newSet.add(Number(reviewProduct.product_id))
           return newSet
         })
+        if (selectedOrder) {
+          const cached = reviewedCacheRef.current.get(selectedOrder.id)
+          const updated = new Set(cached)
+          updated.add(Number(reviewProduct.product_id))
+          reviewedCacheRef.current.set(selectedOrder.id, updated)
+        }
       }
 
       handleCloseReviewModal()

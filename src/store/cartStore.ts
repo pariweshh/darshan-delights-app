@@ -8,7 +8,7 @@ interface CartState {
 export const useCartStore = create<CartState>()(() => ({
   clearCartOnLogout: () => {
     import('@/src/providers/QueryProvider').then(({ queryClientInstance }) => {
-      queryClientInstance?.setQueryData(CART_KEYS.detail(), [])
+      queryClientInstance?.setQueriesData({ queryKey: CART_KEYS.all }, [])
     })
   },
 }))

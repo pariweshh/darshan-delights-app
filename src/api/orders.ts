@@ -65,9 +65,13 @@ export const createOrderAndPaymentIntent = async ({
     )
 
     return data
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to save order: ", error)
-    throw error
+    throw new Error(
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to save order"
+    )
   }
 }
 
@@ -138,7 +142,9 @@ export const cancelOrder = async (
   } catch (error: any) {
     console.error("Error canceling order:", error)
     throw new Error(
-      error.response?.data?.error?.message || "Failed to cancel order"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to cancel order"
     )
   }
 }
@@ -158,7 +164,31 @@ export const deleteOrder = async (
   } catch (error: any) {
     console.error("Error deleting order:", error)
     throw new Error(
-      error.response?.data?.error?.message || "Failed to delete order"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to delete order"
+    )
+  }
+}
+
+export const abandonOrder = async (
+  orderId: number,
+  token: string
+): Promise<{ success: boolean }> => {
+  try {
+    await api.post(`/orders/${orderId}/abandon`, undefined, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error abandoning order:", error)
+    throw new Error(
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to abandon order"
     )
   }
 }
@@ -179,7 +209,9 @@ export const updateOrder = async (
   } catch (error: any) {
     console.error("Error updating order:", error)
     throw new Error(
-      error.response?.data?.error?.message || "Failed to update order"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to update order"
     )
   }
 }

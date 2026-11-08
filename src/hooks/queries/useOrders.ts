@@ -101,7 +101,7 @@ export function useCreateOrder() {
     onSuccess: () => {
       // Invalidate order list and cart after a successful order
       queryClient.invalidateQueries({ queryKey: ORDERS_KEYS.lists() })
-      queryClient.invalidateQueries({ queryKey: CART_KEYS.detail() })
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all })
     },
   })
 }

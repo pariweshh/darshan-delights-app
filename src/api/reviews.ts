@@ -56,7 +56,7 @@ export async function getUserProductReview(
     })
     return response.data.data
   } catch (error: any) {
-    if (error.response?.status === 404) {
+    if (error.statusCode === 404 || error.response?.status === 404) {
       return null
     }
     throw error

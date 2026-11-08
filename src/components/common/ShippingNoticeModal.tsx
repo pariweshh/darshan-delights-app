@@ -12,7 +12,7 @@ export default function ShippingNoticeModal() {
   const { config, isTablet } = useResponsive()
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
 
     AsyncStorage.getItem(STORAGE_KEY)
       .then((value) => {

@@ -134,16 +134,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const res = await signIn({ identifier, password })
 
+      // setUserAuth stores the token in SecureStore and invalidates the
+      // in-memory token cache in api/client.ts.
       await setUserAuth(res.jwt || "")
-
-      const { biometricAuthEnabled } = get()
-
-      if (biometricAuthEnabled) {
-        await SecureStore.setItemAsync(
-          STORAGE_KEYS.AUTH_TOKEN,
-          JSON.stringify(res.jwt)
-        )
-      }
 
       set({
         user: res.user,

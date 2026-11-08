@@ -8,7 +8,10 @@ interface FavoritesState {
 export const useFavoritesStore = create<FavoritesState>()(() => ({
   clearFavoritesOnLogout: () => {
     import('@/src/providers/QueryProvider').then(({ queryClientInstance }) => {
-      queryClientInstance?.setQueryData(FAVORITES_KEYS.detail(), { products: [] })
+      queryClientInstance?.setQueriesData(
+        { queryKey: FAVORITES_KEYS.all },
+        { products: [] }
+      )
     })
   },
 }))

@@ -19,12 +19,12 @@ function createQueryClient() {
       queries: {
         staleTime: STALE_TIME.SHORT,
         gcTime: GCACHE_TIME.SHORT,
-        retry: 3,
+        retry: 1,
         refetchOnWindowFocus: Platform.OS === 'web',
         refetchOnReconnect: true,
       },
       mutations: {
-        retry: 1,
+        retry: 0,
       },
     },
   })

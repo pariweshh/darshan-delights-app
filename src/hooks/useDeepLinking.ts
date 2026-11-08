@@ -124,6 +124,29 @@ export function useDeepLinking(isAppReady: boolean = true): void {
     // Website URL patterns (Universal Links)
     // ============================================
 
+    // Search: /shop/products/search
+    // Must stay above the shop/products/ prefix check below — otherwise "search"
+    // is read as a product slug.
+    if (path === "shop/products/search") {
+      router.push({
+        pathname: "/search",
+        params,
+      })
+      return
+    }
+
+    // Orders: /account/orders (requires auth)
+    if (path === "account/orders") {
+      router.push(token ? "/(tabs)/more/orders" : "/(auth)/login")
+      return
+    }
+
+    // Wishlist: /account/wishlist — called "favorites" in the app (requires auth)
+    if (path === "account/wishlist") {
+      router.push(token ? "/favorites" : "/(auth)/login")
+      return
+    }
+
     // Product detail": /shop/products/{slug}
     if (path.startsWith("shop/products/")) {
       const productSlug = path.replace("shop/products/", "")
@@ -311,6 +334,13 @@ export function useDeepLinking(isAppReady: boolean = true): void {
       } else {
         router.push("/(auth)/login")
       }
+      return
+    }
+
+    // Stripe's returnURL (see payment.tsx `returnURL`). Deliberately a no-op
+    // so the unknown-path fallback below doesn't push /(tabs)/home while
+    // presentPaymentSheet() is handling the payment result.
+    if (path === "payment-success") {
       return
     }
 

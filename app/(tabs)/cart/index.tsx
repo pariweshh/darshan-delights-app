@@ -1,6 +1,6 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons"
 import { useFocusEffect, useRouter } from "expo-router"
-import { memo, useCallback, useMemo, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useState } from "react"
 import {
   Alert,
   FlatList,
@@ -384,8 +384,7 @@ export default function CartScreen() {
   )
 
   // Automatically recalculate discount when subtotal changes (e.g., after fetch)
-  // Recalculate discount when subtotal changes
-  useMemo(() => {
+  useEffect(() => {
     if (appliedCoupon && subtotal > 0) {
       let newDiscountAmount = 0
       if (appliedCoupon.discountType === "percentage") {
@@ -402,7 +401,7 @@ export default function CartScreen() {
         )
       }
     }
-  }, [subtotal, appliedCoupon?.discountType, appliedCoupon?.discountValue])
+  }, [subtotal, appliedCoupon])
 
   const handleCouponApply = useCallback(
     (coupon: ValidatedCoupon) => {

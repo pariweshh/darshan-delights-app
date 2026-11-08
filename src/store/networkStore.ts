@@ -34,7 +34,6 @@ interface NetworkState {
 }
 
 // Debounce helper
-let serverCheckTimeout: NodeJS.Timeout | null = null
 const SERVER_CHECK_DEBOUNCE = 5000 // 5 seconds between server checks
 const SERVER_CHECK_TIMEOUT = 8000
 
@@ -117,10 +116,10 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
     if (!isOnline) {
       set({ connectionStatus: "offline" })
-      return !isOnline
+      return false
     }
 
-    return isOnline
+    return true
   },
 
   checkServerHealth: async () => {
@@ -210,6 +209,9 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
 
   requireNetwork: async (customMessage?: string) => {
     const status = await get().checkFullConnectivity()
+    if (status !== "connected" && customMessage) {
+      set({ serverErrorMessage: customMessage })
+    }
     return status === "connected"
   },
 

@@ -15,7 +15,9 @@ export const getUserAddresses = async (token: string): Promise<Address[]> => {
       console.error("Error fetching addresses:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to fetch addresses"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to fetch addresses"
     )
   }
 }
@@ -44,7 +46,9 @@ export const getAddressById = async (
       console.error("Error fetching address:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to fetch address"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to fetch address"
     )
   }
 }
@@ -74,7 +78,9 @@ export const createAddress = async (
       console.error("Error creating address:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to create address"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to create address"
     )
   }
 }
@@ -101,7 +107,9 @@ export const updateAddress = async (
       console.error("Error updating address:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to update address"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to update address"
     )
   }
 }
@@ -126,7 +134,9 @@ export const deleteAddress = async (
       console.error("Error deleting address:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to delete address"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to delete address"
     )
   }
 }
@@ -152,7 +162,9 @@ export const setDefaultAddress = async (
       console.error("Error setting default address:", error)
     }
     throw new Error(
-      error.response?.data?.error?.message || "Failed to set default address"
+      error.response?.data?.error?.message ||
+        error.message ||
+        "Failed to set default address"
     )
   }
 }

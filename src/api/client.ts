@@ -50,6 +50,35 @@ const RETRY_CONFIG = {
   retryableStatuses: [408, 500, 502, 503, 504], // Statuses worth retrying
 }
 
+// In-memory auth token cache so requests don't hit native SecureStore on every
+// call. Invalidated from storage.ts on login/logout and on 401 responses below.
+let authTokenCache: string | null | undefined // undefined = not loaded yet
+let authTokenPromise: Promise<string | null> | null = null
+
+/** Drop the in-memory token so the next request re-reads SecureStore. */
+export function invalidateAuthTokenCache(): void {
+  authTokenCache = undefined
+  authTokenPromise = null
+}
+
+async function getAuthToken(): Promise<string | null> {
+  if (authTokenCache !== undefined) return authTokenCache
+  if (!authTokenPromise) {
+    authTokenPromise = (async (): Promise<string | null> => {
+      try {
+        const tokenString = await SecureStore.getItemAsync(
+          STORAGE_KEYS.AUTH_TOKEN
+        )
+        authTokenCache = tokenString ? JSON.parse(tokenString) : null
+      } catch {
+        authTokenCache = null
+      }
+      return authTokenCache ?? null
+    })()
+  }
+  return authTokenPromise
+}
+
 // Track consecutive failures for smarter error handling
 let consecutiveFailures = 0
 const MAX_FAILURES_BEFORE_UNAVAILABLE = 5
@@ -98,31 +127,21 @@ api.interceptors.request.use(
 
     // Only check network on first attempt
     if (config.headers["x-retry-count"] === "0") {
-      try {
-        const netInfo = await NetInfo.fetch()
-        if (!netInfo.isConnected) {
-          throw new NetworkError()
-        }
-      } catch (error) {
-        if (error instanceof NetworkError) {
-          useNetworkStore
-            .getState()
-            .setServerReachable(false, "No internet connection")
-          throw error
-        }
+      // Reuse networkStore's live NetInfo state (kept in sync by useNetworkInit)
+      // instead of paying a native NetInfo.fetch() round-trip on every request.
+      if (!useNetworkStore.getState().isConnected) {
+        useNetworkStore
+          .getState()
+          .setServerReachable(false, "No internet connection")
+        throw new NetworkError()
       }
     }
 
-    // Add auth token
+    // Add auth token (memory-cached — see getAuthToken above)
     try {
-      const tokenString = await SecureStore.getItemAsync(
-        STORAGE_KEYS.AUTH_TOKEN
-      )
-      if (tokenString) {
-        const token = JSON.parse(tokenString)
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
+      const token = await getAuthToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
       }
     } catch (error) {
       console.error("Error retrieving auth token:", error)
@@ -156,9 +175,21 @@ api.interceptors.response.use(
     // Get current retry count
     const retryCount = parseInt(config?.headers?.["x-retry-count"] || "0", 10)
 
+    // Only auto-retry idempotent read requests (GET, HEAD).
+    // A POST/PUT/DELETE (order creation, cart add, coupon apply) that times out
+    // or hits a 5xx may already have been processed server-side.
+    const isIdempotentMethod = (): boolean => {
+      const method = (config?.method || "get").toUpperCase()
+      return method === "GET" || method === "HEAD"
+    }
+
     // Determine if we should retry
     const shouldRetry = (): boolean => {
       if (!config || retryCount >= RETRY_CONFIG.maxRetries) {
+        return false
+      }
+
+      if (!isIdempotentMethod()) {
         return false
       }
 
@@ -278,6 +309,7 @@ api.interceptors.response.use(
         } catch (clearError) {
           console.error("Error clearing auth data:", clearError)
         }
+        invalidateAuthTokenCache()
         return Promise.reject(
           new ServerError("Session expired. Please log in again.", 401)
         )

@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import Toast from "react-native-toast-message"
 
 import { applyCoupon } from "@/src/api/coupon"
-import { createOrderAndPaymentIntent, deleteOrder } from "@/src/api/orders"
+import { abandonOrder, createOrderAndPaymentIntent } from "@/src/api/orders"
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
@@ -41,6 +41,25 @@ export default function PaymentScreen() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe()
 
   const [loading, setLoading] = useState(false)
+
+  // Best-effort abandon of a draft order when payment setup or presentation
+  // fails. Abandoning (instead of hard-deleting) leaves the row intact so a
+  // late Stripe webhook can still complete the order if payment actually
+  // succeeded. Failures are logged in dev and swallowed so they never mask
+  // the real payment error.
+  const cleanupDraftOrder = useCallback(
+    async (orderId: number | undefined, authToken: string) => {
+      if (!orderId || !authToken) return
+      try {
+        await abandonOrder(orderId, authToken)
+      } catch (error) {
+        if (__DEV__) {
+          console.error("Failed to clean up draft order:", error)
+        }
+      }
+    },
+    []
+  )
 
   const coupon = parsedOrderData?.coupon
   const discountAmount = parsedOrderData?.discountAmount || 0
@@ -172,6 +191,10 @@ export default function PaymentScreen() {
     }
     setLoading(true)
 
+    // Hoisted so the outer catch can also clean up if initPaymentSheet or
+    // presentPaymentSheet rejects (throws) instead of resolving { error }.
+    let createdOrderId: number | undefined
+
     try {
       const paymentData = await createPaymentIntent()
 
@@ -187,6 +210,7 @@ export default function PaymentScreen() {
         ephemeralKey,
         freeOrder,
       } = paymentData
+      createdOrderId = order_id
 
       if (freeOrder) {
         await handlePaymentSuccess(order_id, order_number || "")
@@ -200,6 +224,7 @@ export default function PaymentScreen() {
           text2: "Unable to process payment. Please try again.",
           visibilityTime: 3000,
         })
+        await cleanupDraftOrder(order_id, token as string)
         setLoading(false)
         return
       }
@@ -221,7 +246,7 @@ export default function PaymentScreen() {
 
         returnURL: "darshandelights://payment-success",
 
-        allowsDelayedPaymentMethods: true,
+        allowsDelayedPaymentMethods: false,
         defaultBillingDetails: {
           name: parsedOrderData.billingDetails?.name,
           email: parsedOrderData.billingDetails?.email,
@@ -249,6 +274,7 @@ export default function PaymentScreen() {
           text2: initError.message || "Unable to initialize payment",
           visibilityTime: 3000,
         })
+        await cleanupDraftOrder(order_id, token as string)
         setLoading(false)
         return
       }
@@ -257,13 +283,13 @@ export default function PaymentScreen() {
 
       if (presentError) {
         if (presentError.code === "Canceled") {
-          await deleteOrder(order_id, token as string)
           Toast.show({
             type: "info",
             text1: "Payment Canceled",
             text2: "Your order has been canceled",
             visibilityTime: 2000,
           })
+          await cleanupDraftOrder(order_id, token as string)
         } else {
           if (__DEV__) {
             console.error("Payment presentation error:", presentError)
@@ -274,6 +300,7 @@ export default function PaymentScreen() {
             text2: presentError.message || "Please try again",
             visibilityTime: 3000,
           })
+          await cleanupDraftOrder(order_id, token as string)
         }
       } else {
         await handlePaymentSuccess(order_id, order_number || "")
@@ -288,6 +315,7 @@ export default function PaymentScreen() {
         text2: error.message || "An unexpected error occurred",
         visibilityTime: 3000,
       })
+      await cleanupDraftOrder(createdOrderId, token as string)
     } finally {
       setLoading(false)
     }
@@ -298,6 +326,7 @@ export default function PaymentScreen() {
     initPaymentSheet,
     presentPaymentSheet,
     parsedOrderData,
+    cleanupDraftOrder,
   ])
 
   const handlePaymentSuccess = useCallback(
