@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons"
+import { Image } from "expo-image"
 import React, { useState } from "react"
 import {
   ActivityIndicator,
   Alert,
-  Image,
   StyleSheet,
   Text,
   View,
@@ -237,7 +237,7 @@ const OrderCard: React.FC<Props> = ({ order, onCancel, onViewDetails }) => {
             <Image
               source={{ uri: firstProductImage }}
               style={styles.productImage}
-              resizeMode="contain"
+              contentFit="contain"
             />
             {productCount > 1 && (
               <View style={styles.moreItemsBadge}>

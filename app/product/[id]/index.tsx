@@ -11,10 +11,10 @@ import {
 } from "react-native"
 import Toast from "react-native-toast-message"
 
-import { getProductById, getProductBySlug } from "@/src/api/products"
 import AppColors from "@/src/constants/Colors"
-import { useAddToCart, useCart } from "@/src/hooks/queries/useCart"
+import { useAddToCart, useCartItemQuantity } from "@/src/hooks/queries/useCart"
 import { useIsFavorite, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
+import { useProductById, useProductBySlug } from "@/src/hooks/queries/useProducts"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { Product } from "@/src/types"
@@ -268,10 +268,29 @@ export default function ProductDetailScreen() {
   const { config, isTablet, isLandscape, width } = useResponsive()
   const { id, isSlug } = useLocalSearchParams<{ id: string; isSlug?: string }>()
 
-  // State
-  const [product, setProduct] = useState<Product | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Product Query with React Query cache
+  const isSlugParam = isSlug === "true"
+  const numericId = !isSlugParam && id && !isNaN(+id) ? +id : 0
+  const slugParam = isSlugParam && id ? id : ""
+
+  const {
+    data: productById,
+    isLoading: loadingById,
+    error: errorById,
+  } = useProductById(numericId)
+
+  const {
+    data: productBySlug,
+    isLoading: loadingBySlug,
+    error: errorBySlug,
+  } = useProductBySlug(slugParam)
+
+  const product = isSlugParam ? (productBySlug ?? null) : (productById ?? null)
+  const loading = isSlugParam ? loadingBySlug : loadingById
+  const error = isSlugParam
+    ? (errorBySlug ? "Failed to load product. Please try again." : null)
+    : (errorById ? "Failed to load product. Please try again." : null)
+
   const [quantity, setQuantity] = useState(1)
   const [showFullDescription, setShowFullDescription] = useState(false)
 
@@ -286,7 +305,7 @@ export default function ProductDetailScreen() {
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
-  const { data: cartItems = [] } = useCart({ token, enabled: !!token })
+  const { data: quantityInCart = 0 } = useCartItemQuantity(product?.id ?? 0, token)
   const addToCartMutation = useAddToCart()
   const toggleFavoriteMutation = useToggleFavorite()
   const { trackProductView } = useRecentlyViewed()
@@ -294,11 +313,6 @@ export default function ProductDetailScreen() {
   const isFav = useIsFavorite(product?.id ?? 0, token)
 
   // Calculate stock availability
-  const productInCart = useMemo(
-    () => cartItems.find((item) => item.product_id?.toString() === product?.id?.toString()),
-    [cartItems, product?.id]
-  )
-  const quantityInCart = productInCart?.quantity || 0
   const availableStock = (product?.stock || 0) - quantityInCart
   const isOutOfStock = availableStock <= 0
 
@@ -328,30 +342,6 @@ export default function ProductDetailScreen() {
     [product?.description, shouldTruncateDescription, showFullDescription]
   )
 
-  // Fetch product
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!id) return
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        const fetchedProduct =
-          isSlug === "true"
-            ? await getProductBySlug(id)
-            : await getProductById(+id)
-        setProduct(fetchedProduct)
-      } catch (err) {
-        console.error("Error fetching product:", err)
-        setError("Failed to load product. Please try again.")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProduct()
-  }, [id, isSlug])
 
   useEffect(() => {
     if (product) {
