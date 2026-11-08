@@ -110,16 +110,17 @@ const CartItemCard: React.FC<CartItemCardProps> = ({ item, token, userId }) => {
   const handleDecreaseQuantity = async () => {
     if (loading) return
 
+    if (item.quantity <= 1) {
+      await handleRemoveItem()
+      return
+    }
+
     setLoading(true)
     try {
-      if (item.quantity > 1) {
-        const product = await getProductById(item.product_id)
-        const newQuantity = item.quantity - 1
-        const newWeight = product.weight_in_grams * newQuantity
-        await handleUpdateQuantity(newQuantity, newWeight)
-      } else {
-        await handleRemoveItem()
-      }
+      const newQuantity = item.quantity - 1
+      const unitWeight = item.quantity > 0 ? Math.round(item.weight / item.quantity) : 0
+      const newWeight = unitWeight * newQuantity
+      await handleUpdateQuantity(newQuantity, newWeight)
     } catch (error) {
       console.error("Error decreasing quantity:", error)
     } finally {

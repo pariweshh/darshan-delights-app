@@ -314,6 +314,7 @@ export default function HomeScreen() {
 
         const response = await getProducts({
           category: selectedCategory.name,
+          limit: 1,
         })
 
         setSpotlightCategory({

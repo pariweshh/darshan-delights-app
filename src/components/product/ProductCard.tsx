@@ -7,7 +7,7 @@ import Toast from "react-native-toast-message"
 
 import Button from "@/src/components/ui/Button"
 import AppColors from "@/src/constants/Colors"
-import { useAddToCart, useCart } from "@/src/hooks/queries/useCart"
+import { useAddToCart, useCartItemQuantity } from "@/src/hooks/queries/useCart"
 import { useIsFavorite, useToggleFavorite } from "@/src/hooks/queries/useFavorites"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
@@ -37,9 +37,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const addToCartMutation = useAddToCart()
   const toggleFavoriteMutation = useToggleFavorite()
   const isFav = useIsFavorite(product.id, token)
-  const { data: cartItems = [] } = useCart({ token, enabled: !!token })
-  const currentQuantityInCart =
-    cartItems.find((item) => +item.product_id === +product.id)?.quantity ?? 0
+  const { data: currentQuantityInCart = 0 } = useCartItemQuantity(product.id, token)
   const isOutOfStock = product?.stock === 0
   const isMaxQuantityInCart = currentQuantityInCart >= (product?.stock || 0)
   const canAddToCart = !isOutOfStock && !isMaxQuantityInCart

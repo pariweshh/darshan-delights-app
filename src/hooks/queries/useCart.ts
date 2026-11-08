@@ -7,6 +7,7 @@ import {
 } from '@/src/api/cart'
 import { CartItem } from '@/src/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 
 // Query keys are scoped by token so cart cache can never bleed between
 // accounts on the same device.
@@ -28,6 +29,47 @@ export function useCart({ token, enabled = true }: UseCartParams) {
     enabled: enabled && !!token,
     staleTime: 1000 * 30, // 30s — mutations invalidate immediately, so this is safe
   })
+}
+
+/**
+ * Fine-grained selector hook returning only the cart quantity for a specific product.
+ * Compares scalar number output; skips re-rendering when other items in the cart change.
+ */
+export function useCartItemQuantity(productId: number, token: string | null) {
+  const selectQuantity = useCallback(
+    (items: CartItem[]) =>
+      items?.find((item) => +item.product_id === +productId)?.quantity ?? 0,
+    [productId]
+  )
+
+  return useQuery({
+    queryKey: CART_KEYS.detail(token),
+    queryFn: () => getUserCartItems(token!),
+    enabled: !!token && productId > 0,
+    staleTime: 1000 * 30,
+    select: selectQuantity,
+  })
+}
+
+/**
+ * Fine-grained selector hook returning only the count of unique items in cart.
+ * Prevents re-renders of headers/badges when item quantities change but count remains unchanged.
+ */
+export function useCartCount(token: string | null) {
+  const selectCount = useCallback(
+    (items: CartItem[]) => items?.length ?? 0,
+    []
+  )
+
+  const { data: count = 0 } = useQuery({
+    queryKey: CART_KEYS.detail(token),
+    queryFn: () => getUserCartItems(token!),
+    enabled: !!token,
+    staleTime: 1000 * 30,
+    select: selectCount,
+  })
+
+  return count
 }
 
 export function useAddToCart() {

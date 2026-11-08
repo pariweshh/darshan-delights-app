@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 
 import AppColors from "@/src/constants/Colors"
-import { useCart } from "@/src/hooks/queries/useCart"
-import { useFavorites } from "@/src/hooks/queries/useFavorites"
+import { useCartCount } from "@/src/hooks/queries/useCart"
+import { useFavoritesCount } from "@/src/hooks/queries/useFavorites"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useAuthStore } from "@/src/store/authStore"
 import { useNotificationStore } from "@/src/store/notificationStore"
@@ -15,13 +15,10 @@ import DebouncedTouchable from "./DebouncedTouchable"
 const HomeHeader = () => {
   const router = useRouter()
   const { config, isTablet } = useResponsive()
-  const { token } = useAuthStore()
-  const { data: cartItems } = useCart({ token, enabled: !!token })
-  const { data: favoritesData } = useFavorites({ token, enabled: !!token })
-  const { unreadCount } = useNotificationStore()
-
-  const cartCount = cartItems?.length ?? 0
-  const favCount = favoritesData?.products?.length ?? 0
+  const token = useAuthStore((s) => s.token)
+  const cartCount = useCartCount(token)
+  const favCount = useFavoritesCount(token)
+  const unreadCount = useNotificationStore((s) => s.unreadCount)
 
   const iconButtonSize = isTablet ? 48 : 40
   const iconSize = isTablet ? 24 : 20

@@ -1,6 +1,7 @@
 import { getFavorites, toggleFavorite } from '@/src/api/favorites'
 import { Product } from '@/src/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 
 export interface FavoriteItem {
   id?: number
@@ -78,7 +79,45 @@ export function useToggleFavorite() {
   })
 }
 
+/**
+ * Fine-grained selector hook returning whether a specific product is favorited.
+ * Compares scalar boolean output; skips re-rendering when other products are favorited/unfavorited.
+ */
 export function useIsFavorite(productId: number, token: string | null) {
-  const { data } = useFavorites({ token, enabled: !!token && productId !== 0 })
-  return productId !== 0 && (data?.products?.some((p) => p.id === productId) ?? false)
+  const selectIsFav = useCallback(
+    (data: FavoriteItem) =>
+      productId !== 0 && (data?.products?.some((p) => p.id === productId) ?? false),
+    [productId]
+  )
+
+  const { data: isFav = false } = useQuery<FavoriteItem, Error, boolean>({
+    queryKey: FAVORITES_KEYS.detail(token),
+    queryFn: () => getFavorites(token!),
+    enabled: !!token && productId !== 0,
+    staleTime: 1000 * 30,
+    select: selectIsFav,
+  })
+
+  return isFav
+}
+
+/**
+ * Fine-grained selector hook returning only the count of favorited products.
+ * Prevents re-renders of headers/badges unless total favorites count changes.
+ */
+export function useFavoritesCount(token: string | null) {
+  const selectCount = useCallback(
+    (data: FavoriteItem) => data?.products?.length ?? 0,
+    []
+  )
+
+  const { data: count = 0 } = useQuery<FavoriteItem, Error, number>({
+    queryKey: FAVORITES_KEYS.detail(token),
+    queryFn: () => getFavorites(token!),
+    enabled: !!token,
+    staleTime: 1000 * 30,
+    select: selectCount,
+  })
+
+  return count
 }

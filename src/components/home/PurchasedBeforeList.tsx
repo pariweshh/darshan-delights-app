@@ -19,17 +19,21 @@ const PurchasedBeforeList = () => {
   const [loading, setLoading] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
 
-  // Extract unique products from all orders
+  // Extract unique products from all orders with O(N) single-pass Set deduplication
   const products = useMemo(() => {
     if (!orders.length) return []
 
-    const allProducts = orders.flatMap((order) => order?.orders?.products || [])
+    const seen = new Set<number>()
+    const uniqueProducts: CartItem[] = []
 
-    // Remove duplicates based on product_id
-    const uniqueProducts = allProducts.filter(
-      (product, index, self) =>
-        index === self.findIndex((p) => p.product_id === product.product_id)
-    )
+    for (const order of orders) {
+      for (const product of order?.orders?.products || []) {
+        if (product?.product_id && !seen.has(product.product_id)) {
+          seen.add(product.product_id)
+          uniqueProducts.push(product)
+        }
+      }
+    }
 
     return uniqueProducts
   }, [orders])
