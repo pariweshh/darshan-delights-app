@@ -1,11 +1,12 @@
 import AppColors from "@/src/constants/Colors"
+import { SHIPPING_CONFIG } from "@/src/constants/shipping"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import React, { useEffect, useState } from "react"
 import { Pressable, StyleSheet, Text, View } from "react-native"
 
-const STORAGE_KEY = "@shipping_notice_banner_dismissed"
+const STORAGE_KEY = "@delivery_paused_banner_dismissed"
 
 export default function ShippingNoticeBanner() {
   const [visible, setVisible] = useState(true)
@@ -26,7 +27,7 @@ export default function ShippingNoticeBanner() {
     })
   }
 
-  if (!visible) return null
+  if (SHIPPING_CONFIG.HOME_DELIVERY_ENABLED || !visible) return null
 
   return (
     <View
@@ -40,11 +41,12 @@ export default function ShippingNoticeBanner() {
     >
       <View style={styles.leftContent}>
         <View style={styles.iconContainer}>
-          <Ionicons name="bus-outline" size={18} color="#92400E" />
+          <Ionicons name="storefront-outline" size={18} color="#92400E" />
         </View>
         <Text style={[styles.text, { fontSize: config.smallFontSize }]}>
-          <Text style={styles.boldText}>Shipping Notice: </Text>
-          No orders will ship until <Text style={styles.highlightText}>5th August</Text>. We apologize for the inconvenience!
+          <Text style={styles.boldText}>Delivery Notice: </Text>
+          Home Delivery is temporarily paused (
+          <Text style={styles.highlightText}>Local Pickup only</Text>).
         </Text>
       </View>
       <Pressable

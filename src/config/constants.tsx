@@ -120,3 +120,10 @@ export const STORAGE_KEYS = {
 } as const
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS]
+
+// Maintenance Configuration
+export const MAINTENANCE_CONFIG = {
+  IS_ENABLED: process.env.EXPO_PUBLIC_MAINTENANCE_MODE === "true",
+  EXPECTED_RETURN: process.env.EXPO_PUBLIC_MAINTENANCE_RETURN_DATE || "Soon",
+  SUPPORT_EMAIL: "contact@darshandelights.com.au",
+} as const

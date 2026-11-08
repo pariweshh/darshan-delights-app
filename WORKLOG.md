@@ -4,6 +4,27 @@ Live checkpoint file. Disposable working state. Durable state lives in `BUILD_ST
 
 ---
 
+## Active task — 2026-08-27
+
+**Mobile Maintenance Mode Implementation (Store Break / Vacation Support)**
+
+Status: **Completed on `dev` branch.**
+
+Next action: test locally with `EXPO_PUBLIC_MAINTENANCE_MODE=true` or deploy via OTA with `--environment production`.
+
+### What was done
+
+1. **Created [MaintenanceScreen.tsx](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/src/components/common/MaintenanceScreen.tsx)**: Built high-quality maintenance screen matching the web application (`LinearGradient`, status & expected return box, what's happening list, contact support CTA button, and responsive layout).
+2. **Updated [constants.tsx](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/src/config/constants.tsx)**: Exported `MAINTENANCE_CONFIG` reading `EXPO_PUBLIC_MAINTENANCE_MODE` and `EXPO_PUBLIC_MAINTENANCE_RETURN_DATE`.
+3. **Updated [app/_layout.tsx](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/app/_layout.tsx)**: Intercepted at root level to render `<MaintenanceScreen />` and bypass the navigation stack when maintenance mode is active.
+4. **Updated Documentation & Source of Truth Files**:
+   - [.env.example](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/.env.example): Added maintenance environment variables.
+   - [RUNBOOK.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/RUNBOOK.md): Added operational commands for enabling and disabling maintenance mode via EAS OTA updates.
+   - [BUILD_STATE.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/BUILD_STATE.md): Updated environment variable topology matrix.
+   - [ARCHITECTURE.md](file:///Users/pariwesh/Projects/DARSHAN_DELIGHTS/darshan_delights_mobile/ARCHITECTURE.md): Documented root layout maintenance guard.
+
+---
+
 ## Active task — 2026-08-02
 
 **Standardize & Generate Complete Project Source of Truth Files**

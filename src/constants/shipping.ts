@@ -3,6 +3,16 @@
  */
 
 export const SHIPPING_CONFIG = {
+  // Flip this to `true` to re-enable Home Delivery across the app
+  HOME_DELIVERY_ENABLED: false,
+
+  // Notice copy when Home Delivery is disabled
+  DELIVERY_PAUSED_TITLE: "Home Delivery Temporarily Unavailable",
+  DELIVERY_PAUSED_BANNER_TEXT:
+    "Home Delivery is temporarily paused (Local Pickup only).",
+  DELIVERY_PAUSED_MESSAGE:
+    "Home delivery is temporarily paused. All orders are currently available for Local Pickup only at our Austral location (8 Lethbridge Road, Austral, NSW 2179).",
+
   // free shipping threshold in AUD
   FREE_SHIPPING_THRESHOLD: 100,
 

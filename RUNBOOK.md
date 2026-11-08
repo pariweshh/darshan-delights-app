@@ -97,3 +97,38 @@ npx eas-cli submit --profile production --platform ios
 ```bash
 npx eas-cli submit --profile production --platform android
 ```
+
+---
+
+## 6. Store Maintenance Mode (Vacation / Break Operations)
+
+When the business takes a break and needs to prevent customer orders across the mobile app:
+
+### To Enable Maintenance Mode:
+```bash
+# 1. Update the production environment variable on EAS
+npx eas-cli env:set production --name EXPO_PUBLIC_MAINTENANCE_MODE --value true --visibility plaintext
+npx eas-cli env:set production --name EXPO_PUBLIC_MAINTENANCE_RETURN_DATE --value "15 September 2026" --visibility plaintext
+
+# 2. Publish an OTA update to immediately lock down live apps
+npx eas-cli update \
+  --branch production \
+  --environment production \
+  --platform all \
+  --message "Enable maintenance mode for store break"
+```
+
+### To Disable Maintenance Mode (Resume Operations):
+```bash
+# 1. Update the production environment variable on EAS
+npx eas-cli env:set production --name EXPO_PUBLIC_MAINTENANCE_MODE --value false --visibility plaintext
+
+# 2. Publish an OTA update to restore regular app navigation
+npx eas-cli update \
+  --branch production \
+  --environment production \
+  --platform all \
+  --message "Resume normal store operations"
+```
+
+

@@ -94,3 +94,5 @@ The app resolves environment configuration through `src/config/constants.ts`:
 1. When `EXPO_PUBLIC_ENV` is `"production"`, `EXPO_PUBLIC_API_URL_PROD` is used as the Strapi base URL.
 2. When `EXPO_PUBLIC_ENV` is `"development"` or undefined, `EXPO_PUBLIC_API_URL_DEV` is used.
 3. `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` is loaded dynamically. On production builds and production OTA updates, this variable **must** be fetched from the EAS Server-Side Environment via `--environment production`.
+4. `EXPO_PUBLIC_MAINTENANCE_MODE` toggles whole-app maintenance mode. When `"true"`, `app/_layout.tsx` mounts `<MaintenanceScreen />` and completely bypasses the navigation stack, preventing customer orders during store breaks.
+

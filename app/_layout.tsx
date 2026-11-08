@@ -1,9 +1,9 @@
 import ConnectionStatusBanner from "@/src/components/common/ConnectionStatusBanner"
 import ErrorBoundary from "@/src/components/common/ErrorBoundary"
-import ShippingNoticeModal from "@/src/components/common/ShippingNoticeModal"
+import MaintenanceScreen from "@/src/components/common/MaintenanceScreen"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { QueryProvider } from "@/src/providers/QueryProvider"
-import { HEIGHT, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
+import { HEIGHT, MAINTENANCE_CONFIG, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
 import { useNetworkInit } from "@/src/hooks/useNetworkStatus"
@@ -183,6 +183,12 @@ export default function RootLayout() {
           // Hide native splash screen
           await SplashScreen.hideAsync()
 
+          if (MAINTENANCE_CONFIG.IS_ENABLED) {
+            setAppIsReady(true)
+            setShowCustomSplash(false)
+            return
+          }
+
           // Load biometric preference
           await loadBiometricPreference()
 
@@ -247,6 +253,16 @@ export default function RootLayout() {
 
   if (!fontsLoaded || !appIsReady) {
     return null
+  }
+
+  // Show maintenance screen if maintenance mode is enabled
+  if (MAINTENANCE_CONFIG.IS_ENABLED) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="dark" />
+        <MaintenanceScreen />
+      </SafeAreaProvider>
+    )
   }
 
   // Show custom splash screen while loading
@@ -395,7 +411,6 @@ export default function RootLayout() {
 
             <StatusBar style="dark" />
             <Toast />
-            <ShippingNoticeModal />
           </GestureHandlerRootView>
         </SafeAreaProvider>
       </StripeProvider>

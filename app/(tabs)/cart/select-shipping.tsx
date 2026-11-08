@@ -67,9 +67,22 @@ export default function SelectShippingScreen() {
   const formMaxWidth = isTablet && !isLandscape ? 600 : undefined
 
   // Delivery option
+  const isHomeDeliveryEnabled = SHIPPING_CONFIG.HOME_DELIVERY_ENABLED
   const [deliveryOption, setDeliveryOption] = useState<"delivery" | "pickup">(
-    "delivery"
+    isHomeDeliveryEnabled ? "delivery" : "pickup"
   )
+
+  const handleHomeDeliveryPress = useCallback(() => {
+    if (!isHomeDeliveryEnabled) {
+      Alert.alert(
+        SHIPPING_CONFIG.DELIVERY_PAUSED_TITLE,
+        SHIPPING_CONFIG.DELIVERY_PAUSED_MESSAGE,
+        [{ text: "OK", style: "default" }]
+      )
+      return
+    }
+    setDeliveryOption("delivery")
+  }, [isHomeDeliveryEnabled])
 
   // Saved addresses
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
@@ -809,48 +822,55 @@ export default function SelectShippingScreen() {
   // Main form content
   const renderFormContent = () => (
     <>
-      {/* Shipping Delay Notice */}
-      <View
-        style={{
-          backgroundColor: "#FEF3C7",
-          borderWidth: 1,
-          borderColor: "#FCD34D",
-          borderRadius: config.cardBorderRadius,
-          padding: isTablet ? 16 : 14,
-          marginBottom: isTablet ? 20 : 16,
-          flexDirection: "row",
-          alignItems: "flex-start",
-          gap: 12,
-        }}
-      >
-        <Ionicons name="bus-outline" size={24} color="#B45309" />
-        <View style={{ flex: 1 }}>
-          <Text
-            style={{
-              fontFamily: "Poppins_600SemiBold",
-              color: "#92400E",
-              fontSize: config.bodyFontSize,
-            }}
-          >
-            Dispatch Schedule Notice
-          </Text>
-          <Text
-            style={{
-              fontFamily: "Poppins_400Regular",
-              color: "#78350F",
-              fontSize: config.smallFontSize,
-              marginTop: 2,
-              lineHeight: 18,
-            }}
-          >
-            All orders placed today will begin dispatching from{" "}
-            <Text style={{ fontFamily: "Poppins_700Bold", textDecorationLine: "underline" }}>
-              5th August
+      {/* Delivery Paused Notice */}
+      {!isHomeDeliveryEnabled && (
+        <View
+          style={{
+            backgroundColor: "#FEF3C7",
+            borderWidth: 1,
+            borderColor: "#FCD34D",
+            borderRadius: config.cardBorderRadius,
+            padding: isTablet ? 16 : 14,
+            marginBottom: isTablet ? 20 : 16,
+            flexDirection: "row",
+            alignItems: "flex-start",
+            gap: 12,
+          }}
+        >
+          <Ionicons name="storefront-outline" size={24} color="#B45309" />
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontFamily: "Poppins_600SemiBold",
+                color: "#92400E",
+                fontSize: config.bodyFontSize,
+              }}
+            >
+              {SHIPPING_CONFIG.DELIVERY_PAUSED_TITLE}
             </Text>
-            . Thank you for your patience!
-          </Text>
+            <Text
+              style={{
+                fontFamily: "Poppins_400Regular",
+                color: "#78350F",
+                fontSize: config.smallFontSize,
+                marginTop: 2,
+                lineHeight: 18,
+              }}
+            >
+              Home Delivery is temporarily paused (
+              <Text
+                style={{
+                  fontFamily: "Poppins_700Bold",
+                  textDecorationLine: "underline",
+                }}
+              >
+                Local Pickup only
+              </Text>
+              ).
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Delivery Options */}
       <View style={[styles.section, { marginBottom: isTablet ? 20 : 16 }]}>
@@ -868,21 +888,30 @@ export default function SelectShippingScreen() {
               marginBottom: isTablet ? 12 : 10,
             },
             deliveryOption === "delivery" && styles.optionCardSelected,
+            !isHomeDeliveryEnabled && styles.optionCardDisabled,
           ]}
-          onPress={() => setDeliveryOption("delivery")}
+          onPress={handleHomeDeliveryPress}
           activeOpacity={0.7}
         >
           <View style={styles.optionContent}>
             <Ionicons
               name="car-outline"
               size={config.iconSizeLarge}
-              color={AppColors.primary[500]}
+              color={
+                isHomeDeliveryEnabled
+                  ? AppColors.primary[500]
+                  : AppColors.gray[400]
+              }
             />
             <View
               style={[styles.optionText, { marginLeft: isTablet ? 14 : 12 }]}
             >
               <Text
-                style={[styles.optionTitle, { fontSize: config.bodyFontSize }]}
+                style={[
+                  styles.optionTitle,
+                  { fontSize: config.bodyFontSize },
+                  !isHomeDeliveryEnabled && { color: AppColors.gray[500] },
+                ]}
               >
                 Home Delivery
               </Text>
@@ -890,9 +919,12 @@ export default function SelectShippingScreen() {
                 style={[
                   styles.optionSubtitle,
                   { fontSize: config.bodyFontSize - 1 },
+                  !isHomeDeliveryEnabled && { color: AppColors.error },
                 ]}
               >
-                1-5 business days
+                {isHomeDeliveryEnabled
+                  ? "1-5 business days"
+                  : "Temporarily unavailable (Tap for info)"}
               </Text>
             </View>
           </View>
@@ -971,7 +1003,7 @@ export default function SelectShippingScreen() {
       </View>
 
       {/* Heavy items warning */}
-      {includesHeavyItems && (
+      {isHomeDeliveryEnabled && includesHeavyItems && (
         <View
           style={[
             styles.warningContainer,
@@ -2019,6 +2051,11 @@ const styles = StyleSheet.create({
   optionCardSelected: {
     borderColor: AppColors.primary[500],
     backgroundColor: AppColors.primary[50],
+  },
+  optionCardDisabled: {
+    backgroundColor: AppColors.gray[100],
+    borderColor: AppColors.gray[200],
+    opacity: 0.7,
   },
   optionContent: {
     flexDirection: "row",

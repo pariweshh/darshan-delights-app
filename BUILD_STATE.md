@@ -33,9 +33,9 @@ There are **three** competing sources of env vars, and they do not agree:
 
 | Source | Contents | Loaded when |
 |---|---|---|
-| Local `.env` (gitignored) | `EXPO_PUBLIC_API_URL_DEV=https://admino.darshandelights.com.au`, `EXPO_PUBLIC_ENV=development` | Any **local** `expo export` / `eas update` run **without** `--environment` |
+| Local `.env` (gitignored) | `EXPO_PUBLIC_API_URL_DEV=https://admino.darshandelights.com.au`, `EXPO_PUBLIC_ENV=development`, optional `EXPO_PUBLIC_MAINTENANCE_MODE` | Any **local** `expo export` / `eas update` run **without** `--environment` |
 | `eas.json` → `build.production.env` | `APP_ENV`, `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_APP_STORE_ID` | `eas build --profile production` |
-| **EAS server-side `production` environment** | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (pk_live_…), `EXPO_PUBLIC_API_URL_PROD`, `EXPO_PUBLIC_APP_PUBLISHED=false`, `EXPO_PUBLIC_APP_STORE_ID`, `EXPO_PUBLIC_ENV=production` | EAS builds, and `eas update --environment production` |
+| **EAS server-side `production` environment** | `EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY` (pk_live_…), `EXPO_PUBLIC_API_URL_PROD`, `EXPO_PUBLIC_APP_PUBLISHED=false`, `EXPO_PUBLIC_APP_STORE_ID`, `EXPO_PUBLIC_ENV=production`, `EXPO_PUBLIC_MAINTENANCE_MODE` ('true'/'false'), `EXPO_PUBLIC_MAINTENANCE_RETURN_DATE` | EAS builds, and `eas update --environment production` |
 
 The Stripe publishable key exists in **exactly one** of these — the EAS server-side environment. It is
 **not** in the local `.env` and **not** in `eas.json`.

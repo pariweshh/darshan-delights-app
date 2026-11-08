@@ -26,9 +26,12 @@ const CartSummary: React.FC<CartSummaryProps> = ({
   const { config, isTablet } = useResponsive()
 
   const totalAfterDiscount = subtotal - discountAmount
-  const hasFreeShipping = qualifiesForFreeShipping(subtotal)
+  const isDeliveryEnabled = SHIPPING_CONFIG.HOME_DELIVERY_ENABLED
+  const hasFreeShipping =
+    isDeliveryEnabled && qualifiesForFreeShipping(subtotal)
   const remainingForFreeShipping = amountToFreeShipping(subtotal)
-  const showFreeShippingProgress = subtotal > 0 && !hasFreeShipping
+  const showFreeShippingProgress =
+    isDeliveryEnabled && subtotal > 0 && !hasFreeShipping
 
   return (
     <View
@@ -40,41 +43,52 @@ const CartSummary: React.FC<CartSummaryProps> = ({
         },
       ]}
     >
-      {/* Shipping Delay Notice */}
-      <View
-        style={[
-          styles.shippingNoticeBanner,
-          {
-            padding: isTablet ? 14 : 12,
-            borderRadius: config.cardBorderRadius,
-            marginBottom: isTablet ? 20 : 16,
-          },
-        ]}
-      >
-        <Ionicons name="bus-outline" size={config.iconSize} color="#92400E" />
-        <View style={styles.shippingNoticeTextContainer}>
-          <Text
-            style={[
-              styles.shippingNoticeTitle,
-              { fontSize: config.bodyFontSize - 1 },
-            ]}
-          >
-            Shipping Delay Notice
-          </Text>
-          <Text
-            style={[
-              styles.shippingNoticeText,
-              { fontSize: config.smallFontSize },
-            ]}
-          >
-            No orders will ship until{" "}
-            <Text style={{ fontFamily: "Poppins_700Bold", textDecorationLine: "underline" }}>
-              5th August
+      {/* Delivery Paused Notice */}
+      {!isDeliveryEnabled && (
+        <View
+          style={[
+            styles.shippingNoticeBanner,
+            {
+              padding: isTablet ? 14 : 12,
+              borderRadius: config.cardBorderRadius,
+              marginBottom: isTablet ? 20 : 16,
+            },
+          ]}
+        >
+          <Ionicons
+            name="storefront-outline"
+            size={config.iconSize}
+            color="#92400E"
+          />
+          <View style={styles.shippingNoticeTextContainer}>
+            <Text
+              style={[
+                styles.shippingNoticeTitle,
+                { fontSize: config.bodyFontSize - 1 },
+              ]}
+            >
+              Delivery Notice
             </Text>
-            . Thank you for your patience!
-          </Text>
+            <Text
+              style={[
+                styles.shippingNoticeText,
+                { fontSize: config.smallFontSize },
+              ]}
+            >
+              Home Delivery is temporarily paused (
+              <Text
+                style={{
+                  fontFamily: "Poppins_700Bold",
+                  textDecorationLine: "underline",
+                }}
+              >
+                Local Pickup only
+              </Text>
+              ).
+            </Text>
+          </View>
         </View>
-      </View>
+      )}
 
       {/* Free Shipping Progress */}
       {showFreeShippingProgress && (
@@ -198,13 +212,17 @@ const CartSummary: React.FC<CartSummaryProps> = ({
           </View>
         )}
 
-        {/* Shipping */}
+        {/* Shipping / Pickup */}
         <View style={[styles.row, { marginBottom: isTablet ? 12 : 10 }]}>
           <Text style={[styles.label, { fontSize: config.bodyFontSize }]}>
-            Shipping
+            {isDeliveryEnabled ? "Shipping" : "Pickup"}
           </Text>
           <Text style={[styles.value, { fontSize: config.bodyFontSize }]}>
-            {hasFreeShipping ? "FREE" : "Calculated at checkout"}
+            {!isDeliveryEnabled
+              ? "FREE (Local Pickup)"
+              : hasFreeShipping
+                ? "FREE"
+                : "Calculated at checkout"}
           </Text>
         </View>
 
