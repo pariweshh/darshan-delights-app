@@ -142,13 +142,16 @@ export function useResponsive(): ResponsiveInfo {
     [width, height, deviceType, isLandscape]
   )
 
-  return {
-    width,
-    height,
-    deviceType,
-    isLandscape,
-    isTablet: deviceType === "tablet",
-    isPhone: deviceType === "phone",
-    config,
-  }
+  return useMemo(
+    () => ({
+      width,
+      height,
+      deviceType,
+      isLandscape,
+      isTablet: deviceType === "tablet",
+      isPhone: deviceType === "phone",
+      config,
+    }),
+    [width, height, deviceType, isLandscape, config]
+  )
 }

@@ -1,7 +1,7 @@
 import ProductCard from "@/src/components/product/ProductCard"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { Product } from "@/src/types"
-import { memo, useCallback } from "react"
+import { memo, useCallback, useMemo } from "react"
 import { FlatList, StyleSheet } from "react-native"
 
 interface ProductHorizontalListProps {
@@ -16,15 +16,20 @@ const ProductHorizontalList: React.FC<ProductHorizontalListProps> = ({
   const { config, isTablet } = useResponsive()
   const cardWidth = isTablet ? 180 : 160
 
+  const cardStyle = useMemo(
+    () => ({ width: cardWidth, marginRight: config.gap }),
+    [cardWidth, config.gap]
+  )
+
   // Memoize renderItem
   const renderItem = useCallback(
     ({ item }: { item: Product }) => (
       <ProductCard
         product={item}
-        customStyle={{ width: cardWidth, marginRight: config.gap }}
+        customStyle={cardStyle}
       />
     ),
-    [cardWidth, config.gap]
+    [cardStyle]
   )
 
   // Memoize keyExtractor

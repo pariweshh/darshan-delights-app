@@ -28,6 +28,12 @@ import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 
 const ITEMS_PER_PAGE = 12
 
+const productItemStyles = StyleSheet.create({
+  fullWidth: {
+    width: "100%",
+  },
+})
+
 const ProductItem = memo(
   ({
     item,
@@ -47,7 +53,7 @@ const ProductItem = memo(
 
     return (
       <View style={{ width: itemWidth, marginRight, marginBottom: gap }}>
-        <ProductCard product={item} customStyle={{ width: "100%" }} />
+        <ProductCard product={item} customStyle={productItemStyles.fullWidth} />
       </View>
     )
   }

@@ -43,7 +43,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
           <ProductCard
             product={item}
             saleCard={saleCard}
-            customStyle={{ width: "100%" }}
+            customStyle={styles.cardFullWidth}
           />
         </View>
       )
@@ -93,6 +93,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 export default memo(ProductGrid)
 
 const styles = StyleSheet.create({
+  cardFullWidth: {
+    width: "100%",
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

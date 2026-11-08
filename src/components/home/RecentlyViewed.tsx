@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import React from "react"
-import { FlatList, StyleSheet, Text, View } from "react-native"
+import React, { useCallback } from "react"
+import { FlatList, Platform, StyleSheet, Text, View } from "react-native"
 
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
@@ -49,76 +49,95 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
   const cardWidth = isTablet ? 160 : 140
   const imageHeight = isTablet ? 140 : 120
 
-  const renderProduct = ({ item }: { item: RecentlyViewedProduct }) => {
-    const hasDiscount = item.sale_price && item.sale_price < item.rrp
+  const renderProduct = useCallback(
+    ({ item }: { item: RecentlyViewedProduct }) => {
+      const hasDiscount = item.sale_price && item.sale_price < item.rrp
 
-    return (
-      <DebouncedTouchable
-        style={[
-          styles.productCard,
-          { width: cardWidth, borderRadius: config.cardBorderRadius },
-        ]}
-        onPress={() => handleProductPress(item)}
-        activeOpacity={0.7}
-      >
-        <View
+      return (
+        <DebouncedTouchable
           style={[
-            styles.imageContainer,
-            { height: imageHeight, borderRadius: config.cardBorderRadius },
+            styles.productCard,
+            { width: cardWidth, borderRadius: config.cardBorderRadius },
           ]}
+          onPress={() => handleProductPress(item)}
+          activeOpacity={0.7}
         >
-          <Image
-            source={{ uri: item.cover }}
-            style={styles.productImage}
-            contentFit="contain"
-          />
-          {hasDiscount && (
-            <View style={styles.saleBadge}>
-              <Text
-                style={[
-                  styles.saleBadgeText,
-                  { fontSize: config.smallFontSize - 2 },
-                ]}
-              >
-                Sale
-              </Text>
-            </View>
-          )}
-        </View>
-        <View style={[styles.productInfo, { padding: isTablet ? 12 : 10 }]}>
-          <Text
-            style={[styles.productName, { fontSize: config.smallFontSize }]}
-            numberOfLines={2}
+          <View
+            style={[
+              styles.imageContainer,
+              { height: imageHeight, borderRadius: config.cardBorderRadius },
+            ]}
           >
-            {item.name}
-          </Text>
-          <View style={styles.priceContainer}>
-            {hasDiscount ? (
-              <>
-                <Text
-                  style={[styles.salePrice, { fontSize: config.bodyFontSize }]}
-                >
-                  {formatPrice(item.sale_price!)}
-                </Text>
+            <Image
+              source={{ uri: item.cover }}
+              style={styles.productImage}
+              contentFit="contain"
+            />
+            {hasDiscount && (
+              <View style={styles.saleBadge}>
                 <Text
                   style={[
-                    styles.originalPrice,
-                    { fontSize: config.smallFontSize - 1 },
+                    styles.saleBadgeText,
+                    { fontSize: config.smallFontSize - 2 },
                   ]}
                 >
-                  {formatPrice(item.rrp)}
+                  Sale
                 </Text>
-              </>
-            ) : (
-              <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
-                {formatPrice(item.rrp)}
-              </Text>
+              </View>
             )}
           </View>
-        </View>
-      </DebouncedTouchable>
-    )
-  }
+          <View style={[styles.productInfo, { padding: isTablet ? 12 : 10 }]}>
+            <Text
+              style={[styles.productName, { fontSize: config.smallFontSize }]}
+              numberOfLines={2}
+            >
+              {item.name}
+            </Text>
+            <View style={styles.priceContainer}>
+              {hasDiscount ? (
+                <>
+                  <Text
+                    style={[styles.salePrice, { fontSize: config.bodyFontSize }]}
+                  >
+                    {formatPrice(item.sale_price!)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.originalPrice,
+                      { fontSize: config.smallFontSize - 1 },
+                    ]}
+                  >
+                    {formatPrice(item.rrp)}
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.price, { fontSize: config.bodyFontSize }]}>
+                  {formatPrice(item.rrp)}
+                </Text>
+              )}
+            </View>
+          </View>
+        </DebouncedTouchable>
+      )
+    },
+    [cardWidth, imageHeight, config, isTablet, handleProductPress]
+  )
+
+  const keyExtractor = useCallback((item: RecentlyViewedProduct) => item.id.toString(), [])
+
+  const getItemLayout = useCallback(
+    (_: any, index: number) => ({
+      length: cardWidth + config.gap,
+      offset: (cardWidth + config.gap) * index,
+      index,
+    }),
+    [cardWidth, config.gap]
+  )
+
+  const renderSeparator = useCallback(
+    () => <View style={{ width: config.gap }} />,
+    [config.gap]
+  )
 
   return (
     <View style={styles.container}>
@@ -155,15 +174,20 @@ const RecentlyViewed: React.FC<RecentlyViewedProps> = ({
       {/* Products List */}
       <FlatList
         data={displayProducts}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={keyExtractor}
         renderItem={renderProduct}
+        getItemLayout={getItemLayout}
+        ItemSeparatorComponent={renderSeparator}
         horizontal
         showsHorizontalScrollIndicator={false}
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={3}
+        removeClippedSubviews={Platform.OS === "android"}
         contentContainerStyle={{
           paddingHorizontal: excludeProductId ? 16 : 0,
           paddingBottom: 10,
         }}
-        ItemSeparatorComponent={() => <View style={{ width: config.gap }} />}
       />
     </View>
   )

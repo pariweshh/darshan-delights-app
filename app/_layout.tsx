@@ -76,14 +76,12 @@ export default function RootLayout() {
 
   useNetworkInit()
 
-  const {
-    isLoading,
-    checkSession,
-    loginWithBiometrics,
-    loadBiometricPreference,
-    setInitialising,
-    logout,
-  } = useAuthStore()
+  const isLoading = useAuthStore((s) => s.isLoading)
+  const checkSession = useAuthStore((s) => s.checkSession)
+  const loginWithBiometrics = useAuthStore((s) => s.loginWithBiometrics)
+  const loadBiometricPreference = useAuthStore((s) => s.loadBiometricPreference)
+  const setInitialising = useAuthStore((s) => s.setInitialising)
+  const logout = useAuthStore((s) => s.logout)
 
   const { expoPushToken, error: pushError } = usePushNotifications()
 
@@ -178,8 +176,6 @@ export default function RootLayout() {
     async function prepare() {
       try {
         if (fontsLoaded) {
-          await new Promise((resolve) => setTimeout(resolve, 100))
-
           // Hide native splash screen
           await SplashScreen.hideAsync()
 
@@ -205,11 +201,7 @@ export default function RootLayout() {
             // Check session normally
             await SecureStore.deleteItemAsync(STORAGE_KEYS.STORED_CREDENTIALS)
             await checkSession()
-
-            // Show splash for a bit longer for branding
-            setTimeout(() => {
-              setShowCustomSplash(false)
-            }, 2000)
+            setShowCustomSplash(false)
           }
 
           setAppIsReady(true)

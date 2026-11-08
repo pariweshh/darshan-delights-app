@@ -3,7 +3,8 @@ import { useState, memo } from 'react'
 import { AppState, Platform } from 'react-native'
 
 const STALE_TIME = {
-  SHORT: 1000 * 30, // 30 seconds
+  SHORT: 1000 * 30, // 30 seconds (for fast-changing data like cart)
+  DEFAULT: 1000 * 60 * 2, // 2 minutes (standard queries)
   MEDIUM: 1000 * 60 * 5, // 5 minutes
   LONG: 1000 * 60 * 10, // 10 minutes
 }
@@ -17,7 +18,7 @@ function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: STALE_TIME.SHORT,
+        staleTime: STALE_TIME.DEFAULT,
         gcTime: GCACHE_TIME.SHORT,
         retry: 1,
         refetchOnWindowFocus: Platform.OS === 'web',
