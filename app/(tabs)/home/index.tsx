@@ -17,6 +17,7 @@ import Wrapper from "@/src/components/common/Wrapper"
 import AppExclusiveBanner from "@/src/components/home/banners/AppExclusiveBanner"
 import CategorySpotlightBanner from "@/src/components/home/banners/CategorySpotlightBanner"
 import CategoryList from "@/src/components/home/CategoryList"
+import HomeCarousel from "@/src/components/home/HomeCarousel"
 import ProductGrid from "@/src/components/home/ProductGrid"
 import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
 import PurchasedBeforeList from "@/src/components/home/PurchasedBeforeList"
@@ -497,6 +498,8 @@ export default function HomeScreen() {
             onCategoryPress={navigateToCategory}
           />
         </View>
+
+        <HomeCarousel />
 
         <AppExclusiveBanner />
 

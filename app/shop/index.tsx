@@ -93,25 +93,31 @@ export default function ShopScreen() {
     navigation.setOptions({ headerShown: false })
   }, [navigation])
 
-  // Apply URL params once brands have loaded — runs only once
+  // Apply URL params whenever brandParam / categoryParam or brands load
   useEffect(() => {
-    if (brandsLoading || paramsApplied) return
+    if (brandsLoading) return
 
     if (categoryParam && categoryParam !== selectedCategory) {
       setCategory(categoryParam)
     }
 
-    if (brandParam) {
-      const matchedBrand = brands.find(
-        (b) => b.name.toLowerCase() === brandParam.toLowerCase()
-      )
+    if (brandParam && brands.length > 0) {
+      const normalizedTarget = brandParam.toLowerCase().trim()
+      const matchedBrand = brands.find((b) => {
+        const name = b.name.toLowerCase().trim()
+        return (
+          name === normalizedTarget ||
+          name.includes(normalizedTarget) ||
+          normalizedTarget.includes(name)
+        )
+      })
       if (matchedBrand) {
         setSelectedBrands([matchedBrand])
       }
     }
 
     setParamsApplied(true)
-  }, [brands, brandsLoading, brandParam, categoryParam, paramsApplied, selectedCategory, setCategory])
+  }, [brands, brandsLoading, brandParam, categoryParam, setCategory])
 
   // Filter params drive the query key — changing them auto-resets pagination
   const filterParams = useMemo(() => ({

@@ -47,3 +47,7 @@ yarn-error.*
 # IDE and AI Tool local files
 .superpowers/
 .vscode/
+
+.freebuff
+.impeccable
+.vscode
