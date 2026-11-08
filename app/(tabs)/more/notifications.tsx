@@ -364,7 +364,7 @@ export default function NotificationsScreenTab() {
         )
       }
 
-      if (notification.actionUrl && pathname !== "/more/notifications") {
+      if (notification.actionUrl && notification.actionUrl !== pathname) {
         router.push(notification.actionUrl as any)
       } else if (notification.order) {
         router.push(`/(tabs)/more/orders?orderId=${notification.order.id}`)

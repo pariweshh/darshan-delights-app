@@ -23,7 +23,6 @@ import ProductHorizontalList from "@/src/components/home/ProductHorizontalList"
 import PurchasedBeforeList from "@/src/components/home/PurchasedBeforeList"
 import RecentlyViewed from "@/src/components/home/RecentlyViewed"
 import SectionHeader from "@/src/components/home/SectionHeader"
-import FeaturedFlipBook from "@/src/components/home/FeaturedFlipBook"
 import SignInPrompt from "@/src/components/home/SignInPrompt"
 import {
   CategoryChipSkeleton,
@@ -503,8 +502,6 @@ export default function HomeScreen() {
 
         <AppExclusiveBanner />
 
-        {/* <FeaturedFlipBook /> */}
-
         {/* New Arrivals Section */}
         <View style={{ marginBottom: config.sectionSpacing }}>
           <SectionHeader
@@ -516,16 +513,6 @@ export default function HomeScreen() {
             loading={newArrivalsLoading}
           />
         </View>
-
-        {/* <BrandPromoBanner
-          brandName="Katoomba"
-          tagline="Authentic Indian spices for every kitchen"
-          discount="20% off"
-          backgroundColor={
-            [AppColors.primary[400], AppColors.primary[300]] as const
-          }
-          accentColor="#fff"
-        /> */}
 
         {/* Popular Products Section */}
         <View style={{ marginBottom: config.sectionSpacing }}>
