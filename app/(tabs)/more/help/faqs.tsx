@@ -74,19 +74,19 @@ const FAQ_DATA: FAQSection[] = [
         id: "a3",
         question: "How do I change my password?",
         answer:
-          "Go to More > Settings > Change Password. Enter your current password and then your new password twice to confirm. Your new password must be at least 8 characters.",
+          "Go to More > Security > Change Password. Enter your current password and then your new password twice to confirm. Your new password must be at least 8 characters.",
       },
       {
         id: "a4",
         question: "Can I enable biometric login (Face ID/Fingerprint)?",
         answer:
-          "Yes! Go to More > Settings and enable 'Biometric Login'. Once enabled, you can use Face ID or fingerprint to quickly sign in instead of entering your password.",
+          "Yes! Go to More > Security and enable 'Biometric Login'. Once enabled, you can use Face ID or fingerprint to quickly sign in instead of entering your password.",
       },
       {
         id: "a5",
         question: "How do I delete my account?",
         answer:
-          "Go to More > Settings > Delete Account. Please note this action is permanent and will delete all your data including order history, saved addresses, favorites, and reviews. Contact support if you need assistance.",
+          "Go to More > My Profile and scroll down to 'Delete Account' under Danger Zone. Please note this action is permanent and will delete all your data including order history, saved addresses, favorites, and reviews. Contact support if you need assistance.",
       },
     ],
   },
@@ -185,7 +185,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "p4",
         question: "Do you offer discounts or promotions?",
         answer:
-          "Yes! Check the Weekly Sale section for current deals. Enable push notifications in Settings to be alerted about exclusive offers and promotions.",
+          "Yes! Check the Weekly Sale section for current deals. Enable push notifications via More > My Profile > Notification Preferences to be alerted about exclusive offers and promotions.",
       },
     ],
   },
@@ -197,31 +197,31 @@ const FAQ_DATA: FAQSection[] = [
         id: "d1",
         question: "What delivery options are available?",
         answer:
-          "We offer standard delivery throughout Australia and local pickup from our Austral location. Delivery options and costs are calculated based on your address and order weight at checkout.",
+          "Home delivery is currently paused, so all orders default to free Local Pickup from our Austral depot (8 Lethbridge Road, Austral NSW 2179). When home delivery is active, delivery options and costs are calculated at checkout based on your address and order weight.",
       },
       {
         id: "d2",
         question: "How long does delivery take?",
         answer:
-          "Sydney Metro orders typically arrive within 1-3 business days. Regional areas may take 3-7 business days. Delivery estimates are shown at checkout based on your location.",
+          "For Local Pickup, orders are typically prepared within 1-2 business days, and you will receive a notification when ready. When home delivery is active, Sydney Metro orders typically arrive within 1-3 business days and regional areas take 3-7 business days.",
       },
       {
         id: "d3",
         question: "Do you offer free shipping?",
         answer:
-          "Free shipping is available for orders over a certain amount within eligible areas. The free shipping threshold and eligibility will be displayed at checkout.",
+          "Local Pickup from our Austral location is always 100% free. When home delivery is active, free shipping thresholds and eligibility will be displayed at checkout.",
       },
       {
         id: "d4",
         question: "How does local pickup work?",
         answer:
-          "Select 'Local Pickup' at checkout. Once your order is ready, you'll receive a notification. Bring your order confirmation to our Austral location during pickup hours (Mon-Fri 5PM-8PM, Sat-Sun 9AM-5PM).",
+          "Select 'Local Pickup' at checkout. Once your order is ready, you'll receive a notification. Bring your order confirmation to our Austral location (8 Lethbridge Road, Austral NSW 2179) during pickup hours (Mon-Fri 5PM-8PM, Sat-Sun 9AM-5PM AEST).",
       },
       {
         id: "d5",
         question: "Can I track my delivery?",
         answer:
-          "Yes! Once your order is shipped, you'll receive a tracking number via email and push notification. You can also view tracking information in More > My Orders by tapping on your order.",
+          "Yes! Once your order is dispatched or marked ready for pickup, you'll receive a notification and email. You can also view status updates in More > My Orders by tapping on your order.",
       },
     ],
   },
@@ -284,36 +284,36 @@ const FAQ_DATA: FAQSection[] = [
         id: "r1",
         question: "What is your return policy?",
         answer:
-          "We accept returns within 7 days of delivery for most items in their original, unopened condition. Perishable items cannot be returned unless there's a quality issue upon delivery.",
+          "For eligible, unopened non-perishable goods in their original condition and packaging, we accept return requests within 7 days of collection or delivery. Under food safety standards, perishable groceries cannot be returned for change of mind. If any item arrives faulty, damaged, or expired, you are fully covered under Australian Consumer Law—contact us within 48 hours for a replacement or refund.",
       },
       {
         id: "r2",
         question: "How do I initiate a return?",
         answer:
-          "Contact our customer service team via the Contact Us page, email (contact@darshandelights.com.au), or phone. Provide your order number and reason for return. We'll guide you through the process.",
+          "To request a return or refund, navigate to More > Help & Support > Request Refund in the app, submit via darshandelights.com.au/refund-request, or email contact@darshandelights.com.au with your order number, reason, and photos. We will review and respond within 2-3 business days.",
       },
       {
         id: "r3",
         question: "How long do refunds take?",
         answer:
-          "Once we receive and inspect your return, refunds are processed within 5-7 business days. The refund will appear in your original payment method within an additional 3-5 business days depending on your bank.",
+          "Once we approve your request or inspect any returned items, your refund is processed within 5-10 business days back to your original payment method. Depending on your bank, it may take an additional 3-5 business days to appear on your statement.",
       },
       {
         id: "r4",
         question: "What if I received a damaged or wrong item?",
         answer:
-          "Please contact us within 48 hours of delivery with photos of the damaged/incorrect item. We'll arrange a replacement or full refund as quickly as possible.",
+          "Please contact us within 48 hours of collection or delivery with photos of the damaged or incorrect item. We'll arrange a prompt replacement or full refund under Australian Consumer Law.",
       },
     ],
   },
   {
-    title: "Notifications & Settings",
+    title: "Notifications & Preferences",
     items: [
       {
         id: "n1",
         question: "How do I manage push notifications?",
         answer:
-          "Go to More > Settings > Notifications to customize which notifications you receive, including order updates, promotions, and new product alerts. You can also manage permissions in your device settings.",
+          "Go to More > My Profile > Notification Preferences to customize which notifications you receive, including order updates, promotions, and new product alerts. You can also manage permissions in your device settings.",
       },
       {
         id: "n2",
@@ -325,7 +325,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "n3",
         question: "How do I change the app theme?",
         answer:
-          "Go to More > Settings > Appearance to switch between Light, Dark, or System (automatic) theme. The app will follow your device's dark mode setting when set to System.",
+          "Darshan Delights is crafted with a signature warm cream and saffron theme optimized for legibility and food vibrancy across all display settings. Custom theme toggling is not currently supported.",
       },
     ],
   },
@@ -342,7 +342,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "t2",
         question: "I'm not receiving push notifications. How do I fix this?",
         answer:
-          "Ensure notifications are enabled in your device settings for Darshan Delights. Also check More > Settings > Notifications in the app to ensure your preferences are set correctly.",
+          "Ensure notifications are enabled in your device settings for Darshan Delights. Also check More > My Profile > Notification Preferences in the app to ensure your preferences are enabled.",
       },
       {
         id: "t3",
@@ -383,7 +383,7 @@ const FAQ_DATA: FAQSection[] = [
         id: "ps3",
         question: "How do I sign out of my account?",
         answer:
-          "Go to More > Settings and tap 'Sign Out' at the bottom of the screen. You'll need to sign in again to access your account, favorites, and order history.",
+          "Open the More tab and tap 'Log Out' at the bottom of the list. You'll need to sign in again to access your account, favorites, and order history.",
       },
     ],
   },
