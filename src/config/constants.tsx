@@ -90,10 +90,22 @@ export const landingScreenSlides: LandingSlide[] = [
 // API Configuration
 export const API_CONFIG = {
   BASE_URL:
-    process.env.EXPO_PUBLIC_ENV === "production"
+    (process.env.EXPO_PUBLIC_ENV === "production"
       ? process.env.EXPO_PUBLIC_API_URL_PROD
-      : process.env.EXPO_PUBLIC_API_URL_DEV,
+      : process.env.EXPO_PUBLIC_API_URL_DEV) ||
+    process.env.EXPO_PUBLIC_API_URL_PROD ||
+    process.env.EXPO_PUBLIC_API_URL_DEV ||
+    "https://admino.darshandelights.com.au",
   TIMEOUT: 10000,
+} as const
+
+// Stripe Configuration (with fallback to ensure OTA bundles never miss publishableKey or merchantIdentifier)
+export const STRIPE_CONFIG = {
+  PUBLISHABLE_KEY:
+    process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+    "pk_live_51PmRyU06ixg4M1rWfs20Mzhz1HuM9pmvmyHmHHPQM8Ia4q02s1a1HTqnBwW0XC1js8VaORHK32NChOxz7mi4AqOI001dgd92wZ",
+  MERCHANT_IDENTIFIER: "merchant.com.darshandelights",
+  URL_SCHEME: "darshandelights",
 } as const
 
 // Secure storage keys

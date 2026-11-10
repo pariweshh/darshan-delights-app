@@ -56,7 +56,9 @@
       },
       "env": {
         "APP_ENV": "production",
+        "EXPO_PUBLIC_ENV": "production",
         "EXPO_PUBLIC_API_URL_PROD": "https://admino.darshandelights.com.au",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_51PmRyU06ixg4M1rWfs20Mzhz1HuM9pmvmyHmHHPQM8Ia4q02s1a1HTqnBwW0XC1js8VaORHK32NChOxz7mi4AqOI001dgd92wZ",
         "EXPO_PUBLIC_APP_STORE_ID": "6757019626"
       },
       "channel": "production"

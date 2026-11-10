@@ -3,7 +3,13 @@ import ErrorBoundary from "@/src/components/common/ErrorBoundary"
 import MaintenanceScreen from "@/src/components/common/MaintenanceScreen"
 import DebouncedTouchable from "@/src/components/ui/DebouncedTouchable"
 import { QueryProvider } from "@/src/providers/QueryProvider"
-import { HEIGHT, MAINTENANCE_CONFIG, STORAGE_KEYS, WIDTH } from "@/src/config/constants"
+import {
+  HEIGHT,
+  MAINTENANCE_CONFIG,
+  STORAGE_KEYS,
+  STRIPE_CONFIG,
+  WIDTH,
+} from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useDeepLinking } from "@/src/hooks/useDeepLinking"
 import { useNetworkInit } from "@/src/hooks/useNetworkStatus"
@@ -116,7 +122,7 @@ export default function RootLayout() {
     Poppins_700Bold,
   })
 
-  const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+  const publishableKey = STRIPE_CONFIG.PUBLISHABLE_KEY
 
   const handleBiometricAuth = useCallback(async () => {
     try {
@@ -290,7 +296,8 @@ export default function RootLayout() {
       <QueryProvider>
         <StripeProvider
           publishableKey={publishableKey}
-          merchantIdentifier="merchant.com.darshandelights"
+          merchantIdentifier={STRIPE_CONFIG.MERCHANT_IDENTIFIER}
+          urlScheme={STRIPE_CONFIG.URL_SCHEME}
         >
           <SafeAreaProvider>
           <GestureHandlerRootView style={{ flex: 1 }}>

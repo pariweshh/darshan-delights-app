@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "update:prod": "eas update --branch production --environment production",
+    "update:preview": "eas update --branch preview --environment preview"
   },
   "dependencies": {
     "@expo-google-fonts/poppins": "^0.4.1",

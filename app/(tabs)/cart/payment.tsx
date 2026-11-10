@@ -8,11 +8,12 @@ import Toast from "react-native-toast-message"
 import { applyCoupon } from "@/src/api/coupon"
 import { abandonOrder, createOrderAndPaymentIntent } from "@/src/api/orders"
 import Button from "@/src/components/ui/Button"
+import { STRIPE_CONFIG } from "@/src/config/constants"
 import AppColors from "@/src/constants/Colors"
 import { useResponsive } from "@/src/hooks/useResponsive"
 import { useClearCart } from "@/src/hooks/queries/useCart"
 import { useAuthStore } from "@/src/store/authStore"
-import { useStripe } from "@stripe/stripe-react-native"
+import { initStripe, useStripe } from "@stripe/stripe-react-native"
 
 const GST_RATE = 10
 
@@ -228,6 +229,14 @@ export default function PaymentScreen() {
         setLoading(false)
         return
       }
+
+      // Ensure native Stripe SDK is initialized with publishableKey and merchantIdentifier
+      // before initPaymentSheet builds the Apple Pay / Google Pay configuration
+      await initStripe({
+        publishableKey: STRIPE_CONFIG.PUBLISHABLE_KEY,
+        merchantIdentifier: STRIPE_CONFIG.MERCHANT_IDENTIFIER,
+        urlScheme: STRIPE_CONFIG.URL_SCHEME,
+      })
 
       const { error: initError } = await initPaymentSheet({
         merchantDisplayName: "Darshan Delights",
